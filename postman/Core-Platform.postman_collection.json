@@ -1,0 +1,394 @@
+{
+  "info": {
+    "name": "Core Platform",
+    "description": "Local APIs for all five services. Select the **Core Platform - Local** environment, run **Auth → Register** or **Login** first so tokens are saved, then the other folders.\n\nSuggested order: Health → Auth → Products → Inventory → Cart → Orders.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }]
+  },
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Live (user-service)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": "{{userUrl}}/health/live"
+          }
+        },
+        {
+          "name": "Ready (user-service)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": "{{userUrl}}/health/ready"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code !== 201 && pm.response.code !== 200) { return; }",
+                  "const json = pm.response.json();",
+                  "if (json.accessToken) pm.environment.set('accessToken', json.accessToken);",
+                  "if (json.refreshToken) pm.environment.set('refreshToken', json.refreshToken);",
+                  "if (json.user && json.user.email) pm.environment.set('email', json.user.email);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"name\": \"{{name}}\",\n  \"password\": \"{{password}}\"\n}"
+            },
+            "url": "{{userUrl}}/users",
+            "description": "Public. Password min 8. Saves accessToken and refreshToken on the environment. If email is already taken (409), use Login instead or change `email` in the environment."
+          }
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code !== 201 && pm.response.code !== 200) { return; }",
+                  "const json = pm.response.json();",
+                  "if (json.accessToken) pm.environment.set('accessToken', json.accessToken);",
+                  "if (json.refreshToken) pm.environment.set('refreshToken', json.refreshToken);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}"
+            },
+            "url": "{{userUrl}}/auth/login"
+          }
+        },
+        {
+          "name": "Refresh",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code !== 201 && pm.response.code !== 200) { return; }",
+                  "const json = pm.response.json();",
+                  "if (json.accessToken) pm.environment.set('accessToken', json.accessToken);",
+                  "if (json.refreshToken) pm.environment.set('refreshToken', json.refreshToken);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+            },
+            "url": "{{userUrl}}/auth/refresh",
+            "description": "Public. Body only — do not send refresh as Bearer. Saves the new token pair."
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{userUrl}}/auth/logout",
+            "description": "Needs a valid access token. Clears stored refresh. Access still works until it expires."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "Me",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{userUrl}}/users/me"
+          }
+        },
+        {
+          "name": "Update me",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Ada Lovelace\"\n}"
+            },
+            "url": "{{userUrl}}/users/me"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Products",
+      "item": [
+        {
+          "name": "List",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": "{{productUrl}}/products"
+          }
+        },
+        {
+          "name": "Get by id",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": "{{productUrl}}/products/{{productId}}"
+          }
+        },
+        {
+          "name": "Create",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code !== 201 && pm.response.code !== 200) { return; }",
+                  "const json = pm.response.json();",
+                  "const id = json._id || json.id;",
+                  "if (id) pm.environment.set('productId', id);",
+                  "if (json.sku) pm.environment.set('sku', json.sku);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Classic Tee\",\n  \"description\": \"Cotton\",\n  \"price\": 1299,\n  \"sku\": \"{{sku}}\"\n}"
+            },
+            "url": "{{productUrl}}/products",
+            "description": "Needs Bearer. Saves productId. SKU must be unique — change `sku` in the environment if you get 409. Start inventory-service first so product.created creates a stock row."
+          }
+        },
+        {
+          "name": "Update",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"description\": \"Organic cotton\"\n}"
+            },
+            "url": "{{productUrl}}/products/{{productId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Inventory",
+      "item": [
+        {
+          "name": "List",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": "{{inventoryUrl}}/inventory"
+          }
+        },
+        {
+          "name": "Get by product id",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": "{{inventoryUrl}}/inventory/{{productId}}"
+          }
+        },
+        {
+          "name": "Set quantity",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"quantity\": 50\n}"
+            },
+            "url": "{{inventoryUrl}}/inventory/{{productId}}"
+          }
+        },
+        {
+          "name": "Reserve",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 1\n}"
+            },
+            "url": "{{inventoryUrl}}/inventory/{{productId}}/reserve"
+          }
+        },
+        {
+          "name": "Release",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 1\n}"
+            },
+            "url": "{{inventoryUrl}}/inventory/{{productId}}/release"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Cart",
+      "item": [
+        {
+          "name": "Get my cart",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{cartUrl}}/carts"
+          }
+        },
+        {
+          "name": "Add item",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": \"{{productId}}\",\n  \"quantity\": 1\n}"
+            },
+            "url": "{{cartUrl}}/carts/items"
+          }
+        },
+        {
+          "name": "Update item qty",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"quantity\": 2\n}"
+            },
+            "url": "{{cartUrl}}/carts/items/{{productId}}"
+          }
+        },
+        {
+          "name": "Remove item",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{cartUrl}}/carts/items/{{productId}}"
+          }
+        },
+        {
+          "name": "Clear cart",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{cartUrl}}/carts"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Orders",
+      "item": [
+        {
+          "name": "List mine",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{orderUrl}}/orders"
+          }
+        },
+        {
+          "name": "Get by id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{orderUrl}}/orders/{{orderId}}"
+          }
+        },
+        {
+          "name": "Create",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code !== 201 && pm.response.code !== 200) { return; }",
+                  "const json = pm.response.json();",
+                  "const id = json._id || json.id;",
+                  "if (id) pm.environment.set('orderId', id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"items\": [\n    {\n      \"productId\": \"{{productId}}\",\n      \"quantity\": 1,\n      \"unitPrice\": 1299\n    }\n  ]\n}"
+            },
+            "url": "{{orderUrl}}/orders",
+            "description": "No userId in the body — it comes from the access token. Saves orderId. Set inventory quantity first if you want reserve to succeed."
+          }
+        },
+        {
+          "name": "Cancel",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"cancelled\"\n}"
+            },
+            "url": "{{orderUrl}}/orders/{{orderId}}/status"
+          }
+        }
+      ]
+    }
+  ]
+}

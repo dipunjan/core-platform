@@ -11,6 +11,7 @@ Nx runs `build` / `serve` / `lint`. Docker only runs **MongoDB** and **RabbitMQ*
 | Sign up, login, logout, tokens, how APIs are protected, curl tests | [docs/auth.md](docs/auth.md) |
 | Events, queues, DLQ, how to test inventory from orders/products | [docs/rabbitmq.md](docs/rabbitmq.md) |
 | `@core-platform/common` exports and folder layout | [docs/common.md](docs/common.md) |
+| Postman collection + environment | [docs/postman.md](docs/postman.md) |
 
 ## Architecture
 
@@ -136,6 +137,7 @@ Copy `.env.example` → `.env` in each app (gitignored). `ConfigModule` loads `a
 |---|---|
 | `apps/*` | Nest services |
 | `packages/common` | Shared boot, auth, Mongo, health, messaging — [docs/common.md](docs/common.md) |
-| `docs/` | Auth, RabbitMQ, common |
+| `docs/` | Auth, RabbitMQ, common, Postman |
+| `postman/` | Collection + local environment JSON |
 | `docker-compose.yml` | Local Mongo + RabbitMQ |
 | `nx.json` / `tsconfig.base.json` | Nx and TypeScript |

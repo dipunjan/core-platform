@@ -212,22 +212,64 @@ curl -X PUT http://localhost:3002/api/inventory/<productId> \
 
 ## How HTTP, Mongo, and RabbitMQ fit together
 
-1. Client calls Nest over HTTP (`/api/...`).
-2. Controller validates the body with a **DTO** + global `ValidationPipe`.
-3. Service writes to **that service’s Mongo DB**.
-4. If other services should know, the service calls `EventPublisher.publish(...)`.
-5. RabbitMQ topic exchange `core-platform` routes by event name (`order.created`).
-6. Only services with `@RabbitSubscribe` on that routing key consume it.
+HTTP is the public API. Mongo is each service’s database. RabbitMQ is the **async bus** so services do not call each other over HTTP for side effects (stock, etc.).
 
 ```
-POST /api/orders
-  → order-service saves to Mongo `orders`
-  → publish order.created
-  → inventory-service queue inventory.order.created
-  → inventory reserves stock in Mongo `inventory`
+Client
+  │  POST /api/orders
+  ▼
+order-service  ──save──►  Mongo DB `orders`
+  │
+  │  EventPublisher.publish(Events.ORDER_CREATED, payload)
+  ▼
+RabbitMQ exchange `core-platform`  (topic, durable)
+  routing key: order.created
+  │
+  ▼
+queue `inventory.order.created`  (durable, prefetch 1)
+  │
+  ▼
+inventory-service  @RabbitSubscribe  ──update──►  Mongo DB `inventory`
 ```
 
-HTTP is request/response. Events are **fire and forget** (eventual consistency). Cart is connected to RabbitMQ but has no consumers yet — add a subscriber only when cart needs to react.
+Same pattern for `product.created` (inventory creates a stock row) and `order.cancelled` (inventory releases reserved stock).
+
+### How a message is published
+
+1. A service imports `MessagingModule` (from `@core-platform/common`) in `app.module.ts`.
+2. The domain service injects `EventPublisher`.
+3. After a successful Mongo write it calls `this.events.publish(Events.ORDER_CREATED, payload)`.
+4. That publishes to exchange `core-platform` with the event name as the **routing key**.
+5. Messages are **persistent** (`defaultPublishOptions.persistent: true`) so they survive a RabbitMQ restart if they already reached a queue.
+
+Code lives in `packages/common/src/messaging/` (`MessagingModule`, `EventPublisher`, `Events`).
+
+### How a message is consumed
+
+1. Only services that care subscribe. Inventory does; cart does not yet.
+2. A class uses `@RabbitSubscribe(eventSubscribe('inventory.order.created', Events.ORDER_CREATED))`.
+3. `eventSubscribe()` sets: durable queue, bind to `core-platform` with that routing key, dead-letter exchange on failure.
+4. `prefetchCount: 1` — the consumer takes **one** message at a time (back-pressure under load). More inventory processes = competing consumers on the same queue.
+
+### Success vs failure
+
+```
+Handler succeeds  →  ACK  →  message deleted from the queue
+Handler throws    →  NACK (not requeued)  →  dead-letter exchange `core-platform.dlx`
+                                              →  queue `core-platform.dlq`
+```
+
+Failed messages are **not** retried in a loop (that would block the main queue with poison messages). They wait in **`core-platform.dlq`**. Open http://localhost:15672 → Queues → `core-platform.dlq` to inspect or replay.
+
+If the **consumer process crashes** before ack, the message stays in the main queue and is delivered again when inventory restarts.
+
+If the **connection to Rabbit drops**, `amqp-connection-manager` reconnects (heartbeat 5s, retry every 3s). Nest apps still start if Rabbit is down (`wait: false`); `/api/health` will show Rabbit as down.
+
+### What is still not guaranteed
+
+Topic exchanges **do not store** a message unless a queue is already bound. If you publish `order.created` **before inventory has ever been started**, there is no `inventory.order.created` queue yet and the message is dropped. Start consumers at least once (or keep them running) so queues exist.
+
+There is no delayed “retry 5 times then DLQ” loop. Fail once → DLQ.
 
 ### Events in this repo
 
@@ -238,7 +280,8 @@ HTTP is request/response. Events are **fire and forget** (eventual consistency).
 | `order.created` | order-service | inventory (reserve) |
 | `order.cancelled` | order-service | inventory (release) |
 
-To add an event: name + payload in `packages/common/src/messaging/events.ts`, `publish` in the producer, `@RabbitSubscribe` only on the consumer.
+To add an event: name + payload in `packages/common/src/messaging/events.ts`, `publish` in the producer, `@RabbitSubscribe(eventSubscribe('your-queue', Events.YOUR_EVENT))` only on the consumer.
+
 
 ## Error handling
 

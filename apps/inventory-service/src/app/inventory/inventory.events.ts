@@ -1,9 +1,9 @@
 import {
-  EVENTS_EXCHANGE,
+  eventSubscribe,
   Events,
-  OrderCancelledEvent,
-  OrderCreatedEvent,
-  ProductCreatedEvent,
+  type OrderCancelledEvent,
+  type OrderCreatedEvent,
+  type ProductCreatedEvent,
 } from '@core-platform/common';
 import { RabbitSubscribe } from '@golevelup/nestjs-rabbitmq';
 import { Injectable, Logger } from '@nestjs/common';
@@ -15,21 +15,17 @@ export class InventoryEventsConsumer {
 
   constructor(private readonly inventoryService: InventoryService) {}
 
-  @RabbitSubscribe({
-    exchange: EVENTS_EXCHANGE,
-    routingKey: Events.PRODUCT_CREATED,
-    queue: 'inventory.product.created',
-  })
+  @RabbitSubscribe(
+    eventSubscribe('inventory.product.created', Events.PRODUCT_CREATED),
+  )
   async onProductCreated(payload: ProductCreatedEvent) {
     this.logger.log(`Creating stock row for product ${payload.id}`);
     await this.inventoryService.setQuantity(payload.id, { quantity: 0 });
   }
 
-  @RabbitSubscribe({
-    exchange: EVENTS_EXCHANGE,
-    routingKey: Events.ORDER_CREATED,
-    queue: 'inventory.order.created',
-  })
+  @RabbitSubscribe(
+    eventSubscribe('inventory.order.created', Events.ORDER_CREATED),
+  )
   async onOrderCreated(payload: OrderCreatedEvent) {
     this.logger.log(`Reserving stock for order ${payload.id}`);
     for (const item of payload.items) {
@@ -39,11 +35,9 @@ export class InventoryEventsConsumer {
     }
   }
 
-  @RabbitSubscribe({
-    exchange: EVENTS_EXCHANGE,
-    routingKey: Events.ORDER_CANCELLED,
-    queue: 'inventory.order.cancelled',
-  })
+  @RabbitSubscribe(
+    eventSubscribe('inventory.order.cancelled', Events.ORDER_CANCELLED),
+  )
   async onOrderCancelled(payload: OrderCancelledEvent) {
     this.logger.log(`Releasing stock for order ${payload.id}`);
     for (const item of payload.items) {

@@ -1,4 +1,6 @@
 export const EVENTS_EXCHANGE = 'core-platform';
+export const DLX_EXCHANGE = 'core-platform.dlx';
+export const DLQ_QUEUE = 'core-platform.dlq';
 
 export const Events = {
   USER_CREATED: 'user.created',

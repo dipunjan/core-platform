@@ -9,9 +9,7 @@ export class EventPublisher {
   constructor(private readonly amqp: AmqpConnection) {}
 
   async publish<T>(routingKey: EventName, payload: T): Promise<void> {
-    await this.amqp.publish(EVENTS_EXCHANGE, routingKey, payload, {
-      persistent: true,
-    });
+    await this.amqp.publish(EVENTS_EXCHANGE, routingKey, payload);
     this.logger.debug(`Published ${routingKey}`);
   }
 }

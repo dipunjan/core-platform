@@ -3,6 +3,7 @@ import { Controller, Get, Optional } from '@nestjs/common';
 import {
   HealthCheck,
   HealthCheckService,
+  HealthIndicatorFunction,
   HealthIndicatorResult,
   MongooseHealthIndicator,
 } from '@nestjs/terminus';
@@ -18,9 +19,11 @@ export class HealthController {
   @Get()
   @HealthCheck()
   check() {
-    const checks = [() => this.mongoose.pingCheck('mongodb')];
+    const checks: HealthIndicatorFunction[] = [
+      () => this.mongoose.pingCheck('mongodb'),
+    ];
     if (this.amqp) {
-      checks.push(() => this.rabbitCheck());
+      checks.push(async () => this.rabbitCheck());
     }
     return this.health.check(checks);
   }

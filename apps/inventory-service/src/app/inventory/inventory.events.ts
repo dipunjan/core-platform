@@ -29,9 +29,11 @@ export class InventoryEventsConsumer {
   async onOrderCreated(payload: OrderCreatedEvent) {
     this.logger.log(`Reserving stock for order ${payload.id}`);
     for (const item of payload.items) {
-      await this.inventoryService.reserve(item.productId, {
-        amount: item.quantity,
-      });
+      await this.inventoryService.reserveForOrder(
+        payload.id,
+        item.productId,
+        item.quantity,
+      );
     }
   }
 
@@ -41,9 +43,11 @@ export class InventoryEventsConsumer {
   async onOrderCancelled(payload: OrderCancelledEvent) {
     this.logger.log(`Releasing stock for order ${payload.id}`);
     for (const item of payload.items) {
-      await this.inventoryService.release(item.productId, {
-        amount: item.quantity,
-      });
+      await this.inventoryService.releaseForOrder(
+        payload.id,
+        item.productId,
+        item.quantity,
+      );
     }
   }
 }

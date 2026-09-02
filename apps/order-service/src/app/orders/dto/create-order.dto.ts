@@ -27,10 +27,6 @@ export class CreateOrderItemDto {
 }
 
 export class CreateOrderDto {
-  @IsString()
-  @MinLength(1)
-  userId!: string;
-
   @IsArray()
   @ArrayMinSize(1)
   @ValidateNested({ each: true })

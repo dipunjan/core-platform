@@ -1,4 +1,9 @@
-import { EventPublisher, Events, ProductCreatedEvent } from '@core-platform/common';
+import {
+  EventPublisher,
+  Events,
+  mongoWrite,
+  ProductCreatedEvent,
+} from '@core-platform/common';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { isValidObjectId, Model } from 'mongoose';
@@ -30,7 +35,10 @@ export class ProductsService {
   }
 
   async create(input: CreateProductDto) {
-    const product = await this.productModel.create(input);
+    const product = await mongoWrite(
+      this.productModel.create(input),
+      'SKU already exists',
+    );
     await this.events.publish<ProductCreatedEvent>(Events.PRODUCT_CREATED, {
       id: String(product._id),
       name: product.name,
@@ -40,9 +48,11 @@ export class ProductsService {
   }
 
   async update(id: string, input: UpdateProductDto) {
-    const product = await this.productModel
-      .findByIdAndUpdate(id, input, { new: true })
-      .exec();
+    await this.findOne(id);
+    const product = await mongoWrite(
+      this.productModel.findByIdAndUpdate(id, input, { new: true }).exec(),
+      'SKU already exists',
+    );
     if (!product) {
       throw new NotFoundException(`Product ${id} not found`);
     }

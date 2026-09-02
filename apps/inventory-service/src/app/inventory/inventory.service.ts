@@ -1,3 +1,4 @@
+import { mongoWrite } from '@core-platform/common';
 import {
   BadRequestException,
   Injectable,
@@ -29,28 +30,115 @@ export class InventoryService {
   }
 
   async setQuantity(productId: string, input: SetQuantityDto) {
-    return this.inventoryModel
-      .findOneAndUpdate(
-        { productId },
-        { $set: { quantity: input.quantity } },
-        { new: true, upsert: true, setDefaultsOnInsert: true },
-      )
-      .exec();
+    return mongoWrite(
+      this.inventoryModel
+        .findOneAndUpdate(
+          { productId },
+          { $set: { quantity: input.quantity } },
+          { new: true, upsert: true, setDefaultsOnInsert: true },
+        )
+        .exec(),
+      'Inventory already exists for this product',
+    );
   }
 
   async reserve(productId: string, input: AdjustStockDto) {
-    const item = await this.findOne(productId);
-    const available = item.quantity - item.reserved;
-    if (input.amount > available) {
-      throw new BadRequestException(`Only ${available} units available`);
+    const item = await mongoWrite(
+      this.inventoryModel
+        .findOneAndUpdate(
+          {
+            productId,
+            $expr: {
+              $gte: [{ $subtract: ['$quantity', '$reserved'] }, input.amount],
+            },
+          },
+          { $inc: { reserved: input.amount } },
+          { new: true },
+        )
+        .exec(),
+      'Inventory already exists for this product',
+    );
+    if (!item) {
+      await this.findOne(productId);
+      throw new BadRequestException('Insufficient available stock');
     }
-    item.reserved += input.amount;
-    return item.save();
+    return item;
   }
 
   async release(productId: string, input: AdjustStockDto) {
-    const item = await this.findOne(productId);
-    item.reserved = Math.max(0, item.reserved - input.amount);
-    return item.save();
+    const item = await mongoWrite(
+      this.inventoryModel
+        .findOneAndUpdate(
+          { productId, reserved: { $gte: input.amount } },
+          { $inc: { reserved: -input.amount } },
+          { new: true },
+        )
+        .exec(),
+      'Inventory already exists for this product',
+    );
+    if (item) {
+      return item;
+    }
+    const existing = await this.findOne(productId);
+    existing.reserved = 0;
+    return mongoWrite(
+      existing.save(),
+      'Inventory already exists for this product',
+    );
+  }
+
+  async reserveForOrder(orderId: string, productId: string, amount: number) {
+    const already = await this.inventoryModel
+      .findOne({ productId, reservationKeys: orderId })
+      .exec();
+    if (already) {
+      return already;
+    }
+    const item = await mongoWrite(
+      this.inventoryModel
+        .findOneAndUpdate(
+          {
+            productId,
+            reservationKeys: { $ne: orderId },
+            $expr: {
+              $gte: [{ $subtract: ['$quantity', '$reserved'] }, amount],
+            },
+          },
+          {
+            $inc: { reserved: amount },
+            $addToSet: { reservationKeys: orderId },
+          },
+          { new: true },
+        )
+        .exec(),
+      'Inventory already exists for this product',
+    );
+    if (!item) {
+      await this.findOne(productId);
+      throw new BadRequestException(
+        `Insufficient stock to reserve ${amount} of ${productId} for order ${orderId}`,
+      );
+    }
+    return item;
+  }
+
+  async releaseForOrder(orderId: string, productId: string, amount: number) {
+    const item = await mongoWrite(
+      this.inventoryModel
+        .findOneAndUpdate(
+          { productId, reservationKeys: orderId, reserved: { $gte: amount } },
+          {
+            $inc: { reserved: -amount },
+            $pull: { reservationKeys: orderId },
+          },
+          { new: true },
+        )
+        .exec(),
+      'Inventory already exists for this product',
+    );
+    if (item) {
+      return item;
+    }
+    return this.inventoryModel.findOne({ productId }).exec();
   }
 }

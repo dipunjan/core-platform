@@ -20,6 +20,8 @@ export function databaseImports(options: {
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
         uri: config.get<string>('MONGO_URI') ?? options.defaultMongoUri,
+        serverSelectionTimeoutMS: 5000,
+        maxPoolSize: 10,
       }),
     }),
   ];

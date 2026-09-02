@@ -1,4 +1,3 @@
-import { mongooseSchemaOptions } from '@core-platform/common';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument } from 'mongoose';
 
@@ -27,7 +26,7 @@ export class OrderItem {
 
 const OrderItemSchema = SchemaFactory.createForClass(OrderItem);
 
-@Schema(mongooseSchemaOptions())
+@Schema({ timestamps: true })
 export class Order {
   @Prop({ required: true })
   userId!: string;

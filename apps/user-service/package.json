@@ -3,6 +3,7 @@
   "version": "0.0.1",
   "private": true,
   "nx": {
+    "name": "user-service",
     "targets": {
       "build": {
         "executor": "nx:run-commands",
@@ -64,15 +65,15 @@
           "build"
         ],
         "options": {
-          "buildTarget": "@core-platform/user-service:build",
+          "buildTarget": "user-service:build",
           "runBuildTargetDependencies": false
         },
         "configurations": {
           "development": {
-            "buildTarget": "@core-platform/user-service:build:development"
+            "buildTarget": "user-service:build:development"
           },
           "production": {
-            "buildTarget": "@core-platform/user-service:build:production"
+            "buildTarget": "user-service:build:production"
           }
         }
       }
@@ -83,6 +84,7 @@
     "@nestjs/common": "^11.0.0",
     "@nestjs/config": "^4.0.2",
     "@nestjs/core": "^11.0.0",
+    "@nestjs/jwt": "^11.0.0",
     "@nestjs/mapped-types": "^2.1.0",
     "@nestjs/mongoose": "^11.0.3",
     "@nestjs/platform-express": "^11.0.0",

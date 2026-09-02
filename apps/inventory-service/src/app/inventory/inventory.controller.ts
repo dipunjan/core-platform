@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Param, Post, Put } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  Put,
+} from '@nestjs/common';
+import { Public } from '@core-platform/common';
 import { AdjustStockDto } from './dto/adjust-stock.dto';
 import { SetQuantityDto } from './dto/set-quantity.dto';
 import { InventoryService } from './inventory.service';
@@ -7,11 +15,13 @@ import { InventoryService } from './inventory.service';
 export class InventoryController {
   constructor(private readonly inventoryService: InventoryService) {}
 
+  @Public()
   @Get()
   findAll() {
     return this.inventoryService.findAll();
   }
 
+  @Public()
   @Get(':productId')
   findOne(@Param('productId') productId: string) {
     return this.inventoryService.findOne(productId);

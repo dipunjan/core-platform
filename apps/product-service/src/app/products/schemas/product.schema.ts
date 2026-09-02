@@ -1,10 +1,9 @@
-import { mongooseSchemaOptions } from '@core-platform/common';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument } from 'mongoose';
 
 export type ProductDocument = HydratedDocument<Product>;
 
-@Schema(mongooseSchemaOptions())
+@Schema({ timestamps: true })
 export class Product {
   @Prop({ required: true })
   name!: string;

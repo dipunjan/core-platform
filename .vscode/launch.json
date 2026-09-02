@@ -4,12 +4,12 @@
     {
       "type": "node",
       "request": "launch",
-      "name": "Debug @core-platform/user-service with Nx",
+      "name": "Debug user-service with Nx",
       "runtimeExecutable": "npx",
       "runtimeArgs": [
         "nx",
         "serve",
-        "@core-platform/user-service"
+        "user-service"
       ],
       "env": {
         "NODE_OPTIONS": "--inspect=9229"

@@ -1,9 +1,20 @@
-import { EventPublisher, Events, UserCreatedEvent } from '@core-platform/common';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  EventPublisher,
+  Events,
+  mongoWrite,
+  UserCreatedEvent,
+} from '@core-platform/common';
+import {
+  Injectable,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
 import * as bcrypt from 'bcrypt';
-import { isValidObjectId, Model } from 'mongoose';
+import { Model } from 'mongoose';
 import { CreateUserDto } from './dto/create-user.dto';
+import { LoginDto } from './dto/login.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { User } from './schemas/user.schema';
 
@@ -12,26 +23,27 @@ export class UsersService {
   constructor(
     @InjectModel(User.name) private readonly userModel: Model<User>,
     private readonly events: EventPublisher,
+    private readonly jwt: JwtService,
   ) {}
 
-  findAll() {
-    return this.userModel.find().exec();
-  }
-
-  async findOne(id: string) {
-    if (!isValidObjectId(id)) {
-      throw new NotFoundException(`User ${id} not found`);
-    }
-    const user = await this.userModel.findById(id).exec();
+  async findMe(userId: string) {
+    const user = await this.userModel.findById(userId).exec();
     if (!user) {
-      throw new NotFoundException(`User ${id} not found`);
+      throw new NotFoundException('User not found');
     }
     return user;
   }
 
   async create(input: CreateUserDto) {
-    const password = await bcrypt.hash(input.password, 10);
-    const user = await this.userModel.create({ ...input, password });
+    const password = await bcrypt.hash(input.password, 12);
+    const user = await mongoWrite(
+      this.userModel.create({
+        ...input,
+        email: input.email.toLowerCase(),
+        password,
+      }),
+      'Email already in use',
+    );
     await this.events.publish<UserCreatedEvent>(Events.USER_CREATED, {
       id: String(user._id),
       email: user.email,
@@ -40,16 +52,39 @@ export class UsersService {
     return user;
   }
 
-  async update(id: string, input: UpdateUserDto) {
-    const update = { ...input };
-    if (input.password) {
-      update.password = await bcrypt.hash(input.password, 10);
-    }
+  async login(input: LoginDto) {
     const user = await this.userModel
-      .findByIdAndUpdate(id, update, { new: true })
+      .findOne({ email: input.email.toLowerCase() })
+      .select('+password')
       .exec();
+    if (!user || !(await bcrypt.compare(input.password, user.password))) {
+      throw new UnauthorizedException('Invalid email or password');
+    }
+    const accessToken = await this.jwt.signAsync({
+      sub: String(user._id),
+      email: user.email,
+    });
+    return {
+      accessToken,
+      tokenType: 'Bearer' as const,
+      user: { id: String(user._id), email: user.email, name: user.name },
+    };
+  }
+
+  async update(userId: string, input: UpdateUserDto) {
+    const update = { ...input };
+    if (input.email) {
+      update.email = input.email.toLowerCase();
+    }
+    if (input.password) {
+      update.password = await bcrypt.hash(input.password, 12);
+    }
+    const user = await mongoWrite(
+      this.userModel.findByIdAndUpdate(userId, update, { new: true }).exec(),
+      'Email already in use',
+    );
     if (!user) {
-      throw new NotFoundException(`User ${id} not found`);
+      throw new NotFoundException('User not found');
     }
     await this.events.publish(Events.USER_UPDATED, {
       id: String(user._id),
@@ -59,10 +94,10 @@ export class UsersService {
     return user;
   }
 
-  async remove(id: string) {
-    const user = await this.userModel.findByIdAndDelete(id).exec();
+  async remove(userId: string) {
+    const user = await this.userModel.findByIdAndDelete(userId).exec();
     if (!user) {
-      throw new NotFoundException(`User ${id} not found`);
+      throw new NotFoundException('User not found');
     }
   }
 }

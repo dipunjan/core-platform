@@ -7,6 +7,7 @@ import {
   Patch,
   Post,
 } from '@nestjs/common';
+import { CurrentUser, type AuthUser } from '@core-platform/common';
 import { AddCartItemDto } from './dto/add-cart-item.dto';
 import { UpdateCartItemDto } from './dto/update-cart-item.dto';
 import { CartsService } from './carts.service';
@@ -15,35 +16,35 @@ import { CartsService } from './carts.service';
 export class CartsController {
   constructor(private readonly cartsService: CartsService) {}
 
-  @Get(':userId')
-  getCart(@Param('userId') userId: string) {
-    return this.cartsService.getCart(userId);
+  @Get()
+  getCart(@CurrentUser() user: AuthUser) {
+    return this.cartsService.getCart(user.sub);
   }
 
-  @Post(':userId/items')
-  addItem(@Param('userId') userId: string, @Body() body: AddCartItemDto) {
-    return this.cartsService.addItem(userId, body);
+  @Post('items')
+  addItem(@CurrentUser() user: AuthUser, @Body() body: AddCartItemDto) {
+    return this.cartsService.addItem(user.sub, body);
   }
 
-  @Patch(':userId/items/:productId')
+  @Patch('items/:productId')
   updateItem(
-    @Param('userId') userId: string,
+    @CurrentUser() user: AuthUser,
     @Param('productId') productId: string,
     @Body() body: UpdateCartItemDto,
   ) {
-    return this.cartsService.updateItem(userId, productId, body);
+    return this.cartsService.updateItem(user.sub, productId, body);
   }
 
-  @Delete(':userId/items/:productId')
+  @Delete('items/:productId')
   removeItem(
-    @Param('userId') userId: string,
+    @CurrentUser() user: AuthUser,
     @Param('productId') productId: string,
   ) {
-    return this.cartsService.removeItem(userId, productId);
+    return this.cartsService.removeItem(user.sub, productId);
   }
 
-  @Delete(':userId')
-  clear(@Param('userId') userId: string) {
-    return this.cartsService.clear(userId);
+  @Delete()
+  clear(@CurrentUser() user: AuthUser) {
+    return this.cartsService.clear(user.sub);
   }
 }

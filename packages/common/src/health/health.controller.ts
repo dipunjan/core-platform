@@ -7,7 +7,9 @@ import {
   HealthIndicatorResult,
   MongooseHealthIndicator,
 } from '@nestjs/terminus';
+import { Public } from '../auth/public.decorator';
 
+@Public()
 @Controller('health')
 export class HealthController {
   constructor(
@@ -16,9 +18,20 @@ export class HealthController {
     @Optional() private readonly amqp?: AmqpConnection,
   ) {}
 
+  @Get('live')
+  live() {
+    return { status: 'ok' };
+  }
+
   @Get()
   @HealthCheck()
   check() {
+    return this.ready();
+  }
+
+  @Get('ready')
+  @HealthCheck()
+  ready() {
     const checks: HealthIndicatorFunction[] = [
       () => this.mongoose.pingCheck('mongodb'),
     ];

@@ -1,13 +1,18 @@
+export { AuthModule } from './auth/auth.module';
+export { CurrentUser } from './auth/current-user.decorator';
+export { Public } from './auth/public.decorator';
+export type { AuthUser } from './auth/auth.types';
 export { bootstrapNestApp } from './bootstrap/bootstrap';
 export { databaseImports } from './database/database';
-export { mongooseSchemaOptions } from './database/schema';
-export { AllExceptionsFilter } from './errors/http-exception.filter';
+export {
+  isDuplicateKey,
+  isVersionError,
+  mongoWrite,
+  throwDuplicate,
+} from './database/duplicate-key';
 export { HealthModule } from './health/health.module';
 export { EventPublisher } from './messaging/event-publisher';
 export {
-  DLQ_QUEUE,
-  DLX_EXCHANGE,
-  EVENTS_EXCHANGE,
   Events,
   type EventName,
   type OrderCancelledEvent,

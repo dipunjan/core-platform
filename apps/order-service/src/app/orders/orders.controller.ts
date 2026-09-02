@@ -1,4 +1,5 @@
 import { Body, Controller, Get, Param, Patch, Post } from '@nestjs/common';
+import { CurrentUser, type AuthUser } from '@core-platform/common';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { OrdersService } from './orders.service';
@@ -8,27 +9,26 @@ export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {}
 
   @Get()
-  findAll() {
-    return this.ordersService.findAll();
-  }
-
-  @Get('user/:userId')
-  findByUser(@Param('userId') userId: string) {
-    return this.ordersService.findByUser(userId);
+  findMine(@CurrentUser() user: AuthUser) {
+    return this.ordersService.findByUser(user.sub);
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.ordersService.findOne(id);
+  findOne(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    return this.ordersService.findOne(id, user.sub);
   }
 
   @Post()
-  create(@Body() body: CreateOrderDto) {
-    return this.ordersService.create(body);
+  create(@CurrentUser() user: AuthUser, @Body() body: CreateOrderDto) {
+    return this.ordersService.create(user.sub, body);
   }
 
   @Patch(':id/status')
-  updateStatus(@Param('id') id: string, @Body() body: UpdateOrderStatusDto) {
-    return this.ordersService.updateStatus(id, body);
+  updateStatus(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+    @Body() body: UpdateOrderStatusDto,
+  ) {
+    return this.ordersService.updateStatus(id, user.sub, body);
   }
 }

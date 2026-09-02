@@ -1,4 +1,3 @@
-import { mongooseSchemaOptions } from '@core-platform/common';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument } from 'mongoose';
 
@@ -15,7 +14,7 @@ export class CartItem {
 
 const CartItemSchema = SchemaFactory.createForClass(CartItem);
 
-@Schema(mongooseSchemaOptions())
+@Schema({ timestamps: true })
 export class Cart {
   @Prop({ required: true, unique: true })
   userId!: string;

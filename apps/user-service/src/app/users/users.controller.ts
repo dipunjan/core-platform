@@ -3,10 +3,10 @@ import {
   Controller,
   Delete,
   Get,
-  Param,
   Patch,
   Post,
 } from '@nestjs/common';
+import { CurrentUser, Public, type AuthUser } from '@core-platform/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UsersService } from './users.service';
@@ -15,29 +15,25 @@ import { UsersService } from './users.service';
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
-  @Get()
-  findAll() {
-    return this.usersService.findAll();
-  }
-
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.usersService.findOne(id);
-  }
-
+  @Public()
   @Post()
   create(@Body() body: CreateUserDto) {
     return this.usersService.create(body);
   }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() body: UpdateUserDto) {
-    return this.usersService.update(id, body);
+  @Get('me')
+  me(@CurrentUser() user: AuthUser) {
+    return this.usersService.findMe(user.sub);
   }
 
-  @Delete(':id')
-  async remove(@Param('id') id: string) {
-    await this.usersService.remove(id);
+  @Patch('me')
+  update(@CurrentUser() user: AuthUser, @Body() body: UpdateUserDto) {
+    return this.usersService.update(user.sub, body);
+  }
+
+  @Delete('me')
+  async remove(@CurrentUser() user: AuthUser) {
+    await this.usersService.remove(user.sub);
     return { deleted: true };
   }
 }

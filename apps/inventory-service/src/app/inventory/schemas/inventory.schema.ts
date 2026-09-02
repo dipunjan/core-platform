@@ -1,10 +1,9 @@
-import { mongooseSchemaOptions } from '@core-platform/common';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument } from 'mongoose';
 
 export type InventoryDocument = HydratedDocument<Inventory>;
 
-@Schema(mongooseSchemaOptions())
+@Schema({ timestamps: true })
 export class Inventory {
   @Prop({ required: true, unique: true })
   productId!: string;
@@ -14,6 +13,9 @@ export class Inventory {
 
   @Prop({ required: true, min: 0, default: 0 })
   reserved!: number;
+
+  @Prop({ type: [String], default: [] })
+  reservationKeys!: string[];
 }
 
 export const InventorySchema = SchemaFactory.createForClass(Inventory);

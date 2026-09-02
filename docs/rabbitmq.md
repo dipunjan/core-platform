@@ -7,24 +7,29 @@ Local broker: `docker compose up -d` → AMQP `localhost:5672`, UI http://localh
 ## Flow
 
 ```
-Client
-  │  POST /api/orders
-  ▼
-order-service  ──save──►  Mongo DB `orders`
-  │
-  │  EventPublisher.publish(Events.ORDER_CREATED, payload)
-  ▼
-RabbitMQ exchange `core-platform`  (topic, durable)
-  routing key: order.created
-  │
-  ▼
-queue `inventory.order.created`  (durable, prefetch 1)
-  │
-  ▼
-inventory-service  @RabbitSubscribe  ──update──►  Mongo DB `inventory`
+  Client
+    │  POST /api/orders   Bearer <access>
+    ▼
+  order-service  ──save──►  Mongo DB `orders`
+    │
+    │  EventPublisher.publish(order.created)
+    ▼
+  RabbitMQ exchange `core-platform`   (topic, durable)
+    routing key: order.created
+    │
+    ▼
+  queue `inventory.order.created`
+    │
+    ▼
+  inventory-service  ──update──►  Mongo DB `inventory`   then ACK
 ```
 
-Same pattern for `product.created` (inventory creates a stock row) and `order.cancelled` (inventory releases reserved stock).
+Same shape for:
+
+```
+  product.created   ──►  inventory row, quantity 0
+  order.cancelled   ──►  release reserved stock
+```
 
 ## Events in this repo
 
@@ -55,12 +60,17 @@ Code: `packages/common/src/messaging/`.
 ## Success vs failure
 
 ```
-Handler succeeds  →  ACK  →  message deleted
-Handler throws    →  NACK (not requeued)  →  exchange `core-platform.dlx`
-                                              →  queue `core-platform.dlq`
+  Handler succeeds  →  ACK   →  message deleted
+  Handler throws    →  NACK (not requeued)
+                         │
+                         ▼
+                   exchange `core-platform.dlx`
+                         │
+                         ▼
+                   queue `core-platform.dlq`
 ```
 
-Poison messages wait in **`core-platform.dlq`**. UI: Queues → `core-platform.dlq`.
+Inspect failed messages in the Rabbit UI: Queues → `core-platform.dlq`.
 
 - Process crash **before** ack → message stays on the main queue and is redelivered.
 - Connection drop → `amqp-connection-manager` reconnects (heartbeat 5s, retry 3s). Apps still **start** if Rabbit is down (`wait: false`); `/api/health/ready` shows Rabbit down.

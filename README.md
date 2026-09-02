@@ -45,6 +45,19 @@ Nx project names match the folders (`npx nx serve user-service`). npm packages a
 
 Services do **not** share collections.
 
+A request with a token:
+
+```
+  Client
+    │  Authorization: Bearer <access>
+    ▼
+  Service  ── JwtAuthGuard ──►  401 if missing / expired / refresh JWT
+    │                           else controller + this service's Mongo
+    └── (some writes) publish ──► RabbitMQ  ──► inventory-service
+```
+
+Auth and events in more detail: [docs/auth.md](docs/auth.md), [docs/rabbitmq.md](docs/rabbitmq.md).
+
 ```
 apps/user-service/src/
   main.ts                          # bootstrapNestApp(...)

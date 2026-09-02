@@ -25,31 +25,44 @@ One active refresh per user. Login or refresh **rotates** it (SHA-256 stored on 
 ## Flow
 
 ```
-Register or login
-  → accessToken + refreshToken
-
-API calls
-  → Authorization: Bearer <accessToken>
-  → JwtAuthGuard verifies JWT_SECRET, typ must be "access"
-
-Access expired (401)
-  → POST /api/auth/refresh  { "refreshToken" }
-  → new pair; old refresh is invalid
-
-Sign out
-  → POST /api/auth/logout  (still-valid access token)
-  → stored refresh hash deleted; access works until it expires
+  Client
+    │  POST /api/users  or  POST /api/auth/login
+    ▼
+  user-service
+    │  ← accessToken (~15m) + refreshToken (~7d)
+    │
+    │  later:  Authorization: Bearer <accessToken>
+    ▼
+  Any service  ── JwtAuthGuard ──►  401  or  handler runs
+    │
+    │  when access expired:
+    │  POST /api/auth/refresh   { "refreshToken": "..." }
+    ▼
+  user-service
+    │  ← new access + new refresh  (old refresh is dead)
+    │
+    │  POST /api/auth/logout   Bearer <access>
+    ▼
+  user-service   stored refresh hash cleared
 ```
 
-Payload: `{ sub, email, typ }` with `typ` = `access` | `refresh`.
+Payload: `{ sub, email, typ }` — `typ` is `access` or `refresh`.
 
 ## How the guard works
 
-1. `@Public()` → allow
-2. Else require `Authorization: Bearer …`
-3. `jwt.verify` with `JWT_SECRET`
-4. Reject if `typ` is `refresh`
-5. Set `request.user` for `@CurrentUser()`
+```
+  Incoming request
+    │
+    ├─ @Public() ?  ──────────────────────────────► allow  (login, health, catalog GET, …)
+    │
+    ├─ no Bearer header  ─────────────────────────► 401
+    │
+    ├─ jwt.verify(JWT_SECRET) fails / expired  ───► 401
+    │
+    ├─ typ is "refresh"  ─────────────────────────► 401  (refresh is not Bearer)
+    │
+    └─ typ is "access"  ── request.user = { sub, email }  ► handler
+```
 
 user-service **signs** access (`JWT_SECRET`) and refresh (`JWT_REFRESH_SECRET`). Other services only **verify** access.
 

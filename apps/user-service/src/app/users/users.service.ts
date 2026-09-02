@@ -88,13 +88,16 @@ export class UsersService {
     ) {
       throw new UnauthorizedException('Invalid refresh token');
     }
-    return this.issueSession(user);
+    return this.sessionBody(user, refreshToken);
   }
 
   async logout(userId: string) {
-    await this.userModel
-      .updateOne({ _id: userId }, { $unset: { refreshTokenHash: 1 } })
+    const user = await this.userModel
+      .findByIdAndUpdate(userId, { $unset: { refreshTokenHash: 1 } })
       .exec();
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
   }
 
   async update(userId: string, input: UpdateUserDto) {
@@ -133,26 +136,35 @@ export class UsersService {
     name: string;
   }) {
     const sub = String(user._id);
-    const accessExpiresIn =
-      this.config.get<string>('JWT_ACCESS_EXPIRES_IN') ?? '15m';
     const refreshExpiresIn =
       this.config.get<string>('JWT_REFRESH_EXPIRES_IN') ?? '7d';
-    const [accessToken, refreshToken] = await Promise.all([
-      this.jwt.signAsync({ sub, email: user.email, typ: 'access' }),
-      this.jwt.signAsync(
-        { sub, email: user.email, typ: 'refresh' },
-        {
-          secret: this.config.getOrThrow<string>('JWT_REFRESH_SECRET'),
-          expiresIn: refreshExpiresIn as `${number}d`,
-        },
-      ),
-    ]);
+    const refreshToken = await this.jwt.signAsync(
+      { sub, email: user.email, typ: 'refresh' },
+      {
+        secret: this.config.getOrThrow<string>('JWT_REFRESH_SECRET'),
+        expiresIn: refreshExpiresIn as `${number}d`,
+      },
+    );
     await this.userModel
-      .updateOne(
-        { _id: user._id },
-        { $set: { refreshTokenHash: hashRefreshToken(refreshToken) } },
-      )
+      .findByIdAndUpdate(user._id, {
+        $set: { refreshTokenHash: hashRefreshToken(refreshToken) },
+      })
       .exec();
+    return this.sessionBody(user, refreshToken);
+  }
+
+  private async sessionBody(
+    user: { _id: unknown; email: string; name: string },
+    refreshToken: string,
+  ) {
+    const sub = String(user._id);
+    const accessExpiresIn =
+      this.config.get<string>('JWT_ACCESS_EXPIRES_IN') ?? '15m';
+    const accessToken = await this.jwt.signAsync({
+      sub,
+      email: user.email,
+      typ: 'access',
+    });
     return {
       accessToken,
       refreshToken,

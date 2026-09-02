@@ -116,7 +116,7 @@
               "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
             },
             "url": "{{userUrl}}/auth/refresh",
-            "description": "Public. Body only — do not send refresh as Bearer. Saves the new token pair."
+            "description": "Public. Body only — do not send refresh as Bearer. Returns a new accessToken; refreshToken is unchanged."
           }
         },
         {

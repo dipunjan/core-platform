@@ -41,7 +41,9 @@ Check **Environments** → Core Platform - Local. You can edit:
 
 ## 4. Run requests
 
-Collection auth is Bearer `{{accessToken}}`. Public routes (health, login, register, refresh, catalog GET) turn auth off.
+Collection auth is Bearer `{{accessToken}}`. Login also sets HttpOnly cookies; Postman can ignore those and keep using the environment tokens.
+
+Public routes (health, login, register, refresh, catalog GET) turn auth off.
 
 **Happy path**
 
@@ -56,10 +58,10 @@ Collection auth is Bearer `{{accessToken}}`. Public routes (health, login, regis
 
 **Auth extras**
 
-- **Refresh** — new pair; old refresh should then 401 if you paste it into a second call.
-- **Logout** — needs current access token. After this, Refresh should 401.
+- **Refresh** — new `accessToken`; `refreshToken` is the same. You can Refresh again with it.
+- **Logout** — needs current access token. Then Refresh 401. Login again for a new pair.
 
-Send **Logout last**. It invalidates refresh; you would need Login again.
+Send **Logout last**.
 
 ## 5. Collection runner (optional)
 

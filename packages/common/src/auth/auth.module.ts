@@ -2,6 +2,7 @@ import { Global, Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { JwtModule } from '@nestjs/jwt';
+import { AuthCookieService } from './auth-cookie.service';
 import { JwtAuthGuard } from './jwt-auth.guard';
 
 @Global()
@@ -19,11 +20,12 @@ import { JwtAuthGuard } from './jwt-auth.guard';
     }),
   ],
   providers: [
+    AuthCookieService,
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard,
     },
   ],
-  exports: [JwtModule],
+  exports: [JwtModule, AuthCookieService],
 })
 export class AuthModule {}

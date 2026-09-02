@@ -2,18 +2,36 @@
 
 Access token + refresh token. There is no login page — clients call HTTP.
 
-- **Access token** (~15m, `JWT_SECRET`) — `Authorization: Bearer …` on every service
-- **Refresh token** (~7d, `JWT_REFRESH_SECRET`) — user-service only; never send it as Bearer
+- **Access token** (~15m, `JWT_SECRET`) — `Authorization: Bearer …` **or** HttpOnly cookie `access_token`
+- **Refresh token** (~7d, `JWT_REFRESH_SECRET`) — JSON body **or** HttpOnly cookie `refresh_token` (path `/api/auth` only). Never send it as Bearer.
 
-Every service imports `AuthModule`. That installs a global `JwtAuthGuard`. Routes without `@Public()` return **401** if the access token is missing, expired, or a refresh JWT.
+## Textbook flow
 
-Cart and orders use `token.sub` (Mongo user id). They never take a user id from the URL or body.
+1. **Login / register** → `accessToken` (short) + `refreshToken` (long). Also set as cookies (see below).
+2. Call APIs with `Authorization: Bearer <accessToken>` (Postman, mobile) **or** with cookies (`credentials: 'include'` in a browser).
+3. When access expires (401), `POST /api/auth/refresh` with the **same** refresh token (body or cookie) → **new access token**. The refresh token **does not change**.
+4. **Logout** deletes the stored refresh hash and clears cookies. That refresh token cannot mint access anymore. A Bearer access token still works until `exp`.
 
-One active refresh per user. Login or refresh **rotates** it (SHA-256 stored on the user). Logout clears that hash.
+Refresh rotation (a new refresh on every refresh call) is a later security add-on, not this flow.
+
+## Cookies (browser)
+
+Same idea as a session cookie: JavaScript cannot read the tokens (`HttpOnly`). Use `fetch(..., { credentials: 'include' })`. Do **not** copy tokens into `localStorage` — that is what XSS steals.
+
+| Cookie | HttpOnly | Secure | SameSite | Path |
+|---|---|---|---|---|
+| `access_token` | yes | yes in production (`COOKIE_SECURE` / `NODE_ENV`) | `Lax` | `/` |
+| `refresh_token` | yes | same | `Lax` | `/api/auth` |
+
+`SameSite=Lax` blocks most cross-site POSTs (CSRF). CORS allows credentials. For a real SPA, set `CORS_ORIGIN` to that app’s origin (not `*`). Behind HTTPS set `COOKIE_SECURE=true`.
+
+JSON still returns tokens so Postman and native apps keep working. A browser should ignore those fields and rely on cookies.
+
+Local HTTP: `COOKIE_SECURE=false` or omit it (Secure is off unless `NODE_ENV=production`).
 
 ## Public vs authenticated
 
-| | Public | Needs Bearer access token |
+| | Public | Needs access token (Bearer or cookie) |
 |---|---|---|
 | user-service | `POST /api/users`, `POST /api/auth/login`, `POST /api/auth/refresh` | `GET/PATCH/DELETE /api/users/me`, `POST /api/auth/logout` |
 | product-service | `GET /api/products`, `GET /api/products/:id` | create / update / delete |
@@ -29,9 +47,10 @@ One active refresh per user. Login or refresh **rotates** it (SHA-256 stored on 
     │  POST /api/users  or  POST /api/auth/login
     ▼
   user-service
-    │  ← accessToken (~15m) + refreshToken (~7d)
+    │  ← JSON tokens + Set-Cookie (HttpOnly)
     │
     │  later:  Authorization: Bearer <accessToken>
+    │      or  Cookie: access_token=…
     ▼
   Any service  ── JwtAuthGuard ──►  401  or  handler runs
     │
@@ -39,11 +58,12 @@ One active refresh per user. Login or refresh **rotates** it (SHA-256 stored on 
     │  POST /api/auth/refresh   { "refreshToken": "..." }
     ▼
   user-service
-    │  ← new access + new refresh  (old refresh is dead)
+    │  ← new accessToken  (same refreshToken)
     │
-    │  POST /api/auth/logout   Bearer <access>
+    │  POST /api/auth/logout
     ▼
-  user-service   stored refresh hash cleared
+  user-service   refresh hash cleared, cookies cleared
+                 Bearer access JWT still works until exp
 ```
 
 Payload: `{ sub, email, typ }` — `typ` is `access` or `refresh`.
@@ -55,7 +75,7 @@ Payload: `{ sub, email, typ }` — `typ` is `access` or `refresh`.
     │
     ├─ @Public() ?  ──────────────────────────────► allow  (login, health, catalog GET, …)
     │
-    ├─ no Bearer header  ─────────────────────────► 401
+    ├─ no access token (Bearer or cookie)  ────────► 401
     │
     ├─ jwt.verify(JWT_SECRET) fails / expired  ───► 401
     │
@@ -125,7 +145,7 @@ curl -X PATCH http://localhost:3000/api/users/me \
   -d '{"name":"Ada Lovelace"}'
 ```
 
-### 5. Refresh (expect new pair; old refresh fails)
+### 5. Refresh (new access; same refresh)
 
 ```bash
 curl -X POST http://localhost:3000/api/auth/refresh \
@@ -133,9 +153,7 @@ curl -X POST http://localhost:3000/api/auth/refresh \
   -d "{\"refreshToken\":\"$REFRESH\"}"
 ```
 
-Save the new tokens, then call refresh again with the **old** `$REFRESH` — expect **401**.
-
-Do not put the refresh token in `Authorization`. That is also **401**.
+`accessToken` is new. `refreshToken` is unchanged — use the same `$REFRESH` again. Put only the access token in `Authorization`.
 
 ### 6. Sign out
 
@@ -144,7 +162,14 @@ curl -X POST http://localhost:3000/api/auth/logout \
   -H "Authorization: Bearer $ACCESS"
 ```
 
-Then refresh with the last refresh token — expect **401**.
+Then:
+
+```bash
+curl -i http://localhost:3000/api/users/me \
+  -H "Authorization: Bearer $ACCESS"
+```
+
+Expect **200** until the access token expires. Refresh with the old `$REFRESH` → **401**. `GET /api/products/:id` is public and does not care about tokens.
 
 ### 7. Same access token on other services
 
@@ -165,4 +190,4 @@ curl -X POST http://localhost:3004/api/orders \
 
 `POST /api/orders` has no `userId` field. The order is stored with `userId = token.sub`.
 
-Env: `JWT_SECRET`, `JWT_REFRESH_SECRET`, `JWT_ACCESS_EXPIRES_IN` (`15m`), `JWT_REFRESH_EXPIRES_IN` (`7d`). Same `JWT_SECRET` on every service.
+Env: `JWT_SECRET`, `JWT_REFRESH_SECRET`, `JWT_ACCESS_EXPIRES_IN` (`15m`), `JWT_REFRESH_EXPIRES_IN` (`7d`), `CORS_ORIGIN`, `COOKIE_SECURE`. Same `JWT_SECRET` on every service.

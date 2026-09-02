@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
+import { ACCESS_COOKIE, readCookie } from './auth-cookies';
 import type { AuthUser } from './auth.types';
 import { IS_PUBLIC_KEY } from './public.decorator';
 
@@ -26,18 +27,16 @@ export class JwtAuthGuard implements CanActivate {
     }
 
     const request = context.switchToHttp().getRequest<{
-      headers: { authorization?: string };
+      headers: { authorization?: string; cookie?: string };
       user?: AuthUser;
     }>();
-    const header = request.headers.authorization;
-    if (!header?.startsWith('Bearer ')) {
+    const token = accessTokenFromRequest(request);
+    if (!token) {
       throw new UnauthorizedException();
     }
 
     try {
-      const payload = this.jwt.verify<AuthUser & { typ?: string }>(
-        header.slice(7),
-      );
+      const payload = this.jwt.verify<AuthUser & { typ?: string }>(token);
       if (payload.typ && payload.typ !== 'access') {
         throw new UnauthorizedException();
       }
@@ -47,4 +46,14 @@ export class JwtAuthGuard implements CanActivate {
       throw new UnauthorizedException();
     }
   }
+}
+
+function accessTokenFromRequest(request: {
+  headers: { authorization?: string; cookie?: string };
+}): string | undefined {
+  const header = request.headers.authorization;
+  if (header?.startsWith('Bearer ')) {
+    return header.slice(7);
+  }
+  return readCookie(request.headers.cookie, ACCESS_COOKIE);
 }

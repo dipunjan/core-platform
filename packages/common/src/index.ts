@@ -1,4 +1,11 @@
 export { AuthModule } from './auth/auth.module';
+export { AuthCookieService } from './auth/auth-cookie.service';
+export {
+  ACCESS_COOKIE,
+  REFRESH_COOKIE,
+  readCookie,
+  type CookieResponse,
+} from './auth/auth-cookies';
 export { CurrentUser } from './auth/current-user.decorator';
 export { Public } from './auth/public.decorator';
 export type { AuthUser } from './auth/auth.types';

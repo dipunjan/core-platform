@@ -19,6 +19,7 @@ export async function bootstrapNestApp(
       corsOrigin === '*'
         ? true
         : corsOrigin.split(',').map((origin) => origin.trim()),
+    credentials: true,
   });
 
   app.useGlobalPipes(

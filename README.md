@@ -50,7 +50,7 @@ A request with a token:
 
 ```
   Client
-    │  Authorization: Bearer <access>
+    │  Authorization: Bearer <access>  or  Cookie access_token
     ▼
   Service  ── JwtAuthGuard ──►  401 if missing / expired / refresh JWT
     │                           else controller + this service's Mongo

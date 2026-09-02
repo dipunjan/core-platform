@@ -6,6 +6,7 @@ Apps import **only** from the package root. Never deep-import a file under `pack
 
 ```ts
 import {
+  AuthCookieService,
   AuthModule,
   bootstrapNestApp,
   CurrentUser,
@@ -33,7 +34,7 @@ import {
 | `throwDuplicate` | Same mapping when you already have a `catch` |
 | `isDuplicateKey` | `11000` check when the service should retry instead of 409 (cart create) |
 | `isVersionError` | Mongoose `__v` conflict — cart retries the read/write |
-| `AuthModule` | JWT verify (`Authorization: Bearer`), global `JwtAuthGuard` |
+| `AuthModule` | JWT verify (Bearer or `access_token` cookie), global `JwtAuthGuard`, `AuthCookieService` |
 | `Public` | Skip the JWT guard on a route |
 | `CurrentUser` / `AuthUser` | `{ sub, email }` from the token |
 | `HealthModule` | `GET /api/health`, `/live`, `/ready` |
@@ -59,6 +60,8 @@ packages/common/src/
   auth/
     auth.module.ts                 # JwtModule + APP_GUARD
     jwt-auth.guard.ts
+    auth-cookie.service.ts         # HttpOnly Set-Cookie / clear
+    auth-cookies.ts
     public.decorator.ts            # @Public()
     current-user.decorator.ts      # @CurrentUser()
     auth.types.ts                  # AuthUser

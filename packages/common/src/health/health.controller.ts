@@ -7,8 +7,10 @@ import {
   HealthIndicatorResult,
   MongooseHealthIndicator,
 } from '@nestjs/terminus';
+import { SkipThrottle } from '@nestjs/throttler';
 import { Public } from '../auth/public.decorator';
 
+@SkipThrottle()
 @Public()
 @Controller('health')
 export class HealthController {

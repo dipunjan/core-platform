@@ -69,6 +69,12 @@ export function validateEnv(
         'JWT_REFRESH_SECRET must be at least 32 characters in production',
       );
     }
+    const cors = validated.CORS_ORIGIN?.trim();
+    if (!cors || cors === '*') {
+      throw new Error(
+        'CORS_ORIGIN must be an explicit comma-separated origin list in production',
+      );
+    }
   }
 
   return validated;

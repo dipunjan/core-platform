@@ -1,10 +1,30 @@
 # RabbitMQ
 
-HTTP is the public API. Mongo is each service’s database. RabbitMQ is the **async bus** so services do not call each other over HTTP for side effects (stock, etc.).
+How services talk **without HTTP to each other**. Interview framing + how to demo. Broker locally: `docker compose up -d` → AMQP `:5672`, UI http://localhost:15672 (`guest` / `guest`).
 
-Local broker: `docker compose up -d` → AMQP `localhost:5672`, UI http://localhost:15672 (`guest` / `guest`).
+**One sentence:** the browser only uses HTTP; after an order (or product) is saved, we publish a persistent message on topic exchange `core-platform`; inventory consumes it and updates stock.
 
-## Flow
+## What to say
+
+**Why not `order-service` HTTP-calling `inventory-service`?**  
+That couples checkout latency and uptime to stock. If inventory is restarting, place-order would 502. A queue holds `order.created` until inventory is back. Tradeoff: **eventual consistency** — the order row exists before `reserved` bumps (usually ms).
+
+**What if the message is lost?**  
+Topic exchange **drops** the message if **no queue is bound yet**. That is why we start inventory before creating products in a demo. Once the durable queue exists, messages wait. Failed handler → NACK → DLQ (`core-platform.dlq`), not infinite retry.
+
+**At-least-once?**  
+Crash before ACK → redelivery. Inventory reserve is designed to be safe to retry (idempotent keys). Say “at-least-once + idempotent consumer,” not exactly-once (that needs more infra).
+
+**Who subscribes?**  
+Only services that care. Cart does not listen. Inventory listens to product + order events. `user.created` is published with **no consumer** — placeholder for email/CRM; say that honestly.
+
+**Scale?**  
+`prefetchCount: 1`. Extra inventory replicas = competing consumers on the same queue name.
+
+**HTTP vs events (whiteboard)**  
+UI → order-service (sync, user waits). order-service → Rabbit → inventory (async, user does not wait on stock).
+
+## Sequence (order → stock)
 
 ```
   Client
@@ -21,79 +41,56 @@ Local broker: `docker compose up -d` → AMQP `localhost:5672`, UI http://localh
   queue `inventory.order.created`
     │
     ▼
-  inventory-service  ──update──►  Mongo DB `inventory`   then ACK
+  inventory-service  ──update──►  Mongo  then ACK
 ```
 
-Same shape for:
-
-```
-  product.created   ──►  inventory row, quantity 0
-  order.cancelled   ──►  release reserved stock
-```
+Same shape: `product.created` → inventory row qty `0`. `order.cancelled` → release reserved.
 
 ## Events in this repo
 
 | Event | Publisher | Consumer |
 |---|---|---|
 | `user.created` / `user.updated` | user-service | none yet |
-| `product.created` | product-service | inventory (stock row, qty `0`) |
+| `product.created` | product-service | inventory (row, qty `0`) |
 | `order.created` | order-service | inventory (reserve) |
 | `order.cancelled` | order-service | inventory (release) |
 
-## Publish
+## Publish / consume (implementation)
 
-1. Import `MessagingModule` in `app.module.ts`.
-2. Inject `EventPublisher`.
-3. After a successful Mongo write: `this.events.publish(Events.ORDER_CREATED, payload)`.
-4. Publishes to exchange `core-platform` with the event name as the **routing key**.
-5. Messages are **persistent**.
+Publish after a **successful** Mongo write: `this.events.publish(Events.ORDER_CREATED, payload)`. Routing key = event name. Persistent messages.
+
+Consume: `@RabbitSubscribe(eventSubscribe('inventory.order.created', Events.ORDER_CREATED))`. Durable queue, DLX on failure.
 
 Code: `packages/common/src/messaging/`.
-
-## Consume
-
-1. Only services that care subscribe. Inventory does; cart does not.
-2. `@RabbitSubscribe(eventSubscribe('inventory.order.created', Events.ORDER_CREATED))`.
-3. Durable queue, bind to `core-platform`, dead-letter exchange on failure.
-4. `prefetchCount: 1`. More inventory processes = competing consumers on the same queue.
 
 ## Success vs failure
 
 ```
   Handler succeeds  →  ACK   →  message deleted
   Handler throws    →  NACK (not requeued)
-                         │
                          ▼
                    exchange `core-platform.dlx`
-                         │
                          ▼
                    queue `core-platform.dlq`
 ```
 
-Inspect failed messages in the Rabbit UI: Queues → `core-platform.dlq`.
+UI: Queues → `core-platform.dlq`. Crash **before** ack → redeliver on the main queue. Disconnect → reconnect (heartbeat 5s). Apps **start** even if Rabbit is down (`wait: false`); `/api/health/ready` shows Rabbit down.
 
-- Process crash **before** ack → message stays on the main queue and is redelivered.
-- Connection drop → `amqp-connection-manager` reconnects (heartbeat 5s, retry 3s). Apps still **start** if Rabbit is down (`wait: false`); `/api/health/ready` shows Rabbit down.
-
-## Not guaranteed
-
-Topic exchanges **do not store** a message unless a queue is already bound. If you publish `order.created` before inventory has ever started, there is no queue yet and the message is **dropped**. Start inventory at least once (or keep it running).
-
-No “retry 5 times then DLQ”. Fail once → DLQ.
+No “retry 5 times then DLQ” — fail once → DLQ.
 
 ## Add an event
 
 1. Name + payload in `packages/common/src/messaging/events.ts`
-2. `publish` in the producer
-3. `@RabbitSubscribe(eventSubscribe('your-queue', Events.YOUR_EVENT))` on the consumer only
+2. `publish` in the producer app
+3. `@RabbitSubscribe` only on the consumer that needs it
 
 ## How to test
 
-Start Mongo + Rabbit, then **inventory-service** first (creates queues), then product-service and order-service. You need a valid access token ([auth](auth.md)).
+Start Mongo + Rabbit, **inventory-service first** (binds queues), then product and order. Need an access token ([auth](auth.md)).
 
 ### 1. Queues exist
 
-Open http://localhost:15672 → Queues. After inventory has booted you should see:
+http://localhost:15672 → Queues, after inventory boot:
 
 - `inventory.product.created`
 - `inventory.order.created`
@@ -109,22 +106,13 @@ curl -X POST http://localhost:3001/api/products \
   -d '{"name":"Classic Tee","description":"Cotton","price":1299,"sku":"TEE-001"}'
 ```
 
-Copy the product `_id`, then:
-
 ```bash
 curl http://localhost:3002/api/inventory/<productId>
 ```
 
-Expect `quantity: 0`, `reserved: 0`. Set stock:
+Expect `quantity: 0`, `reserved: 0`. Then `PUT` quantity `50` with Bearer.
 
-```bash
-curl -X PUT http://localhost:3002/api/inventory/<productId> \
-  -H "Authorization: Bearer $ACCESS" \
-  -H 'Content-Type: application/json' \
-  -d '{"quantity":50}'
-```
-
-### 3. `order.created` → reserved stock
+### 3. `order.created` → reserved
 
 ```bash
 curl -X POST http://localhost:3004/api/orders \
@@ -133,9 +121,9 @@ curl -X POST http://localhost:3004/api/orders \
   -d '{"items":[{"productId":"<productId>","quantity":2,"unitPrice":1299}]}'
 ```
 
-`GET /api/inventory/<productId>` — `reserved` should be `2`.
+`reserved` should be `2`.
 
-### 4. `order.cancelled` → release
+### 4. Cancel → release
 
 ```bash
 curl -X PATCH http://localhost:3004/api/orders/<orderId>/status \
@@ -144,10 +132,8 @@ curl -X PATCH http://localhost:3004/api/orders/<orderId>/status \
   -d '{"status":"cancelled"}'
 ```
 
-`reserved` should drop back.
+### 5. Dropped message (talk track)
 
-### 5. Dropped message (no consumer yet)
-
-Stop inventory, create a product, start inventory. That product may have **no** inventory row — the event was published with no queue bound. That is expected for a topic exchange.
+Stop inventory, create a product, start inventory. That product may have **no** inventory row — published with no bound queue. Expected for a topic exchange.
 
 Env: `RABBITMQ_URL=amqp://localhost:5672`.

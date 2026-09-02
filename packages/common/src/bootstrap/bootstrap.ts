@@ -2,6 +2,7 @@ import { Logger, Type, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import helmet from 'helmet';
+import { corsOrigins } from '../http/cors';
 
 export async function bootstrapNestApp(
   AppModule: Type<unknown>,
@@ -13,12 +14,11 @@ export async function bootstrapNestApp(
   app.use(helmet());
 
   const config = app.get(ConfigService);
-  const corsOrigin = config.get<string>('CORS_ORIGIN') ?? '*';
   app.enableCors({
-    origin:
-      corsOrigin === '*'
-        ? true
-        : corsOrigin.split(',').map((origin) => origin.trim()),
+    origin: corsOrigins(
+      config.get<string>('CORS_ORIGIN'),
+      config.get<string>('NODE_ENV'),
+    ),
     credentials: true,
   });
 

@@ -55,13 +55,16 @@
           "request": {
             "auth": { "type": "noauth" },
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Auth-Response", "value": "tokens" }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"email\": \"{{email}}\",\n  \"name\": \"{{name}}\",\n  \"password\": \"{{password}}\"\n}"
             },
             "url": "{{userUrl}}/users",
-            "description": "Public. Password min 8. Saves accessToken and refreshToken on the environment. If email is already taken (409), use Login instead or change `email` in the environment."
+            "description": "Public. Password min 8. Sends X-Auth-Response: tokens so the body includes JWTs for Postman. Saves them on the environment. If email is already taken (409), use Login instead or change `email` in the environment."
           }
         },
         {
@@ -83,7 +86,10 @@
           "request": {
             "auth": { "type": "noauth" },
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Auth-Response", "value": "tokens" }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}"
@@ -110,13 +116,16 @@
           "request": {
             "auth": { "type": "noauth" },
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Auth-Response", "value": "tokens" }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
             },
             "url": "{{userUrl}}/auth/refresh",
-            "description": "Public. Body only — do not send refresh as Bearer. Returns a new accessToken; refreshToken is unchanged."
+            "description": "Public. Body or refresh cookie. Rotates refresh: save the new pair; old refresh then 401. Do not send refresh as Bearer."
           }
         },
         {

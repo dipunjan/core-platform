@@ -1,7 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { randomBytes } from 'crypto';
 import {
   ACCESS_COOKIE,
+  CSRF_COOKIE,
   REFRESH_COOKIE,
   type CookieResponse,
   durationToMs,
@@ -36,13 +38,22 @@ export class AuthCookieService {
       path: '/api/auth',
       maxAge: refreshMaxAge,
     });
+    res.cookie(CSRF_COOKIE, randomBytes(32).toString('hex'), {
+      httpOnly: false,
+      secure,
+      sameSite: 'lax',
+      path: '/',
+      maxAge: refreshMaxAge,
+    });
   }
 
   clear(res: CookieResponse): void {
     const secure = this.secure();
-    const base = { httpOnly: true, secure, sameSite: 'lax' as const };
-    res.clearCookie(ACCESS_COOKIE, { ...base, path: '/' });
-    res.clearCookie(REFRESH_COOKIE, { ...base, path: '/api/auth' });
+    const httpOnly = { httpOnly: true, secure, sameSite: 'lax' as const };
+    const readable = { httpOnly: false, secure, sameSite: 'lax' as const };
+    res.clearCookie(ACCESS_COOKIE, { ...httpOnly, path: '/' });
+    res.clearCookie(REFRESH_COOKIE, { ...httpOnly, path: '/api/auth' });
+    res.clearCookie(CSRF_COOKIE, { ...readable, path: '/' });
   }
 
   private secure(): boolean {

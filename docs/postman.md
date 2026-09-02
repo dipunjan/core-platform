@@ -1,6 +1,19 @@
 # Postman
 
-Import two JSON files from `postman/`. They cover all five services. Register and Login scripts write `accessToken` and `refreshToken` onto the environment so later requests send Bearer automatically.
+Live **demo script** for an interview: prove login, catalog writes, cart, order, and that Rabbit updated stock — without a frontend. Files in `postman/`. SPA behavior is different (cookies, no JSON tokens) — [frontend.md](frontend.md).
+
+**One sentence:** import the collection + local environment, Register/Login with `X-Auth-Response: tokens`, collection auth is Bearer, walk Health → Auth → Products → Inventory → Cart → Orders.
+
+Postman uses **Bearer**, so **CSRF does not apply**. That is what a mobile client would do too.
+
+## What to say while you click
+
+- Environment selected = URLs and tokens substitute. If you forget it, `{{userUrl}}` is empty — classic live-demo fail.
+- Register **409** means that email exists → Login, don’t panic.
+- After Create product, wait a beat then Get inventory — you are showing the **async** event, not a JOIN.
+- Create order has **no `userId`** — “the API takes it from the token.”
+- Refresh **changes both tokens** — save them; old refresh 401s.
+- Logout last so the rest of the run still has a Bearer. After logout, Me may still work until access expires; Refresh will not.
 
 ## 1. Start the stack
 
@@ -15,61 +28,45 @@ npx nx serve order-service
 
 Start **inventory-service** before you create products so `product.created` has a queue.
 
-## 2. Import into Postman
+## 2. Import
 
-1. Open Postman (desktop or web).
-2. **Import** (top left) → **Upload files** (or drag).
-3. Select both:
-   - `postman/Core-Platform.postman_collection.json`
-   - `postman/Core-Platform.postman_environment.json`
-4. Confirm import. You should see collection **Core Platform** and environment **Core Platform - Local**.
+1. Postman → **Import**
+2. `postman/Core-Platform.postman_collection.json`
+3. `postman/Core-Platform.postman_environment.json`
+4. You should see collection **Core Platform** and environment **Core Platform - Local**
 
 ## 3. Select the environment
 
-Top-right dropdown → **Core Platform - Local**.
-
-If this is skipped, `{{userUrl}}` and `{{accessToken}}` stay empty and requests fail.
-
-Check **Environments** → Core Platform - Local. You can edit:
+Top-right → **Core Platform - Local**.
 
 | Variable | Default | Notes |
 |---|---|---|
 | `email` / `password` / `name` | `ada@example.com` / `secret12` / `Ada` | Password min 8 |
-| `sku` | `TEE-001` | Must be unique — change it if create product returns 409 |
+| `sku` | `TEE-001` | Change if create product 409 |
 | `accessToken` / `refreshToken` | empty | Filled by Register / Login / Refresh |
 | `productId` / `orderId` | empty | Filled by Create product / Create order |
 
-## 4. Run requests
+## 4. Happy path (demo order)
 
-Collection auth is Bearer `{{accessToken}}`. Login also sets HttpOnly cookies; Postman can ignore those and keep using the environment tokens.
+1. **Health → Live** — user-service is up
+2. **Auth → Register** (or Login on 409) — scripts save tokens because of `X-Auth-Response: tokens`
+3. **Users → Me** — profile, no password
+4. **Products → Create** — saves `productId`. Then **Inventory → Get by product id** (qty 0)
+5. **Inventory → Set quantity** — `50`
+6. **Cart → Add item**
+7. **Orders → Create** — `reserved` increases
+8. **Orders → Cancel** — reserved drops
 
-Public routes (health, login, register, refresh, catalog GET) turn auth off.
+**Auth extras:** Refresh (save new pair). Logout last.
 
-**Happy path**
+## 5. Collection runner
 
-1. **Health → Live** — `{"status":"ok"}`. If this fails, user-service is not up.
-2. **Auth → Register** — 200/201 with tokens. Environment now has `accessToken` and `refreshToken`. If **409**, that email exists → use **Login** instead, or change `email`.
-3. **Users → Me** — your profile (not the password).
-4. **Products → Create** — saves `productId`. Wait a second, then **Inventory → Get by product id** (qty 0 if inventory was running).
-5. **Inventory → Set quantity** — `50`.
-6. **Cart → Add item** — uses `productId`.
-7. **Orders → Create** — saves `orderId`. Inventory `reserved` should increase.
-8. **Orders → Cancel** — releases stock.
+**Run** collection with environment **Core Platform - Local**. Register/Login first. Skip Logout until the end.
 
-**Auth extras**
+## 6. If it 401s
 
-- **Refresh** — new `accessToken`; `refreshToken` is the same. You can Refresh again with it.
-- **Logout** — needs current access token. Then Refresh 401. Login again for a new pair.
-
-Send **Logout last**.
-
-## 5. Collection runner (optional)
-
-**Core Platform** → **Run** → pick environment **Core Platform - Local** → run **Auth → Register** (or Login) first, then Products / Inventory / Cart / Orders. Skip Logout until the end.
-
-## 6. 401 / empty token
-
-- Environment not selected.
-- Register/Login not run (or failed).
-- Access expired (~15m) → run **Refresh**, then retry.
-- Refresh JWT used as Bearer → always 401. Refresh goes in the JSON body only.
+- Environment not selected
+- Register/Login failed
+- Access expired (~15m) → Refresh
+- Refresh JWT sent as Bearer → always 401; refresh is **body only**
+- Forgot `X-Auth-Response: tokens` on login → body has no JWTs, env tokens stay empty

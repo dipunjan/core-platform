@@ -5,12 +5,16 @@ import {
   Get,
   Patch,
   Post,
+  Req,
   Res,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import {
   AuthCookieService,
   CurrentUser,
   Public,
+  sessionForClient,
+  wantsJsonTokens,
   type AuthUser,
   type CookieResponse,
 } from '@core-platform/common';
@@ -26,14 +30,16 @@ export class UsersController {
   ) {}
 
   @Public()
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @Post()
   async create(
     @Body() body: CreateUserDto,
+    @Req() req: { headers: Record<string, string | string[] | undefined> },
     @Res({ passthrough: true }) res: CookieResponse,
   ) {
     const session = await this.usersService.create(body);
     this.cookies.set(res, session);
-    return session;
+    return sessionForClient(session, wantsJsonTokens(req.headers));
   }
 
   @Get('me')

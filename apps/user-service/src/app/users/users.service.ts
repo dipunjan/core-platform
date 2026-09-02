@@ -86,9 +86,14 @@ export class UsersService {
       !user?.refreshTokenHash ||
       !refreshTokenMatches(refreshToken, user.refreshTokenHash)
     ) {
+      if (user) {
+        await this.userModel
+          .findByIdAndUpdate(user._id, { $unset: { refreshTokenHash: 1 } })
+          .exec();
+      }
       throw new UnauthorizedException('Invalid refresh token');
     }
-    return this.sessionBody(user, refreshToken);
+    return this.issueSession(user);
   }
 
   async logout(userId: string) {

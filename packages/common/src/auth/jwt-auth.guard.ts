@@ -1,12 +1,19 @@
 import {
   CanActivate,
   ExecutionContext,
+  ForbiddenException,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
-import { ACCESS_COOKIE, readCookie } from './auth-cookies';
+import { timingSafeEqual } from 'crypto';
+import {
+  ACCESS_COOKIE,
+  CSRF_COOKIE,
+  CSRF_HEADER,
+  readCookie,
+} from './auth-cookies';
 import type { AuthUser } from './auth.types';
 import { IS_PUBLIC_KEY } from './public.decorator';
 
@@ -27,10 +34,16 @@ export class JwtAuthGuard implements CanActivate {
     }
 
     const request = context.switchToHttp().getRequest<{
-      headers: { authorization?: string; cookie?: string };
+      method: string;
+      headers: {
+        authorization?: string;
+        cookie?: string;
+        [key: string]: string | string[] | undefined;
+      };
       user?: AuthUser;
     }>();
-    const token = accessTokenFromRequest(request);
+    const fromHeader = bearerToken(request.headers.authorization);
+    const token = fromHeader ?? readCookie(request.headers.cookie, ACCESS_COOKIE);
     if (!token) {
       throw new UnauthorizedException();
     }
@@ -40,20 +53,47 @@ export class JwtAuthGuard implements CanActivate {
       if (payload.typ && payload.typ !== 'access') {
         throw new UnauthorizedException();
       }
+      if (!fromHeader) {
+        assertCsrf(request.method, request.headers);
+      }
       request.user = { sub: payload.sub, email: payload.email };
       return true;
-    } catch {
+    } catch (error) {
+      if (error instanceof ForbiddenException) {
+        throw error;
+      }
       throw new UnauthorizedException();
     }
   }
 }
 
-function accessTokenFromRequest(request: {
-  headers: { authorization?: string; cookie?: string };
-}): string | undefined {
-  const header = request.headers.authorization;
+function bearerToken(header: string | undefined): string | undefined {
   if (header?.startsWith('Bearer ')) {
     return header.slice(7);
   }
-  return readCookie(request.headers.cookie, ACCESS_COOKIE);
+  return undefined;
+}
+
+function assertCsrf(
+  method: string,
+  headers: {
+    cookie?: string;
+    [key: string]: string | string[] | undefined;
+  },
+): void {
+  if (['GET', 'HEAD', 'OPTIONS'].includes(method.toUpperCase())) {
+    return;
+  }
+  const cookie = readCookie(headers.cookie, CSRF_COOKIE);
+  const raw = headers[CSRF_HEADER];
+  const header = Array.isArray(raw) ? raw[0] : raw;
+  if (!cookie || !header || !sameSecret(cookie, header)) {
+    throw new ForbiddenException('Invalid CSRF token');
+  }
+}
+
+function sameSecret(left: string, right: string): boolean {
+  const a = Buffer.from(left);
+  const b = Buffer.from(right);
+  return a.length === b.length && timingSafeEqual(a, b);
 }

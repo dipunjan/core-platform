@@ -2,12 +2,16 @@ import { Global, Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { JwtModule } from '@nestjs/jwt';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AuthCookieService } from './auth-cookie.service';
 import { JwtAuthGuard } from './jwt-auth.guard';
 
 @Global()
 @Module({
   imports: [
+    ThrottlerModule.forRoot({
+      throttlers: [{ name: 'default', ttl: 60_000, limit: 120 }],
+    }),
     JwtModule.registerAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
@@ -21,6 +25,10 @@ import { JwtAuthGuard } from './jwt-auth.guard';
   ],
   providers: [
     AuthCookieService,
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard,

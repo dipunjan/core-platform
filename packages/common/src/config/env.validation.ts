@@ -22,9 +22,17 @@ class EnvironmentVariables {
   @MinLength(16)
   JWT_SECRET!: string;
 
+  @IsString()
+  @MinLength(16)
+  JWT_REFRESH_SECRET!: string;
+
   @IsOptional()
   @IsString()
-  JWT_EXPIRES_IN?: string;
+  JWT_ACCESS_EXPIRES_IN?: string;
+
+  @IsOptional()
+  @IsString()
+  JWT_REFRESH_EXPIRES_IN?: string;
 
   @IsOptional()
   @IsString()
@@ -51,6 +59,11 @@ export function validateEnv(
     }
     if (validated.JWT_SECRET.length < 32) {
       throw new Error('JWT_SECRET must be at least 32 characters in production');
+    }
+    if (validated.JWT_REFRESH_SECRET.length < 32) {
+      throw new Error(
+        'JWT_REFRESH_SECRET must be at least 32 characters in production',
+      );
     }
   }
 

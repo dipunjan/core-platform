@@ -9,9 +9,11 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
 import * as bcrypt from 'bcrypt';
+import { createHash, timingSafeEqual } from 'crypto';
 import { Model } from 'mongoose';
 import { CreateUserDto } from './dto/create-user.dto';
 import { LoginDto } from './dto/login.dto';
@@ -24,6 +26,7 @@ export class UsersService {
     @InjectModel(User.name) private readonly userModel: Model<User>,
     private readonly events: EventPublisher,
     private readonly jwt: JwtService,
+    private readonly config: ConfigService,
   ) {}
 
   async findMe(userId: string) {
@@ -49,7 +52,7 @@ export class UsersService {
       email: user.email,
       name: user.name,
     });
-    return user;
+    return this.issueSession(user);
   }
 
   async login(input: LoginDto) {
@@ -60,15 +63,38 @@ export class UsersService {
     if (!user || !(await bcrypt.compare(input.password, user.password))) {
       throw new UnauthorizedException('Invalid email or password');
     }
-    const accessToken = await this.jwt.signAsync({
-      sub: String(user._id),
-      email: user.email,
-    });
-    return {
-      accessToken,
-      tokenType: 'Bearer' as const,
-      user: { id: String(user._id), email: user.email, name: user.name },
-    };
+    return this.issueSession(user);
+  }
+
+  async refresh(refreshToken: string) {
+    let payload: { sub: string; email: string; typ?: string };
+    try {
+      payload = await this.jwt.verifyAsync(refreshToken, {
+        secret: this.config.getOrThrow<string>('JWT_REFRESH_SECRET'),
+      });
+    } catch {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+    if (payload.typ !== 'refresh') {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+    const user = await this.userModel
+      .findById(payload.sub)
+      .select('+refreshTokenHash')
+      .exec();
+    if (
+      !user?.refreshTokenHash ||
+      !refreshTokenMatches(refreshToken, user.refreshTokenHash)
+    ) {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+    return this.issueSession(user);
+  }
+
+  async logout(userId: string) {
+    await this.userModel
+      .updateOne({ _id: userId }, { $unset: { refreshTokenHash: 1 } })
+      .exec();
   }
 
   async update(userId: string, input: UpdateUserDto) {
@@ -100,4 +126,49 @@ export class UsersService {
       throw new NotFoundException('User not found');
     }
   }
+
+  private async issueSession(user: {
+    _id: unknown;
+    email: string;
+    name: string;
+  }) {
+    const sub = String(user._id);
+    const accessExpiresIn =
+      this.config.get<string>('JWT_ACCESS_EXPIRES_IN') ?? '15m';
+    const refreshExpiresIn =
+      this.config.get<string>('JWT_REFRESH_EXPIRES_IN') ?? '7d';
+    const [accessToken, refreshToken] = await Promise.all([
+      this.jwt.signAsync({ sub, email: user.email, typ: 'access' }),
+      this.jwt.signAsync(
+        { sub, email: user.email, typ: 'refresh' },
+        {
+          secret: this.config.getOrThrow<string>('JWT_REFRESH_SECRET'),
+          expiresIn: refreshExpiresIn as `${number}d`,
+        },
+      ),
+    ]);
+    await this.userModel
+      .updateOne(
+        { _id: user._id },
+        { $set: { refreshTokenHash: hashRefreshToken(refreshToken) } },
+      )
+      .exec();
+    return {
+      accessToken,
+      refreshToken,
+      tokenType: 'Bearer' as const,
+      expiresIn: accessExpiresIn,
+      user: { id: sub, email: user.email, name: user.name },
+    };
+  }
+}
+
+function hashRefreshToken(token: string): string {
+  return createHash('sha256').update(token).digest('hex');
+}
+
+function refreshTokenMatches(token: string, storedHash: string): boolean {
+  const digest = Buffer.from(hashRefreshToken(token));
+  const stored = Buffer.from(storedHash);
+  return digest.length === stored.length && timingSafeEqual(digest, stored);
 }

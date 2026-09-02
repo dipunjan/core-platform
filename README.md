@@ -160,6 +160,7 @@ Apps read:
 MONGO_URI=mongodb://localhost:27017/users
 RABBITMQ_URL=amqp://localhost:5672
 JWT_SECRET=local-dev-jwt-secret
+JWT_REFRESH_SECRET=local-dev-refresh-secret
 ```
 
 `localhost` works because Compose publishes those ports on your Mac. Inside Kubernetes you would use service DNS instead (for example `mongodb://user-mongo-srv:27017/users`).
@@ -226,31 +227,35 @@ npx nx graph
 
 ## Auth and login
 
-Every service loads `AuthModule`. A global JWT guard runs on every HTTP route. Missing/invalid Bearer token → **401**. `@Public()` opts a route out of that (health, register, login, catalog/inventory GET).
+Every service loads `AuthModule`. API calls use a short-lived **access token**. user-service also issues a longer **refresh token** so the client can get a new pair without logging in again.
 
-All five apps must share the **same** `JWT_SECRET`. user-service **signs** tokens; the others only **verify**.
+All five apps share `JWT_SECRET` (access). Only user-service uses `JWT_REFRESH_SECRET` to sign/verify refresh tokens, but every `.env` still has it so env validation stays the same.
 
 ```
 Client
+  │  POST /api/users  or  POST /api/auth/login
+  │  ← accessToken (~15m) + refreshToken (~7d)
   │
-  │  1. POST /api/users          (public)  create account, hash password, emit user.created
-  │  2. POST /api/auth/login     (public)  check password, return JWT
+  │  Authorization: Bearer <accessToken>   →  any service
   │
-  │  3. Later requests
-  │     Authorization: Bearer <accessToken>
-  ▼
-Any service  →  JwtAuthGuard  →  jwt.verify(JWT_SECRET)
-             →  request.user = { sub: userId, email }
-             →  @CurrentUser() in the controller
+  │  when access expires:
+  │  POST /api/auth/refresh  { refreshToken }
+  │  ← new accessToken + new refreshToken  (old refresh is invalid)
+  │
+  │  POST /api/auth/logout  (Bearer access)  →  stored refresh hash cleared
 ```
 
-Token payload: `{ sub, email }`. `sub` is the Mongo user id. Cart and orders **never** take a user id from the URL or body; they use `sub` so you cannot act as someone else.
+JwtAuthGuard only accepts `typ: access`. A refresh JWT in the `Authorization` header is **401**.
+
+Refresh tokens are hashed (SHA-256) on the user document. One active refresh per user: a new login/refresh rotates it. Stolen refresh after rotation fails.
+
+Token payloads: `{ sub, email, typ }` where `typ` is `access` or `refresh`. `sub` is the Mongo user id. Cart and orders use `sub`, never a user id from the URL or body.
 
 ### Public vs authenticated
 
 | | Public | Needs Bearer |
 |---|---|---|
-| user-service | `POST /api/users`, `POST /api/auth/login` | `GET/PATCH/DELETE /api/users/me` |
+| user-service | `POST /api/users`, `POST /api/auth/login`, `POST /api/auth/refresh` | `GET/PATCH/DELETE /api/users/me`, `POST /api/auth/logout` |
 | product-service | `GET /api/products`, `GET /api/products/:id` | create / update / delete |
 | inventory-service | `GET /api/inventory`, `GET /api/inventory/:productId` | set quantity, reserve, release |
 | cart-service | — | all `/api/carts*` |
@@ -267,7 +272,7 @@ curl -X POST http://localhost:3000/api/users \
   -d '{"email":"ada@example.com","name":"Ada","password":"secret12"}'
 ```
 
-Response includes `_id`, `email`, `name`, timestamps — not `password`. Duplicate email → **409**.
+Register also returns the token pair (same shape as login). Duplicate email → **409**.
 
 ### 2. Login
 
@@ -280,29 +285,49 @@ curl -X POST http://localhost:3000/api/auth/login \
 ```json
 {
   "accessToken": "<jwt>",
+  "refreshToken": "<jwt>",
   "tokenType": "Bearer",
+  "expiresIn": "15m",
   "user": { "id": "<mongoUserId>", "email": "ada@example.com", "name": "Ada" }
 }
 ```
 
-Wrong email or password → **401** (`Invalid email or password`).
-
-Export the token for the rest of the session:
+Wrong email or password → **401**.
 
 ```bash
-TOKEN=<paste accessToken>
+ACCESS=<paste accessToken>
+REFRESH=<paste refreshToken>
 ```
 
-### 3. Read and update the current user
+### 3. Refresh when the access token expires
+
+Do **not** send the refresh token as `Authorization`. Send it in the body:
+
+```bash
+curl -X POST http://localhost:3000/api/auth/refresh \
+  -H 'Content-Type: application/json' \
+  -d "{\"refreshToken\":\"$REFRESH\"}"
+```
+
+You get a new pair. The previous refresh token no longer works.
+
+```bash
+curl -X POST http://localhost:3000/api/auth/logout \
+  -H "Authorization: Bearer $ACCESS"
+```
+
+Logout needs a still-valid access token. It deletes the stored refresh hash so that refresh cannot be reused.
+
+### 4. Read and update the current user
 
 There is no `GET /api/users` list and no `GET /api/users/:id`. You only operate on **yourself**.
 
 ```bash
 curl http://localhost:3000/api/users/me \
-  -H "Authorization: Bearer $TOKEN"
+  -H "Authorization: Bearer $ACCESS"
 
 curl -X PATCH http://localhost:3000/api/users/me \
-  -H "Authorization: Bearer $TOKEN" \
+  -H "Authorization: Bearer $ACCESS" \
   -H 'Content-Type: application/json' \
   -d '{"name":"Ada Lovelace"}'
 ```
@@ -311,45 +336,46 @@ curl -X PATCH http://localhost:3000/api/users/me \
 
 ```bash
 curl -X DELETE http://localhost:3000/api/users/me \
-  -H "Authorization: Bearer $TOKEN"
+  -H "Authorization: Bearer $ACCESS"
 ```
 
-### 4. Use the same token on other services
+### 5. Use the access token on other services
 
 ```bash
 curl -X POST http://localhost:3001/api/products \
-  -H "Authorization: Bearer $TOKEN" \
+  -H "Authorization: Bearer $ACCESS" \
   -H 'Content-Type: application/json' \
   -d '{"name":"Classic Tee","description":"Cotton","price":1299,"sku":"TEE-001"}'
 
 curl -X PUT http://localhost:3002/api/inventory/<productId> \
-  -H "Authorization: Bearer $TOKEN" \
+  -H "Authorization: Bearer $ACCESS" \
   -H 'Content-Type: application/json' \
   -d '{"quantity":50}'
 
 curl http://localhost:3003/api/carts \
-  -H "Authorization: Bearer $TOKEN"
+  -H "Authorization: Bearer $ACCESS"
 
 curl -X POST http://localhost:3003/api/carts/items \
-  -H "Authorization: Bearer $TOKEN" \
+  -H "Authorization: Bearer $ACCESS" \
   -H 'Content-Type: application/json' \
   -d '{"productId":"<productId>","quantity":1}'
 
 curl -X POST http://localhost:3004/api/orders \
-  -H "Authorization: Bearer $TOKEN" \
+  -H "Authorization: Bearer $ACCESS" \
   -H 'Content-Type: application/json' \
   -d '{"items":[{"productId":"<productId>","quantity":1,"unitPrice":1299}]}'
 ```
 
 `POST /api/orders` does not take `userId`. The order is stored with `userId = token.sub`. `GET /api/orders` returns only that user’s orders.
 
-### 5. What the code is doing
+### 6. What the code is doing
 
 1. `bootstrapNestApp` sets Helmet, CORS, and validation.
-2. `AuthModule` registers `JwtModule` with `JWT_SECRET` / `JWT_EXPIRES_IN` and installs `JwtAuthGuard` as `APP_GUARD`.
-3. Login: load user with `+password`, `bcrypt.compare`, `jwt.signAsync({ sub, email })`.
-4. Guard: skip if `@Public()`; else `Bearer ` + `jwt.verify`; attach `request.user`.
-5. Controllers read `@CurrentUser()` (`sub`, `email`).
+2. `AuthModule` signs/verifies **access** tokens with `JWT_SECRET` (default 15m) and installs `JwtAuthGuard`.
+3. Login/register: bcrypt password, sign access + refresh (`typ` claim), store SHA-256 of refresh on the user.
+4. Guard: skip `@Public()`; else Bearer must be a valid **access** JWT.
+5. `POST /api/auth/refresh` verifies refresh with `JWT_REFRESH_SECRET`, checks the stored hash, rotates both tokens.
+6. Controllers read `@CurrentUser()` (`sub`, `email`).
 
 ## How HTTP, Mongo, and RabbitMQ fit together
 
@@ -446,17 +472,19 @@ Apps still **start** if RabbitMQ is down (`connectionInitOptions.wait: false`). 
 
 ## Environment
 
-Copy `.env.example` → `.env` in each app (`.env` is gitignored). Re-copy after this change so `JWT_SECRET` is present.
+Copy `.env.example` → `.env` in each app (`.env` is gitignored). Add `JWT_REFRESH_SECRET` if your existing `.env` was created before refresh tokens.
 
 | Variable | Example | Purpose |
 |---|---|---|
 | `PORT` | `3000` | HTTP port |
 | `MONGO_URI` | `mongodb://localhost:27017/users` | This service’s database |
 | `RABBITMQ_URL` | `amqp://localhost:5672` | Event bus |
-| `JWT_SECRET` | (16+ chars; 32+ in production) | Token signing/verification |
-| `JWT_EXPIRES_IN` | `7d` | Access token lifetime |
+| `JWT_SECRET` | (16+ chars; 32+ in production) | Access token sign/verify (every service) |
+| `JWT_REFRESH_SECRET` | (16+ chars; 32+ in production) | Refresh token sign/verify (user-service) |
+| `JWT_ACCESS_EXPIRES_IN` | `15m` | Access token lifetime |
+| `JWT_REFRESH_EXPIRES_IN` | `7d` | Refresh token lifetime |
 | `CORS_ORIGIN` | `*` or `https://app.example.com` | Allowed browser origins |
-| `NODE_ENV` | `production` | Requires Mongo, Rabbit, and a 32-char secret |
+| `NODE_ENV` | `production` | Requires Mongo, Rabbit, and 32-char secrets |
 
 `ConfigModule` loads `apps/<service>/.env` then workspace `.env`.
 

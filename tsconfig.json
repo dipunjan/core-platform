@@ -5,6 +5,21 @@
   "references": [
     {
       "path": "./apps/user-service"
+    },
+    {
+      "path": "./apps/product-service"
+    },
+    {
+      "path": "./apps/inventory-service"
+    },
+    {
+      "path": "./apps/cart-service"
+    },
+    {
+      "path": "./apps/order-service"
+    },
+    {
+      "path": "./packages/common"
     }
   ]
 }

@@ -1,0 +1,47 @@
+{
+  "name": "@core-platform/web",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "nx": {
+    "name": "web",
+    "targets": {
+      "serve": {
+        "continuous": true,
+        "executor": "nx:run-commands",
+        "options": {
+          "command": "npx vite --host",
+          "cwd": "apps/web"
+        }
+      },
+      "build": {
+        "executor": "nx:run-commands",
+        "outputs": ["{projectRoot}/dist"],
+        "options": {
+          "command": "npx vite build",
+          "cwd": "apps/web"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "dev": "vite --host",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "react-router-dom": "^7.8.2",
+    "@reduxjs/toolkit": "^2.9.0",
+    "axios": "^1.12.2",
+    "react-redux": "^9.2.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.1.12",
+    "@types/react-dom": "^19.1.9",
+    "@vitejs/plugin-react": "^5.0.2",
+    "typescript": "~5.9.2",
+    "vite": "^7.1.5"
+  }
+}

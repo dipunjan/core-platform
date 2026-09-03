@@ -1,72 +1,54 @@
 # Postman
 
-Live **demo script** for an interview: prove login, catalog writes, cart, order, and that Rabbit updated stock — without a frontend. Files in `postman/`. SPA behavior is different (cookies, no JSON tokens) — [frontend.md](frontend.md).
+Postman is a clickable tool to call the APIs **without the shop website**. Use it to check login, products, cart, and orders.
 
-**One sentence:** import the collection + local environment, Register/Login with `X-Auth-Response: tokens`, collection auth is Bearer, walk Health → Auth → Products → Inventory → Cart → Orders.
+The shop (http://localhost:5173) uses **cookies**. Postman uses **Bearer tokens** (same login, different envelope). Why that is not a free pass for strangers: [security.md](security.md). How the website is built: [frontend.md](frontend.md).
 
-Postman uses **Bearer**, so **CSRF does not apply**. That is what a mobile client would do too.
+## Before you start
 
-## What to say while you click
+1. Run Docker (Mongo + Rabbit) and all five programs. See the main [README](../README.md).
+2. Start **inventory** before you create products.
 
-- Environment selected = URLs and tokens substitute. If you forget it, `{{userUrl}}` is empty — classic live-demo fail.
-- Register **409** means that email exists → Login, don’t panic.
-- After Create product, wait a beat then Get inventory — you are showing the **async** event, not a JOIN.
-- Create order has **no `userId`** — “the API takes it from the token.”
-- Refresh **changes both tokens** — save them; old refresh 401s.
-- Logout last so the rest of the run still has a Bearer. After logout, Me may still work until access expires; Refresh will not.
+## Import
 
-## 1. Start the stack
+1. In Postman click **Import**.
+2. Add:
+   - `postman/Core-Platform.postman_collection.json`
+   - `postman/Core-Platform.postman_environment.json`
+3. Top right, pick environment **Core Platform - Local**.
 
-```bash
-docker compose up -d
-npx nx serve user-service
-npx nx serve product-service
-npx nx serve inventory-service
-npx nx serve cart-service
-npx nx serve order-service
-```
+If you skip the environment, addresses stay empty and everything fails.
 
-Start **inventory-service** before you create products so `product.created` has a queue.
+## What the environment stores
 
-## 2. Import
+| Name | Meaning |
+|---|---|
+| email / password / name | Test user (password at least 8 characters) |
+| sku | Product code — change it if “already exists” |
+| accessToken / refreshToken | Filled after Register or Login |
+| productId / orderId | Filled after you create them |
 
-1. Postman → **Import**
-2. `postman/Core-Platform.postman_collection.json`
-3. `postman/Core-Platform.postman_environment.json`
-4. You should see collection **Core Platform** and environment **Core Platform - Local**
+Register and Login send `X-Auth-Response: tokens` so the **body includes tokens**. Scripts save them. Later requests send `Authorization: Bearer …` automatically.
 
-## 3. Select the environment
+## Click this order
 
-Top-right → **Core Platform - Local**.
-
-| Variable | Default | Notes |
-|---|---|---|
-| `email` / `password` / `name` | `ada@example.com` / `secret12` / `Ada` | Password min 8 |
-| `sku` | `TEE-001` | Change if create product 409 |
-| `accessToken` / `refreshToken` | empty | Filled by Register / Login / Refresh |
-| `productId` / `orderId` | empty | Filled by Create product / Create order |
-
-## 4. Happy path (demo order)
-
-1. **Health → Live** — user-service is up
-2. **Auth → Register** (or Login on 409) — scripts save tokens because of `X-Auth-Response: tokens`
-3. **Users → Me** — profile, no password
-4. **Products → Create** — saves `productId`. Then **Inventory → Get by product id** (qty 0)
-5. **Inventory → Set quantity** — `50`
+1. **Health → Live** — user program is up
+2. **Auth → Register** — if email already exists (409), use **Login**
+3. **Users → Me** — your profile (no password)
+4. **Products → Create** — wait a second
+5. **Inventory → Get by product id** — amount 0, then set amount to 50
 6. **Cart → Add item**
-7. **Orders → Create** — `reserved` increases
-8. **Orders → Cancel** — reserved drops
+7. **Orders → Create** — stock “reserved” should go up
+8. **Orders → Cancel** — reserved goes down
 
-**Auth extras:** Refresh (save new pair). Logout last.
+**Refresh** gives new tokens — keep both. **Logout** last, or the rest of the run has no pass.
 
-## 5. Collection runner
+Treat saved tokens like a password. Don’t commit the environment file if it has real tokens.
 
-**Run** collection with environment **Core Platform - Local**. Register/Login first. Skip Logout until the end.
-
-## 6. If it 401s
+## If you get 401
 
 - Environment not selected
-- Register/Login failed
-- Access expired (~15m) → Refresh
-- Refresh JWT sent as Bearer → always 401; refresh is **body only**
-- Forgot `X-Auth-Response: tokens` on login → body has no JWTs, env tokens stay empty
+- You did not Register/Login, or it failed
+- Access pass older than ~15 minutes → run **Refresh**
+- You put the refresh pass in Authorization — that always fails. Refresh goes in the **JSON body**
+- Login without `X-Auth-Response: tokens` — body has no tokens, so nothing was saved

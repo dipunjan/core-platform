@@ -1,105 +1,86 @@
-# Deploy this backend
+# Putting this backend on the internet
 
-This repo is the **API platform** for a shop, not the website. You deploy it so a frontend (or Postman, or a mobile app) has somewhere real to log in, list products, hold a cart, and place orders.
+This code is the **shop server**, not the website.
 
-Local `nx serve` on five ports is for development. Interviewers will ask what production looks like — this file is that answer.
+On your laptop you run five programs on five ports. That is for learning. Real users need one HTTPS address, a real database, and secrets that are not in git.
 
-## Why deploy the backend at all
+You can show the APIs with Postman without a website. You **cannot** point a real website at `localhost`.
 
-- The UI cannot keep carts, passwords, or stock in the browser. Those need APIs, a database, and auth.
-- Microservices only pay off if they run as **separate processes** with their own env, health checks, and scale settings (inventory might need more consumers than user-service).
-- RabbitMQ and Mongo must be **always-on** infrastructure. Apps connect to them; they are not “part of React.”
-- HTTPS, real secrets, and a pinned `CORS_ORIGIN` only exist once this is off `localhost`.
+## Why bother?
 
-You do **not** have to deploy a frontend to demo the backend (Postman is enough). You **do** have to deploy the backend before a real SPA can leave localhost.
+- Passwords, carts, and stock cannot live only in the browser.
+- The five programs should run as five processes so one can restart without killing all of them.
+- Mongo (data) and RabbitMQ (notes between programs) must keep running.
+- Cookies marked “secure” only work on **https**.
 
-## What “done” looks like in production
+## Simple production picture
 
 ```
-  Users
-    │  HTTPS
+  People
+    │  https
     ▼
-  CDN / static host     ← frontend (separate repo)  see docs/frontend.md
-    │  same-site or CORS + cookies
-    ▼
-  API gateway / ingress  ← ONE public host, e.g. api.example.com
-    │  /users → user-service
-    │  /products → product-service
-    │  /inventory → inventory-service
-    │  /carts → cart-service
-    │  /orders → order-service
-    ▼
-  Five Nest services (containers or pods)
+  Website  (`apps/web` locally)     see frontend.md
     │
-    ├─ MongoDB (five databases, or five clusters later)
-    └─ RabbitMQ (one cluster, exchange `core-platform`)
+    ▼
+  One public API address      e.g. https://api.myshop.com
+    │  sends /users to user program
+    │  /products to product program
+    │  … same for stock, cart, orders
+    ▼
+  The five programs
+    ├── MongoDB (data)
+    └── RabbitMQ (notes)
 ```
 
-Locally the frontend would call `localhost:3000`…`3004`. **That does not scale for cookies and CORS.** In production put a **gateway** so the browser sees one origin (`https://api.example.com`) and cookies work with `SameSite=Lax`. Path prefix can stay `/api` as today.
+On the laptop the website would call five different ports. On the internet, put a **front door** (gateway or proxy) so the browser only sees **one** host. That makes cookies much easier.
 
-## What you need to do (checklist)
+## Checklist
 
-1. **Containerize each Nest app**  
-   Multi-stage Docker image: `npx nx build <service>` → run `node dist/main.js`. One image per service (or one image, different `PORT` / command). Do not put Mongo/Rabbit inside the app image.
+1. **Package each program**  
+   Build it (`npx nx build …`) and run `node dist/main.js` in a container. Do not put Mongo inside the same image.
 
-2. **Run Mongo and Rabbit as managed services**  
-   Atlas / Compose Mongo, CloudAMQP / Amazon MQ / in-cluster Rabbit. Persistent volumes. Do not use the local `docker-compose.yml` guest/guest in production.
+2. **Use a real Mongo and Rabbit**  
+   Not `guest/guest` from local Docker. Use a hosted database and a hosted message broker, with backups.
 
 3. **Secrets**  
-   `JWT_SECRET` and `JWT_REFRESH_SECRET` ≥ 32 chars, **same `JWT_SECRET` on every service**. `MONGO_URI` and `RABBITMQ_URL` per environment. Inject via the platform (not git). Set `NODE_ENV=production`.
+   Long random `JWT_SECRET` (same in all five programs) and `JWT_REFRESH_SECRET`. Put them in the host’s secret store, not in GitHub. Set `NODE_ENV=production`.
 
-4. **Cookies and HTTPS**  
-   `COOKIE_SECURE=true`. Terminate TLS at the gateway. Without HTTPS, Secure cookies will not be stored.
+4. **HTTPS**  
+   `COOKIE_SECURE=true`. The front door handles the certificate.
 
-5. **CORS**  
-   `CORS_ORIGIN=https://your-frontend.example.com` (comma-separated if you have a preview URL). Production **refuses** `*`.
+5. **Who may call you**  
+   `CORS_ORIGIN=https://www.myshop.com` (your real site). Not `*`.
 
-6. **Gateway routes**  
-   Forward `/api/users`, `/api/auth` → user-service; `/api/products` → product; etc. Preserve `Authorization`, `Cookie`, `X-CSRF-Token`, `X-Auth-Response`. Enable sticky nothing required (JWT is stateless).
+6. **Front door routes**  
+   `/api/users` and `/api/auth` → user program, `/api/products` → product, and so on. Forward cookies and headers.
 
-7. **Health**  
-   Liveness: `GET /api/health/live`. Readiness: `GET /api/health/ready` (Mongo + Rabbit). Use these for k8s probes / load balancer.
+7. **Health checks**  
+   “Still running?” → `/api/health/live`  
+   “Database OK?” → `/api/health/ready`
 
 8. **Start order**  
-   Mongo + Rabbit healthy first. Then all five apps. Inventory should be up before product-service emits `product.created` (or the message waits in the queue — still start inventory promptly).
+   Database and Rabbit first, then the five programs. Prefer inventory up before you create products.
 
-9. **Scale**  
-   Stateless Nest replicas behind the gateway. Rabbit consumers: durable queues already; more inventory replicas compete on the same queue (competing consumers). Do not share one Mongo collection across services.
+9. **More traffic later**  
+   Run extra copies of a program behind the front door. They do not keep user session in memory (the pass is in the token).
 
-10. **Observability (say it even if not built)**  
-    Central logs, request id, Rabbit DLQ alerts (`core-platform.dlq`), disk for Mongo. This repo does not include Datadog/Prometheus yet.
+This repo includes a React shop in `apps/web` for local use. On the internet you still want **one HTTPS API host** (a gateway) plus HTTPS for the site. Local `docker-compose.yml` only starts Mongo and Rabbit.
 
-## What you do *not* deploy from this repo
+## What changes from laptop to internet
 
-- A React/Vue/Next app — [docs/frontend.md](frontend.md)
-- A payment provider (Stripe, etc.)
-- Kubernetes manifests / Terraform — not in the tree; you would add them when you pick a cloud
-
-`docker-compose.yml` here is **only** local Mongo + Rabbit. Apps still run with Nx on your machine until you add app Dockerfiles.
-
-## Minimal cloud sketch (talk track)
-
-**Cheap demo:** one VM or Railway/Render-style service **per** Nest app + Atlas + CloudAMQP + a small reverse proxy (Caddy/Nginx) for `api.` host.
-
-**Job-like answer:** EKS/GKE/AKS, Ingress, one Deployment per service, Secrets, HPA on CPU, RabbitMQ operator or managed broker, Mongo Atlas peering.
-
-**Why five processes cost more than a monolith:** more ops. You accept that to show isolation. If the interviewer pushes back, agree a modular monolith is the right first production step, and this layout is the split you’d grow into.
-
-## Env that must change vs local
-
-| Local | Production |
+| On your laptop | On the internet |
 |---|---|
 | `COOKIE_SECURE=false` | `true` |
-| `CORS_ORIGIN` localhost list | Real frontend origin |
-| Short demo JWT secrets | Random 32+ chars |
-| `localhost` Mongo/Rabbit | Managed URIs |
-| Five public ports | One HTTPS hostname via gateway |
+| CORS = localhost | Your real website URL |
+| Short demo secrets | Long random secrets |
+| Mongo/Rabbit on localhost | Hosted URLs |
+| Five open ports | One https name |
 
-## After deploy: prove it
+## After it is up, try
 
-- `https://api.example.com/api/health/ready` on each service (or through the gateway paths)
-- Register + login from the real frontend origin (cookies `Secure` + CORS)
-- Create product → inventory row appears (Rabbit)
-- Place order → `reserved` increases
+- Health ready through the public URL
+- Register/login from the real website (cookies + https)
+- Create a product → stock row appears
+- Place an order → reserved count goes up
 
-If cookies fail, first suspects: mixed HTTP/HTTPS, wrong `CORS_ORIGIN`, gateway stripping `Set-Cookie`, or frontend not using `credentials: 'include'`.
+If login cookies fail, check: http mixed with https, wrong website in `CORS_ORIGIN`, front door dropping `Set-Cookie`, or the website not sending `credentials: 'include'`. Why cookies vs Bearer: [security.md](security.md).

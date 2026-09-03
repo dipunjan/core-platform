@@ -1,139 +1,74 @@
-# RabbitMQ
+# Messages (RabbitMQ)
 
-How services talk **without HTTP to each other**. Interview framing + how to demo. Broker locally: `docker compose up -d` → AMQP `:5672`, UI http://localhost:15672 (`guest` / `guest`).
+The website talks to our programs with normal web requests.
 
-**One sentence:** the browser only uses HTTP; after an order (or product) is saved, we publish a persistent message on topic exchange `core-platform`; inventory consumes it and updates stock.
+The programs also talk to **each other**, but not with those same web requests. They leave **notes** in a mailbox called RabbitMQ. The stock program reads those notes and updates how many items are left.
 
-## What to say
+On your machine: `docker compose up -d`. Web UI: http://localhost:15672 (user `guest`, password `guest`).
 
-**Why not `order-service` HTTP-calling `inventory-service`?**  
-That couples checkout latency and uptime to stock. If inventory is restarting, place-order would 502. A queue holds `order.created` until inventory is back. Tradeoff: **eventual consistency** — the order row exists before `reserved` bumps (usually ms).
+## Why a mailbox?
 
-**What if the message is lost?**  
-Topic exchange **drops** the message if **no queue is bound yet**. That is why we start inventory before creating products in a demo. Once the durable queue exists, messages wait. Failed handler → NACK → DLQ (`core-platform.dlq`), not infinite retry.
+If the **order** program called the **stock** program directly:
 
-**At-least-once?**  
-Crash before ACK → redelivery. Inventory reserve is designed to be safe to retry (idempotent keys). Say “at-least-once + idempotent consumer,” not exactly-once (that needs more infra).
+- placing an order would fail whenever stock is restarting
+- the customer would wait for stock on the same click
 
-**Who subscribes?**  
-Only services that care. Cart does not listen. Inventory listens to product + order events. `user.created` is published with **no consumer** — placeholder for email/CRM; say that honestly.
+With a mailbox:
 
-**Scale?**  
-`prefetchCount: 1`. Extra inventory replicas = competing consumers on the same queue name.
+- the order is saved first
+- a note “order created” is left in the box
+- stock reads it when it can (usually right away)
 
-**HTTP vs events (whiteboard)**  
-UI → order-service (sync, user waits). order-service → Rabbit → inventory (async, user does not wait on stock).
+The order exists a tiny moment before stock is held. That is OK for this shop.
 
-## Sequence (order → stock)
+## What notes we send
 
-```
-  Client
-    │  POST /api/orders   Bearer <access>
-    ▼
-  order-service  ──save──►  Mongo DB `orders`
-    │
-    │  EventPublisher.publish(order.created)
-    ▼
-  RabbitMQ exchange `core-platform`   (topic, durable)
-    routing key: order.created
-    │
-    ▼
-  queue `inventory.order.created`
-    │
-    ▼
-  inventory-service  ──update──►  Mongo  then ACK
-```
+| Note | Who writes it | Who reads it | What happens |
+|---|---|---|---|
+| product created | product program | stock | creates a stock row, amount 0 |
+| order created | order program | stock | holds (reserves) the items |
+| order cancelled | order program | stock | puts the items back |
+| user created / updated | user program | nobody yet | later you could send a welcome email |
 
-Same shape: `product.created` → inventory row qty `0`. `order.cancelled` → release reserved.
+The cart program does not listen. It does not need these notes.
 
-## Events in this repo
+## Important: start stock first
 
-| Event | Publisher | Consumer |
-|---|---|---|
-| `user.created` / `user.updated` | user-service | none yet |
-| `product.created` | product-service | inventory (row, qty `0`) |
-| `order.created` | order-service | inventory (reserve) |
-| `order.cancelled` | order-service | inventory (release) |
+If you create a product **before** the stock program has ever started, the note has nowhere to sit and is **thrown away**. So in a demo, start inventory-service first. After it has started once, the mailbox (queue) exists and notes wait.
 
-## Publish / consume (implementation)
+If handling a note **crashes**, the note goes to a “failed” box: `core-platform.dlq` in the Rabbit web UI. We do not retry forever.
 
-Publish after a **successful** Mongo write: `this.events.publish(Events.ORDER_CREATED, payload)`. Routing key = event name. Persistent messages.
+If the program dies **before** it says “I got it”, the note is given again. Stock updates are written so doing them twice is safe.
 
-Consume: `@RabbitSubscribe(eventSubscribe('inventory.order.created', Events.ORDER_CREATED))`. Durable queue, DLX on failure.
-
-Code: `packages/common/src/messaging/`.
-
-## Success vs failure
+## Picture
 
 ```
-  Handler succeeds  →  ACK   →  message deleted
-  Handler throws    →  NACK (not requeued)
-                         ▼
-                   exchange `core-platform.dlx`
-                         ▼
-                   queue `core-platform.dlq`
+  You place an order
+        │
+        ▼
+  order program saves the order
+        │
+        │  leaves a note “order created”
+        ▼
+  RabbitMQ (the mailbox)
+        │
+        ▼
+  stock program reads the note
+        │
+        ▼
+  stock numbers go up in “reserved”
 ```
 
-UI: Queues → `core-platform.dlq`. Crash **before** ack → redeliver on the main queue. Disconnect → reconnect (heartbeat 5s). Apps **start** even if Rabbit is down (`wait: false`); `/api/health/ready` shows Rabbit down.
+## Try it
 
-No “retry 5 times then DLQ” — fail once → DLQ.
+Need a login pass ([security](security.md)). Start Mongo, Rabbit, **inventory**, then product and orders.
 
-## Add an event
+1. Open http://localhost:15672 → Queues. You should see names starting with `inventory.` and `core-platform.dlq`.
 
-1. Name + payload in `packages/common/src/messaging/events.ts`
-2. `publish` in the producer app
-3. `@RabbitSubscribe` only on the consumer that needs it
+2. Create a product (need access pass). Then get stock for that product id. Amount should be 0. Then set amount to 50.
 
-## How to test
+3. Place an order for 2 of that product. Stock “reserved” should become 2.
 
-Start Mongo + Rabbit, **inventory-service first** (binds queues), then product and order. Need an access token ([auth](auth.md)).
+4. Cancel the order. Reserved should go back down.
 
-### 1. Queues exist
-
-http://localhost:15672 → Queues, after inventory boot:
-
-- `inventory.product.created`
-- `inventory.order.created`
-- `inventory.order.cancelled`
-- `core-platform.dlq`
-
-### 2. `product.created` → inventory row
-
-```bash
-curl -X POST http://localhost:3001/api/products \
-  -H "Authorization: Bearer $ACCESS" \
-  -H 'Content-Type: application/json' \
-  -d '{"name":"Classic Tee","description":"Cotton","price":1299,"sku":"TEE-001"}'
-```
-
-```bash
-curl http://localhost:3002/api/inventory/<productId>
-```
-
-Expect `quantity: 0`, `reserved: 0`. Then `PUT` quantity `50` with Bearer.
-
-### 3. `order.created` → reserved
-
-```bash
-curl -X POST http://localhost:3004/api/orders \
-  -H "Authorization: Bearer $ACCESS" \
-  -H 'Content-Type: application/json' \
-  -d '{"items":[{"productId":"<productId>","quantity":2,"unitPrice":1299}]}'
-```
-
-`reserved` should be `2`.
-
-### 4. Cancel → release
-
-```bash
-curl -X PATCH http://localhost:3004/api/orders/<orderId>/status \
-  -H "Authorization: Bearer $ACCESS" \
-  -H 'Content-Type: application/json' \
-  -d '{"status":"cancelled"}'
-```
-
-### 5. Dropped message (talk track)
-
-Stop inventory, create a product, start inventory. That product may have **no** inventory row — published with no bound queue. Expected for a topic exchange.
-
-Env: `RABBITMQ_URL=amqp://localhost:5672`.
+If you stop inventory, create a product, then start inventory — that product may have **no** stock row. The note was lost. Start inventory first next time.

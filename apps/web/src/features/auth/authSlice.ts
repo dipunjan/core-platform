@@ -1,5 +1,13 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
-import { apiMessage, hasCsrfCookie, http, urls, type User } from '@/api';
+import axios from 'axios';
+import {
+  apiMessage,
+  clearCsrfCookie,
+  hasCsrfCookie,
+  http,
+  urls,
+  type User,
+} from '@/api';
 
 type AuthState = {
   user: User | null;
@@ -20,7 +28,10 @@ export const fetchMe = createAsyncThunk('auth/me', async () => {
   try {
     const { data } = await http.get<User>(urls.me);
     return data;
-  } catch {
+  } catch (err) {
+    if (axios.isAxiosError(err) && err.response?.status === 401) {
+      clearCsrfCookie();
+    }
     return null;
   }
 });
@@ -56,8 +67,9 @@ export const logout = createAsyncThunk('auth/logout', async () => {
   try {
     await http.post(urls.logout);
   } catch {
-    /* cookies may already be gone */
+    /* server may already be down */
   }
+  clearCsrfCookie();
 });
 
 const authSlice = createSlice({

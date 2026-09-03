@@ -9,7 +9,10 @@ export function Flash({ children }: Props) {
     return null;
   }
   return (
-    <div className="flash" role="alert">
+    <div
+      className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-800"
+      role="alert"
+    >
       {children}
     </div>
   );

@@ -8,11 +8,19 @@ export function OrdersPage() {
 
   return (
     <>
-      <h1>Orders</h1>
+      <h1 className="mb-6 text-3xl font-semibold tracking-tight text-zinc-900">
+        Orders
+      </h1>
       <Flash>{error}</Flash>
       {error ? null : orders.length === 0 ? (
         <EmptyState>
-          None yet. <Link to="/cart">Go to cart</Link>
+          None yet.{' '}
+          <Link
+            className="font-medium text-emerald-800 hover:underline"
+            to="/cart"
+          >
+            Go to cart
+          </Link>
         </EmptyState>
       ) : (
         orders.map((order) => (

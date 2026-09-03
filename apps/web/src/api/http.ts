@@ -18,6 +18,10 @@ export function hasCsrfCookie(): boolean {
   return Boolean(readCookie('csrf_token'));
 }
 
+export function clearCsrfCookie(): void {
+  document.cookie = 'csrf_token=; Path=/; Max-Age=0; SameSite=Lax';
+}
+
 function unreachableHost(err: AxiosError): string {
   const url = err.config?.url ?? '';
   try {
@@ -105,6 +109,7 @@ http.interceptors.response.use(
 
     const refreshed = await refreshWait;
     if (!refreshed) {
+      clearCsrfCookie();
       return Promise.reject(error);
     }
     return http.request(original);

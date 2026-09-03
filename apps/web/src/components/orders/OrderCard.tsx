@@ -10,12 +10,12 @@ type Props = {
 export function OrderCard({ order, busy, onCancel }: Props) {
   const id = docId(order);
   return (
-    <div className="card" style={{ marginBottom: '1rem' }}>
-      <p>
-        <strong>{order.status}</strong>
-        <span className="muted"> · {money(order.total)}</span>
+    <div className="mb-4 rounded-xl border border-zinc-200 bg-white p-5 shadow-sm">
+      <p className="flex flex-wrap items-baseline gap-2">
+        <strong className="capitalize text-zinc-900">{order.status}</strong>
+        <span className="text-sm text-zinc-500">· {money(order.total)}</span>
       </p>
-      <ul>
+      <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-zinc-600">
         {order.items.map((item) => (
           <li key={item.productId}>
             {item.quantity} × {item.productId} @ {money(item.unitPrice)}
@@ -26,6 +26,7 @@ export function OrderCard({ order, busy, onCancel }: Props) {
         <Button
           variant="danger"
           type="button"
+          className="mt-4"
           disabled={busy}
           onClick={() => onCancel(id)}
         >

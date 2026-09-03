@@ -1,6 +1,6 @@
 # Website (frontend)
 
-The shop site lives in **`apps/web`**. It is a React app (Vite). On your machine it is **http://localhost:5173**.
+The shop site lives in **`apps/web`**. It is a React app (Vite + Tailwind) at **http://localhost:5173**. The storefront is branded **swoop**.
 
 It talks to the five APIs. Login is stored in **cookies**, not in `localStorage`. Why, and how Postman/Bearer fits: [security.md](security.md). Going live: [deploy.md](deploy.md).
 
@@ -73,7 +73,7 @@ apps/web/src/
     orders/        OrderCard
   api/             axios client, API URLs, TypeScript types
   store/           Redux store + typed useAppDispatch / useAppSelector
-  styles/          CSS
+  styles/          Tailwind (index.css)
 ```
 
 Cross-folder imports use `@` (meaning `src/`) and a folder’s `index.ts` barrel, for example:
@@ -103,11 +103,11 @@ Checkout is: create an order, then delete the cart (that logic is in the cart sl
 
 On POST / PATCH / PUT / DELETE it also sends the `X-CSRF-Token` header (read from the readable `csrf_token` cookie). That is required for cookie logins. [security.md](security.md) explains why.
 
-If a call comes back **401** and you still have a `csrf_token` cookie (you were logged in, but the short pass expired), axios calls `/auth/refresh` **once** and retries. If that fails, you need to log in again.
+If a call comes back **401** and you still have a `csrf_token` cookie (you were logged in, but the short pass expired), axios calls `/auth/refresh` **once** and retries. If that fails, the site treats you as logged out and **drops the readable CSRF cookie itself**. Nobody should need to clear cookies in the browser.
 
-On first load, `fetchMe` only calls `/users/me` if that cookie exists. Visiting `/login` as a guest does **not** hit the API, so you should not see a 401 in the console.
+On first load, `fetchMe` only calls `/users/me` if that cookie exists. After a failed login check (401), the cookie is gone, so later visits to `/login` stay quiet. If user-service is **down**, you may still see a console error once (the API is unreachable). Starting the service is the fix, not clearing cookies.
 
-The name in the header is from Redux (`fetchMe`). Logging out hits the API and clears that copy.
+The name in the header is from Redux (`fetchMe`). Logging out hits the API and also drops that CSRF hint.
 
 ## If something looks wrong
 

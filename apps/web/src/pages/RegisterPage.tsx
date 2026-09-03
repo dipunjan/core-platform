@@ -22,8 +22,13 @@ export function RegisterPage() {
   }
 
   return (
-    <div className="card" style={{ maxWidth: 420 }}>
-      <h1>Register</h1>
+    <div className="mx-auto w-full max-w-md rounded-xl border border-zinc-200 bg-white p-6 shadow-sm sm:p-8">
+      <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">
+        Register
+      </h1>
+      <p className="mt-2 mb-6 text-sm text-zinc-500">
+        Create an account to save a cart and place orders.
+      </p>
       <Flash>{error}</Flash>
       <form onSubmit={(event) => void onSubmit(event)}>
         <Field
@@ -47,12 +52,15 @@ export function RegisterPage() {
           minLength={8}
           required
         />
-        <Button type="submit" disabled={busy}>
+        <Button type="submit" className="w-full" disabled={busy}>
           Create account
         </Button>
       </form>
-      <p>
-        Already have an account? <Link to="/login">Log in</Link>
+      <p className="mt-6 text-sm text-zinc-600">
+        Already have an account?{' '}
+        <Link className="font-medium text-emerald-800 hover:underline" to="/login">
+          Log in
+        </Link>
       </p>
     </div>
   );

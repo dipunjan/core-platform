@@ -18,6 +18,7 @@ import { Public, Roles } from '@core-platform/common';
 import type { Request, Response } from 'express';
 import { memoryStorage } from 'multer';
 import { CreateBannerDto, UpdateStorefrontDto } from './dto/storefront.dto';
+import { UpdateBannerDto } from './dto/update-banner.dto';
 import { StorefrontService } from './storefront.service';
 
 @Controller('storefront')
@@ -70,6 +71,12 @@ export class StorefrontController {
   @Post('banners')
   addBanner(@Body() body: CreateBannerDto) {
     return this.storefront.addBanner(body);
+  }
+
+  @Roles('admin')
+  @Patch('banners/:id')
+  updateBanner(@Param('id') id: string, @Body() body: UpdateBannerDto) {
+    return this.storefront.updateBanner(id, body);
   }
 
   @Roles('admin')

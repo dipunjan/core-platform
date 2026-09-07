@@ -6,6 +6,7 @@ import { Model, Types } from 'mongoose';
 import { join } from 'path';
 import { CatalogCache } from '@core-platform/common';
 import { CreateBannerDto, UpdateStorefrontDto } from './dto/storefront.dto';
+import { UpdateBannerDto } from './dto/update-banner.dto';
 import {
   DEFAULT_STOREFRONT,
   SEED_SOURCES,
@@ -97,6 +98,43 @@ export class StorefrontService {
       .exec();
     if (!row) {
       throw new NotFoundException('Storefront not found');
+    }
+    await this.catalogCache.bump();
+    return row;
+  }
+
+  async updateBanner(bannerId: string, input: UpdateBannerDto) {
+    if (!Types.ObjectId.isValid(bannerId)) {
+      throw new NotFoundException('Banner not found');
+    }
+    const setFields: Record<string, unknown> = {};
+    if (input.headline !== undefined) {
+      setFields['banners.$.headline'] = input.headline;
+    }
+    if (input.sub !== undefined) {
+      setFields['banners.$.sub'] = input.sub;
+    }
+    if (input.imageUrl !== undefined) {
+      setFields['banners.$.imageUrl'] = input.imageUrl;
+    }
+    if (input.href !== undefined) {
+      setFields['banners.$.href'] = input.href;
+    }
+    if (input.sortOrder !== undefined) {
+      setFields['banners.$.sortOrder'] = input.sortOrder;
+    }
+    if (Object.keys(setFields).length === 0) {
+      return this.get();
+    }
+    const row = await this.model
+      .findOneAndUpdate(
+        { key: 'default', 'banners._id': new Types.ObjectId(bannerId) },
+        { $set: setFields },
+        { new: true },
+      )
+      .exec();
+    if (!row) {
+      throw new NotFoundException('Banner not found');
     }
     await this.catalogCache.bump();
     return row;

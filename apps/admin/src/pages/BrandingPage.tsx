@@ -8,7 +8,7 @@ import {
   type Banner,
   type Storefront,
 } from '@/api';
-import { Button, Field, Flash, ImagePicker, PageLoader } from '@/components/ui';
+import { Button, Field, Flash, ImagePicker, PageLoader, SelectField } from '@/components/ui';
 import { brandImage, hasBrandImage } from '@/lib/brandImage';
 import { confirmAction } from '@/lib/confirm';
 import { useStorefront } from '@/hooks';
@@ -37,6 +37,17 @@ export function BrandingPage() {
   const [promoUploading, setPromoUploading] = useState(false);
   const [promoAttempted, setPromoAttempted] = useState(false);
   const [promoErrors, setPromoErrors] = useState<{
+    headline?: string;
+    image?: string;
+  }>({});
+  const [editingBannerId, setEditingBannerId] = useState('');
+  const [editPromoHeadline, setEditPromoHeadline] = useState('');
+  const [editPromoSub, setEditPromoSub] = useState('');
+  const [editPromoImage, setEditPromoImage] = useState('');
+  const [editPromoHref, setEditPromoHref] = useState('/shop');
+  const [editPromoUploading, setEditPromoUploading] = useState(false);
+  const [editPromoAttempted, setEditPromoAttempted] = useState(false);
+  const [editPromoErrors, setEditPromoErrors] = useState<{
     headline?: string;
     image?: string;
   }>({});
@@ -225,6 +236,68 @@ export function BrandingPage() {
     return next;
   }
 
+  function validateEditPromo() {
+    const next: { headline?: string; image?: string } = {};
+    if (!editPromoHeadline.trim()) {
+      next.headline = 'Enter a headline for this tile.';
+    }
+    if (editPromoUploading || editPromoImage.startsWith('blob:')) {
+      next.image = 'Wait for the image upload to finish.';
+    } else if (!editPromoImage) {
+      next.image = 'Choose an image for this tile.';
+    }
+    return next;
+  }
+
+  function startEditBanner(banner: Banner) {
+    clearStatus();
+    setEditingBannerId(docId(banner));
+    setEditPromoHeadline(banner.headline);
+    setEditPromoSub(banner.sub ?? '');
+    setEditPromoImage(banner.imageUrl);
+    setEditPromoHref(banner.href || '/shop');
+    setEditPromoAttempted(false);
+    setEditPromoErrors({});
+  }
+
+  function cancelEditBanner() {
+    setEditingBannerId('');
+    setEditPromoHeadline('');
+    setEditPromoSub('');
+    setEditPromoImage('');
+    setEditPromoHref('/shop');
+    setEditPromoAttempted(false);
+    setEditPromoErrors({});
+  }
+
+  async function saveEditBanner(event: FormEvent) {
+    event.preventDefault();
+    clearStatus();
+    setEditPromoAttempted(true);
+    const fieldErrors = validateEditPromo();
+    setEditPromoErrors(fieldErrors);
+    if (Object.keys(fieldErrors).length > 0) {
+      return;
+    }
+    const headline = editPromoHeadline.trim();
+    setBusy(`edit-${editingBannerId}`);
+    try {
+      const { data } = await http.patch<Storefront>(urls.banner(editingBannerId), {
+        headline,
+        sub: editPromoSub.trim(),
+        imageUrl: editPromoImage,
+        href: editPromoHref.trim() || '/shop',
+      });
+      apply(data);
+      cancelEditBanner();
+      setNotice('Promo tile updated.');
+    } catch (err) {
+      setError(apiMessage(err));
+    } finally {
+      setBusy('');
+    }
+  }
+
   async function addBanner(event: FormEvent) {
     event.preventDefault();
     clearStatus();
@@ -268,6 +341,9 @@ export function BrandingPage() {
     clearStatus();
     setBusy(`delete-${docId(banner)}`);
     try {
+      if (editingBannerId === docId(banner)) {
+        cancelEditBanner();
+      }
       const { data } = await http.delete<Storefront>(urls.banner(docId(banner)));
       apply(data);
       setNotice('Promo tile removed.');
@@ -322,20 +398,17 @@ export function BrandingPage() {
         className="mb-10 max-w-xl rounded-xl border border-zinc-200 bg-white p-6"
       >
         <h2 className="mb-4 font-semibold">Currency</h2>
-        <label className="mb-4 grid gap-1.5 text-sm font-medium text-zinc-700">
-          Display currency
-          <select
-            className="rounded-lg border border-zinc-300 px-3 py-2"
-            value={currency}
-            onChange={(e) => setCurrency(e.target.value)}
-          >
-            {STORE_CURRENCIES.map((code) => (
-              <option key={code} value={code}>
-                {code}
-              </option>
-            ))}
-          </select>
-        </label>
+        <SelectField
+          label="Display currency"
+          value={currency}
+          onChange={(e) => setCurrency(e.target.value)}
+        >
+          {STORE_CURRENCIES.map((code) => (
+            <option key={code} value={code}>
+              {code}
+            </option>
+          ))}
+        </SelectField>
         <Button type="submit" loading={busy === 'currency'}>Save currency</Button>
       </form>
       <section className="mb-10 max-w-xl rounded-xl border border-zinc-200 bg-white p-6">
@@ -389,44 +462,136 @@ export function BrandingPage() {
           are in <code className="text-xs">branding-samples/</code>.
         </p>
         <ul className="mb-6 grid gap-3">
-          {(store?.banners ?? []).map((banner) => (
-            <li
-              key={docId(banner)}
-              className="flex items-start justify-between gap-3 rounded-lg border border-zinc-100 p-3"
-            >
-              <div className="flex min-w-0 gap-3">
-                <div>
-                  <img
-                    src={brandImage(banner.imageUrl, 'promo')}
-                    alt=""
-                    className="h-14 w-24 shrink-0 rounded-md border border-zinc-200 object-cover"
-                  />
-                  <span
-                    className={`mt-1 inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                      hasBrandImage(banner.imageUrl)
-                        ? 'bg-emerald-100 text-emerald-800'
-                        : 'bg-zinc-100 text-zinc-600'
-                    }`}
-                  >
-                    {hasBrandImage(banner.imageUrl) ? 'Live' : 'Placeholder'}
-                  </span>
-                </div>
-                <div>
-                  <p className="font-semibold">{banner.headline}</p>
-                  <p className="text-sm text-zinc-500">{banner.sub}</p>
-                </div>
-              </div>
-              <Button
-                type="button"
-                variant="danger"
-                loading={busy === `delete-${docId(banner)}`}
-                loadingLabel="Deleting…"
-                onClick={() => void removeBanner(banner)}
+          {(store?.banners ?? []).map((banner) => {
+            const bannerId = docId(banner);
+            const editing = editingBannerId === bannerId;
+            return (
+              <li
+                key={bannerId}
+                className={`rounded-lg border p-3 ${
+                  editing ? 'border-emerald-200 bg-emerald-50/40' : 'border-zinc-100'
+                }`}
               >
-                Delete
-              </Button>
-            </li>
-          ))}
+                {editing ? (
+                  <form onSubmit={(event) => void saveEditBanner(event)} noValidate>
+                    <Field
+                      label="Headline"
+                      value={editPromoHeadline}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        setEditPromoHeadline(value);
+                        if (editPromoAttempted && value.trim()) {
+                          setEditPromoErrors((prev) => ({
+                            ...prev,
+                            headline: undefined,
+                          }));
+                        }
+                      }}
+                      required
+                      error={editPromoAttempted ? editPromoErrors.headline : undefined}
+                    />
+                    <Field
+                      label="Sub"
+                      value={editPromoSub}
+                      onChange={(e) => setEditPromoSub(e.target.value)}
+                    />
+                    <ImagePicker
+                      label="Tile image"
+                      kind="promo"
+                      required
+                      value={editPromoImage}
+                      onChange={(url) => {
+                        setEditPromoImage(url);
+                        if (
+                          editPromoAttempted &&
+                          url &&
+                          !url.startsWith('blob:') &&
+                          !editPromoUploading
+                        ) {
+                          setEditPromoErrors((prev) => ({ ...prev, image: undefined }));
+                        }
+                      }}
+                      onBusyChange={(uploading) => {
+                        setEditPromoUploading(uploading);
+                        if (editPromoAttempted && uploading) {
+                          setEditPromoErrors((prev) => ({
+                            ...prev,
+                            image: 'Wait for the image upload to finish.',
+                          }));
+                        }
+                      }}
+                      onError={setError}
+                      hint="JPEG, PNG, GIF, WebP, or SVG."
+                      error={editPromoAttempted ? editPromoErrors.image : undefined}
+                    />
+                    <Field
+                      label="Link"
+                      value={editPromoHref}
+                      onChange={(e) => setEditPromoHref(e.target.value)}
+                    />
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        type="submit"
+                        loading={busy === `edit-${bannerId}`}
+                      >
+                        Save changes
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        onClick={cancelEditBanner}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </form>
+                ) : (
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex min-w-0 gap-3">
+                      <div>
+                        <img
+                          src={brandImage(banner.imageUrl, 'promo')}
+                          alt=""
+                          className="h-14 w-24 shrink-0 rounded-md border border-zinc-200 object-cover"
+                        />
+                        <span
+                          className={`mt-1 inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                            hasBrandImage(banner.imageUrl)
+                              ? 'bg-emerald-100 text-emerald-800'
+                              : 'bg-zinc-100 text-zinc-600'
+                          }`}
+                        >
+                          {hasBrandImage(banner.imageUrl) ? 'Live' : 'Placeholder'}
+                        </span>
+                      </div>
+                      <div>
+                        <p className="font-semibold">{banner.headline}</p>
+                        <p className="text-sm text-zinc-500">{banner.sub}</p>
+                      </div>
+                    </div>
+                    <div className="flex shrink-0 gap-2">
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        onClick={() => startEditBanner(banner)}
+                      >
+                        Edit
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="danger"
+                        loading={busy === `delete-${bannerId}`}
+                        loadingLabel="Deleting…"
+                        onClick={() => void removeBanner(banner)}
+                      >
+                        Delete
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </li>
+            );
+          })}
         </ul>
         <form onSubmit={(event) => void addBanner(event)} noValidate>
           <Field

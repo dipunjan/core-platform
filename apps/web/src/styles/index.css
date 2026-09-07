@@ -17,6 +17,94 @@ a {
 }
 
 button,
-input {
+input,
+select,
+textarea {
   font: inherit;
+}
+
+@layer components {
+  /* One shell for text inputs and selects — same box model everywhere. */
+  .form-control {
+    box-sizing: border-box;
+    display: block;
+    width: 100%;
+    height: 2.5rem;
+    min-height: 2.5rem;
+    max-height: 2.5rem;
+    padding-inline: 0.75rem;
+    padding-block: 0;
+    border-radius: 0.5rem;
+    border: 1px solid var(--color-zinc-300);
+    background-color: #fff;
+    font-size: 0.875rem;
+    line-height: 2.5rem;
+    color: var(--color-zinc-900);
+    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    outline: none;
+  }
+
+  .form-control:focus {
+    border-color: var(--color-emerald-700);
+    box-shadow: 0 0 0 2px color-mix(in oklab, var(--color-emerald-700) 20%, transparent);
+  }
+
+  .form-control:disabled {
+    cursor: not-allowed;
+    background-color: var(--color-zinc-50);
+    opacity: 0.6;
+  }
+
+  .form-control-error {
+    border-color: var(--color-red-400);
+  }
+
+  .form-control-error:focus {
+    border-color: var(--color-red-600);
+    box-shadow: 0 0 0 2px color-mix(in oklab, var(--color-red-600) 20%, transparent);
+  }
+
+  .form-select {
+    appearance: none;
+    -webkit-appearance: none;
+    padding-right: 2.5rem;
+    background-image: none;
+  }
+
+  input.form-control[type='number'] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+  }
+
+  input.form-control[type='number']::-webkit-outer-spin-button,
+  input.form-control[type='number']::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  .form-textarea {
+    box-sizing: border-box;
+    display: block;
+    width: 100%;
+    min-height: 6rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.5rem;
+    border: 1px solid var(--color-zinc-300);
+    background-color: #fff;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    color: var(--color-zinc-900);
+    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    outline: none;
+    resize: vertical;
+  }
+
+  .form-textarea:focus {
+    border-color: var(--color-emerald-700);
+    box-shadow: 0 0 0 2px color-mix(in oklab, var(--color-emerald-700) 20%, transparent);
+  }
+
+  .form-textarea.form-control-error {
+    border-color: var(--color-red-400);
+  }
 }

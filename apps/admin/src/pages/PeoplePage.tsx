@@ -8,7 +8,7 @@ import {
   type User,
 } from '@/api';
 import { AddressFields, emptyAddress } from '@/components/account';
-import { Button, Field, Flash, PageLoader } from '@/components/ui';
+import { Button, Field, Flash, PageLoader, SelectField } from '@/components/ui';
 import { confirmAction } from '@/lib/confirm';
 import { useAuth } from '@/hooks';
 
@@ -34,8 +34,11 @@ export function PeoplePage() {
   const [address, setAddress] = useState(emptyAddress);
   const [role, setRole] = useState<'customer' | 'admin'>('customer');
   const [editingId, setEditingId] = useState('');
+  const [editName, setEditName] = useState('');
   const [editPhone, setEditPhone] = useState('');
   const [editAddress, setEditAddress] = useState(emptyAddress);
+  const [editSaving, setEditSaving] = useState(false);
+  const [editNameError, setEditNameError] = useState('');
 
   async function reload() {
     const { data } = await http.get<User[]>(urls.users);
@@ -90,23 +93,57 @@ export function PeoplePage() {
 
   function startEdit(person: User) {
     setEditingId(docId(person));
+    setEditName(person.name);
     setEditPhone(person.phone ?? '');
     setEditAddress(person.address ?? emptyAddress());
+    setEditNameError('');
   }
 
-  async function saveAddress(event: FormEvent) {
+  function cancelEdit() {
+    setEditingId('');
+    setEditName('');
+    setEditPhone('');
+    setEditAddress(emptyAddress());
+    setEditNameError('');
+  }
+
+  async function saveEdit(event: FormEvent) {
     event.preventDefault();
     setError('');
+    setNotice('');
+    const name = editName.trim();
+    setEditNameError('');
+    if (!name) {
+      setEditNameError('Enter a name.');
+      setError('Fix the highlighted fields and try again.');
+      return;
+    }
+    if (!editPhone.trim() || editPhone.trim().length < 7) {
+      setError('Enter a valid mobile phone number.');
+      return;
+    }
+    if (
+      !editAddress.line1.trim() ||
+      !editAddress.city.trim() ||
+      !editAddress.postalCode.trim()
+    ) {
+      setError('Fill in the shipping address (street, city, and postal code).');
+      return;
+    }
+    setEditSaving(true);
     try {
       await http.patch(urls.user(editingId), {
-        phone: editPhone,
+        name,
+        phone: editPhone.trim(),
         address: editAddress,
       });
-      setEditingId('');
-      setNotice('Address updated.');
+      cancelEdit();
+      setNotice('Account updated.');
       await reload();
     } catch (err) {
       setError(apiMessage(err));
+    } finally {
+      setEditSaving(false);
     }
   }
 
@@ -201,17 +238,14 @@ export function PeoplePage() {
           required
         />
         <AddressFields value={address} onChange={setAddress} />
-        <label className="mb-4 grid gap-1.5 text-sm font-medium text-zinc-700">
-          Role
-          <select
-            className="rounded-lg border border-zinc-300 px-3 py-2"
-            value={role}
-            onChange={(e) => setRole(e.target.value as 'customer' | 'admin')}
-          >
-            <option value="customer">Customer</option>
-            <option value="admin">Admin</option>
-          </select>
-        </label>
+        <SelectField
+          label="Role"
+          value={role}
+          onChange={(e) => setRole(e.target.value as 'customer' | 'admin')}
+        >
+          <option value="customer">Customer</option>
+          <option value="admin">Admin</option>
+        </SelectField>
         <Button type="submit" loading={saving}>Create</Button>
       </form>
       <Group
@@ -219,13 +253,17 @@ export function PeoplePage() {
         people={admins}
         myId={myId}
         editingId={editingId}
+        editName={editName}
         editPhone={editPhone}
         editAddress={editAddress}
+        editNameError={editNameError}
+        editSaving={editSaving}
+        onEditName={setEditName}
         onEditPhone={setEditPhone}
         onEditAddress={setEditAddress}
         onStartEdit={startEdit}
-        onCancelEdit={() => setEditingId('')}
-        onSaveAddress={saveAddress}
+        onCancelEdit={cancelEdit}
+        onSaveEdit={saveEdit}
         onRole={setUserRole}
         onRemove={remove}
       />
@@ -234,13 +272,17 @@ export function PeoplePage() {
         people={customers}
         myId={myId}
         editingId={editingId}
+        editName={editName}
         editPhone={editPhone}
         editAddress={editAddress}
+        editNameError={editNameError}
+        editSaving={editSaving}
+        onEditName={setEditName}
         onEditPhone={setEditPhone}
         onEditAddress={setEditAddress}
         onStartEdit={startEdit}
-        onCancelEdit={() => setEditingId('')}
-        onSaveAddress={saveAddress}
+        onCancelEdit={cancelEdit}
+        onSaveEdit={saveEdit}
         onRole={setUserRole}
         onRemove={remove}
       />
@@ -253,13 +295,17 @@ function Group({
   people,
   myId,
   editingId,
+  editName,
   editPhone,
   editAddress,
+  editNameError,
+  editSaving,
+  onEditName,
   onEditPhone,
   onEditAddress,
   onStartEdit,
   onCancelEdit,
-  onSaveAddress,
+  onSaveEdit,
   onRole,
   onRemove,
 }: {
@@ -267,13 +313,17 @@ function Group({
   people: User[];
   myId: string;
   editingId: string;
+  editName: string;
   editPhone: string;
   editAddress: Address;
+  editNameError: string;
+  editSaving: boolean;
+  onEditName: (name: string) => void;
   onEditPhone: (phone: string) => void;
   onEditAddress: (address: Address) => void;
   onStartEdit: (person: User) => void;
   onCancelEdit: () => void;
-  onSaveAddress: (event: FormEvent) => void;
+  onSaveEdit: (event: FormEvent) => void;
   onRole: (person: User, role: 'customer' | 'admin') => void;
   onRemove: (person: User) => void;
 }) {
@@ -311,7 +361,7 @@ function Group({
                       editing ? onCancelEdit() : onStartEdit(person)
                     }
                   >
-                    {editing ? 'Close' : 'Address'}
+                    {editing ? 'Close' : 'Edit'}
                   </Button>
                   {person.role === 'admin' ? (
                     <Button
@@ -345,9 +395,16 @@ function Group({
               </div>
               {editing ? (
                 <form
-                  onSubmit={(event) => void onSaveAddress(event)}
-                  className="mt-4 max-w-xl"
+                  onSubmit={(event) => void onSaveEdit(event)}
+                  className="mt-4 max-w-xl rounded-lg border border-emerald-200 bg-emerald-50/40 p-4"
                 >
+                  <Field
+                    label="Name"
+                    value={editName}
+                    onChange={(e) => onEditName(e.target.value)}
+                    error={editNameError}
+                    required
+                  />
                   <Field
                     label="Mobile phone"
                     type="tel"
@@ -360,7 +417,14 @@ function Group({
                     value={editAddress}
                     onChange={onEditAddress}
                   />
-                  <Button type="submit">Save address</Button>
+                  <div className="flex flex-wrap gap-2">
+                    <Button type="submit" loading={editSaving}>
+                      Save changes
+                    </Button>
+                    <Button type="button" variant="secondary" onClick={onCancelEdit}>
+                      Cancel
+                    </Button>
+                  </div>
                 </form>
               ) : null}
             </li>

@@ -229,9 +229,9 @@ export function ProductsPage() {
       <form
         onSubmit={(event) => void create(event)}
         noValidate
-        className="mb-8 grid max-w-2xl gap-0 rounded-xl border border-zinc-200 bg-white p-6 sm:grid-cols-2 sm:gap-x-4"
+        className="mb-8 max-w-xl rounded-xl border border-zinc-200 bg-white p-6"
       >
-        <h2 className="mb-2 text-lg font-semibold sm:col-span-2">Add product</h2>
+        <h2 className="mb-2 text-lg font-semibold">Add product</h2>
         <Field
           label="Name"
           value={form.name}
@@ -249,33 +249,42 @@ export function ProductsPage() {
         />
         <TextAreaField
           label="Description"
-          className="sm:col-span-2"
           value={form.description}
           onChange={(e) => setForm({ ...form, description: e.target.value })}
           error={fieldErrors.description}
           required
         />
-        <Field
-          label="Price (cents)"
-          type="number"
-          min={0}
-          value={form.price}
-          onChange={(e) => setForm({ ...form, price: e.target.value })}
-          error={fieldErrors.price}
-          hint="Whole cents only. 1299 = $12.99."
-          required
-        />
-        <SelectField
-          label="Category"
-          value={form.category}
-          onChange={(e) => setForm({ ...form, category: e.target.value })}
-          error={fieldErrors.category}
-          required
-          disabled={categories.length === 0}
-        >
-          {categoryOptions()}
-        </SelectField>
-        <label className="mb-4 flex items-center gap-2 text-sm font-medium text-zinc-700 sm:col-span-2">
+        <div className="mb-4">
+          <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2">
+            <Field
+              className="mb-0"
+              label="Price (cents)"
+              type="number"
+              min={0}
+              value={form.price}
+              onChange={(e) => setForm({ ...form, price: e.target.value })}
+              error={fieldErrors.price}
+              required
+            />
+            <SelectField
+              className="mb-0"
+              label="Category"
+              value={form.category}
+              onChange={(e) => setForm({ ...form, category: e.target.value })}
+              error={fieldErrors.category}
+              required
+              disabled={categories.length === 0}
+            >
+              {categoryOptions()}
+            </SelectField>
+          </div>
+          {!fieldErrors.price ? (
+            <p className="mt-1.5 text-xs font-normal text-zinc-500">
+              Whole cents only. 1299 = $12.99.
+            </p>
+          ) : null}
+        </div>
+        <label className="flex items-center gap-2 text-sm font-medium text-zinc-700">
           <input
             type="checkbox"
             checked={form.featured}
@@ -283,7 +292,7 @@ export function ProductsPage() {
           />
           Featured on the home page
         </label>
-        <div className="sm:col-span-2">
+        <div>
           <Button type="submit" loading={saving} disabled={categories.length === 0}>
             Add product
           </Button>
@@ -298,13 +307,13 @@ export function ProductsPage() {
       {editingId ? (
         <section
           ref={editPanelRef}
-          className="mb-8 max-w-2xl rounded-xl border border-emerald-200 bg-emerald-50/40 p-6"
+          className="mb-8 max-w-xl rounded-xl border border-emerald-200 bg-emerald-50/40 p-6"
         >
           <h2 className="mb-4 text-lg font-semibold">Edit product</h2>
           <form
             onSubmit={(event) => void saveEdit(event)}
             noValidate
-            className="grid gap-0 sm:grid-cols-2 sm:gap-x-4"
+            className="flex flex-col"
           >
             <Field
               label="Name"
@@ -322,7 +331,6 @@ export function ProductsPage() {
             />
             <TextAreaField
               label="Description"
-              className="sm:col-span-2"
               value={editForm.description}
               onChange={(e) =>
                 setEditForm({ ...editForm, description: e.target.value })
@@ -330,27 +338,33 @@ export function ProductsPage() {
               error={editErrors.description}
               required
             />
-            <Field
-              label="Price (cents)"
-              type="number"
-              min={0}
-              value={editForm.price}
-              onChange={(e) => setEditForm({ ...editForm, price: e.target.value })}
-              error={editErrors.price}
-              required
-            />
-            <SelectField
-              label="Category"
-              value={editForm.category}
-              onChange={(e) =>
-                setEditForm({ ...editForm, category: e.target.value })
-              }
-              error={editErrors.category}
-              required
-            >
-              {categoryOptions()}
-            </SelectField>
-            <label className="mb-4 flex items-center gap-2 text-sm font-medium text-zinc-700 sm:col-span-2">
+            <div className="mb-4">
+              <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2">
+                <Field
+                  className="mb-0"
+                  label="Price (cents)"
+                  type="number"
+                  min={0}
+                  value={editForm.price}
+                  onChange={(e) => setEditForm({ ...editForm, price: e.target.value })}
+                  error={editErrors.price}
+                  required
+                />
+                <SelectField
+                  className="mb-0"
+                  label="Category"
+                  value={editForm.category}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, category: e.target.value })
+                  }
+                  error={editErrors.category}
+                  required
+                >
+                  {categoryOptions()}
+                </SelectField>
+              </div>
+            </div>
+            <label className="flex items-center gap-2 text-sm font-medium text-zinc-700">
               <input
                 type="checkbox"
                 checked={editForm.featured}
@@ -360,7 +374,7 @@ export function ProductsPage() {
               />
               Featured on the home page
             </label>
-            <div className="flex flex-wrap gap-2 sm:col-span-2">
+            <div className="flex flex-wrap gap-2">
               <Button type="submit" loading={editSaving}>
                 Save changes
               </Button>

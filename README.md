@@ -56,9 +56,23 @@ Upload images on **Branding** — they go live on the shop immediately. Empty sl
 
 Sample SVGs and copy to paste: [branding-samples/README.md](branding-samples/README.md).
 
-**Promo tiles** (optional, under the hero): headline + image + link, then **Add tile**. The form stays quiet until you start typing or click Add tile; validation messages appear only then.
+**Promo tiles** (optional, under the hero): headline + image + link, then **Add tile**. Required fields show a red **\***. Format hints stay gray under each field; red errors appear under the field only after you click Add tile.
 
-Admin forms use inline hints, loading spinners, and green success banners so non-technical staff get clear feedback.
+Admin forms use inline hints, loading spinners, green success banners, and confirm dialogs before deletes so non-technical staff get clear feedback.
+
+### Shopper journey (UX)
+
+| Step | What you see |
+|------|----------------|
+| Browse | Home and shop show loaders while the catalog loads |
+| Search | Live AJAX in the header — **no Search button**. Debounced 300ms, min 2 chars, results on `/shop?q=` (server-side query) |
+| Add to cart | Product grid shows “Added to cart” with a link; product page blocks out-of-stock items |
+| Cart | Subtotal before checkout; cart count in the header loads on first visit |
+| Checkout | Order summary sidebar; empty cart uses the same empty state as the cart page |
+| After order | Green confirmation on Orders; line items show product names, not database ids |
+| Guest vs signed in | Orders link appears only when logged in; cart works for guests until checkout |
+
+Full UI notes: [docs/frontend.md](docs/frontend.md).
 
 ```bash
 curl http://localhost:3000/api/health/live

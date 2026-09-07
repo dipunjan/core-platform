@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { apiMessage, docId, http, urls, type Category } from '@/api';
 import { Button, Field, Flash, PageLoader } from '@/components/ui';
+import { confirmAction } from '@/lib/confirm';
 
 const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
@@ -78,6 +79,13 @@ export function CategoriesPage() {
   }
 
   async function remove(row: Category) {
+    if (
+      !confirmAction(
+        `Delete category "${row.name}"? Products using this category may need updating.`,
+      )
+    ) {
+      return;
+    }
     setError('');
     setNotice('');
     try {

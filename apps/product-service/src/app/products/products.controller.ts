@@ -22,10 +22,18 @@ export class ProductsController {
   findAll(
     @Query('category') category?: string,
     @Query('featured') featured?: string,
+    @Query('q') q?: string,
+    @Query('min') min?: string,
+    @Query('max') max?: string,
+    @Query('sort') sort?: string,
   ) {
     return this.productsService.findAll({
       category,
       featured: featured === 'true' || featured === '1',
+      q,
+      minPrice: parseCents(min),
+      maxPrice: parseCents(max),
+      sort,
     });
   }
 
@@ -53,4 +61,15 @@ export class ProductsController {
     await this.productsService.remove(id);
     return { deleted: true };
   }
+}
+
+function parseCents(raw?: string): number | undefined {
+  if (!raw?.trim()) {
+    return undefined;
+  }
+  const value = Number(raw);
+  if (!Number.isFinite(value) || value < 0) {
+    return undefined;
+  }
+  return Math.round(value);
 }

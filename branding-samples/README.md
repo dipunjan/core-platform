@@ -36,11 +36,11 @@ Open **http://localhost:5174/branding** and use these files + text.
 
 | Field | Value |
 |-------|-------|
-| Headline | `Weekend picks` |
+| Headline * | `Weekend picks` |
 | Sub | `Staff favorites — updated often.` |
-| Tile image | `promo-tile.svg` |
+| Tile image * | `promo-tile.svg` |
 | Link | `/shop` |
 
-The form does not show warnings until you start typing or click Add tile.
+Required fields are marked with **\***. File format is a gray hint under the image field. If something is missing, red text appears under that field after you click **Add tile** — not before.
 
 Files live in this folder: `branding-samples/`

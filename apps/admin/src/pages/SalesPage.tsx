@@ -30,9 +30,9 @@ export function SalesPage() {
       <h1 className="mb-6 text-2xl font-semibold tracking-tight">Sales</h1>
       <Flash>{error}</Flash>
       <div className="mb-6 grid gap-4 sm:grid-cols-3">
-        <Stat label="Orders" value={String(orders.length)} />
-        <Stat label="Not cancelled" value={String(paidish.length)} />
-        <Stat label="Gross" value={money(revenue)} />
+        <Stat label="All orders" value={String(orders.length)} />
+        <Stat label="Active orders" value={String(paidish.length)} />
+        <Stat label="Gross revenue" value={money(revenue)} />
       </div>
       <div className="overflow-x-auto rounded-xl border border-zinc-200 bg-white">
         <table className="w-full text-left text-sm">

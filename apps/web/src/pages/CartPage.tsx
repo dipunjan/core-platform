@@ -1,13 +1,20 @@
 import { useNavigate } from 'react-router-dom';
 import { Button, Card, CartLine, EmptyState, Flash, PageLoader, PageTitle, TextLink } from '@/components';
-import { useAuth, useCart } from '@/hooks';
+import { useAuth, useCart, useMoney } from '@/hooks';
 
 export function CartPage() {
   const navigate = useNavigate();
+  const money = useMoney();
   const { user } = useAuth();
   const { cart, error, loading, productsById, setQty } = useCart({
     load: true,
   });
+
+  const total =
+    cart?.items.reduce((sum, item) => {
+      const product = productsById.get(item.productId);
+      return sum + (product ? product.price * item.quantity : 0);
+    }, 0) ?? 0;
 
   if (loading && !cart) {
     return (
@@ -24,7 +31,7 @@ export function CartPage() {
       <Flash>{error}</Flash>
       {error ? null : !cart || cart.items.length === 0 ? (
         <EmptyState>
-          Empty. <TextLink to="/shop">Browse products</TextLink>
+          Your cart is empty. <TextLink to="/shop">Browse products</TextLink>
         </EmptyState>
       ) : (
         <Card padding="none">
@@ -51,6 +58,10 @@ export function CartPage() {
             </table>
           </div>
           <div className="border-t border-zinc-100 px-4 py-4 sm:px-6">
+            <p className="mb-4 flex justify-between text-base font-semibold text-zinc-900">
+              <span>Subtotal</span>
+              <span className="tabular-nums">{money(total)}</span>
+            </p>
             <Button
               type="button"
               loading={loading}

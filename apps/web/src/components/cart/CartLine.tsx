@@ -23,6 +23,7 @@ export function CartLine({ item, product, busy, onQty }: Props) {
             type="button"
             className="h-8 w-8 px-0"
             disabled={busy}
+            title={busy ? 'Updating cart…' : 'Decrease quantity'}
             onClick={() => onQty(item.quantity - 1)}
           >
             −
@@ -35,6 +36,7 @@ export function CartLine({ item, product, busy, onQty }: Props) {
             type="button"
             className="h-8 w-8 px-0"
             disabled={busy}
+            title={busy ? 'Updating cart…' : 'Increase quantity'}
             onClick={() => onQty(item.quantity + 1)}
           >
             +

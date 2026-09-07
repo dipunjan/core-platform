@@ -10,6 +10,7 @@ import {
 } from '@/api';
 import { Button, Field, Flash, ImagePicker, PageLoader } from '@/components/ui';
 import { brandImage, hasBrandImage } from '@/lib/brandImage';
+import { confirmAction } from '@/lib/confirm';
 import { useStorefront } from '@/hooks';
 
 export function BrandingPage() {
@@ -34,7 +35,11 @@ export function BrandingPage() {
   const [promoImage, setPromoImage] = useState('');
   const [promoHref, setPromoHref] = useState('/shop');
   const [promoUploading, setPromoUploading] = useState(false);
-  const [promoTouched, setPromoTouched] = useState(false);
+  const [promoAttempted, setPromoAttempted] = useState(false);
+  const [promoErrors, setPromoErrors] = useState<{
+    headline?: string;
+    image?: string;
+  }>({});
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [busy, setBusy] = useState('');
@@ -67,6 +72,12 @@ export function BrandingPage() {
       syncForm(store);
     }
   }, [store]);
+
+  useEffect(() => {
+    if (notice || error) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [notice, error]);
 
   async function saveSite(event: FormEvent) {
     event.preventDefault();
@@ -201,23 +212,29 @@ export function BrandingPage() {
     }
   }
 
+  function validatePromo() {
+    const next: { headline?: string; image?: string } = {};
+    if (!promoHeadline.trim()) {
+      next.headline = 'Enter a headline for this tile.';
+    }
+    if (promoUploading || promoImage.startsWith('blob:')) {
+      next.image = 'Wait for the image upload to finish.';
+    } else if (!promoImage) {
+      next.image = 'Choose an image for this tile.';
+    }
+    return next;
+  }
+
   async function addBanner(event: FormEvent) {
     event.preventDefault();
     clearStatus();
-    setPromoTouched(true);
+    setPromoAttempted(true);
+    const fieldErrors = validatePromo();
+    setPromoErrors(fieldErrors);
+    if (Object.keys(fieldErrors).length > 0) {
+      return;
+    }
     const headline = promoHeadline.trim();
-    if (!headline) {
-      setError('Enter a headline for the promo tile.');
-      return;
-    }
-    if (!promoImage || promoImage.startsWith('blob:')) {
-      setError('Upload a tile image before adding this promo.');
-      return;
-    }
-    if (promoUploading) {
-      setError('Wait for the image upload to finish.');
-      return;
-    }
     setBusy('promo');
     try {
       const { data } = await http.post<Storefront>(urls.banners, {
@@ -230,7 +247,8 @@ export function BrandingPage() {
       setPromoHeadline('');
       setPromoSub('');
       setPromoImage('');
-      setPromoTouched(false);
+      setPromoAttempted(false);
+      setPromoErrors({});
       setNotice('Promo tile added.');
     } catch (err) {
       setError(apiMessage(err));
@@ -239,28 +257,14 @@ export function BrandingPage() {
     }
   }
 
-  function promoGuidance() {
-    if (!promoTouched) {
-      return null;
-    }
-    if (promoUploading || promoImage.startsWith('blob:')) {
-      return 'Uploading image… wait a moment, then click Add tile again.';
-    }
-    if (!promoHeadline.trim() && !promoImage) {
-      return 'Enter a headline and choose an image to add this tile.';
-    }
-    if (!promoHeadline.trim()) {
-      return 'Add a headline for this tile.';
-    }
-    if (!promoImage) {
-      return 'Choose an image for this tile.';
-    }
-    return null;
-  }
-
-  const promoHint = promoGuidance();
-
   async function removeBanner(banner: Banner) {
+    if (
+      !confirmAction(
+        `Remove promo tile "${banner.headline}"?`,
+      )
+    ) {
+      return;
+    }
     clearStatus();
     setBusy(`delete-${docId(banner)}`);
     try {
@@ -424,15 +428,19 @@ export function BrandingPage() {
             </li>
           ))}
         </ul>
-        <form onSubmit={(event) => void addBanner(event)}>
+        <form onSubmit={(event) => void addBanner(event)} noValidate>
           <Field
             label="Headline"
             value={promoHeadline}
             onChange={(e) => {
-              setPromoTouched(true);
-              setPromoHeadline(e.target.value);
+              const value = e.target.value;
+              setPromoHeadline(value);
+              if (promoAttempted && value.trim()) {
+                setPromoErrors((prev) => ({ ...prev, headline: undefined }));
+              }
             }}
             required
+            error={promoAttempted ? promoErrors.headline : undefined}
           />
           <Field
             label="Sub"
@@ -442,31 +450,39 @@ export function BrandingPage() {
           <ImagePicker
             label="Tile image"
             kind="promo"
+            required
             value={promoImage}
             onChange={(url) => {
-              setPromoTouched(true);
               setPromoImage(url);
+              if (
+                promoAttempted &&
+                url &&
+                !url.startsWith('blob:') &&
+                !promoUploading
+              ) {
+                setPromoErrors((prev) => ({ ...prev, image: undefined }));
+              }
             }}
-            onBusyChange={setPromoUploading}
+            onBusyChange={(uploading) => {
+              setPromoUploading(uploading);
+              if (promoAttempted && uploading) {
+                setPromoErrors((prev) => ({
+                  ...prev,
+                  image: 'Wait for the image upload to finish.',
+                }));
+              }
+            }}
             onError={setError}
-            hint="Required for each tile. JPEG, PNG, GIF, WebP, or SVG."
+            hint="JPEG, PNG, GIF, WebP, or SVG."
+            error={promoAttempted ? promoErrors.image : undefined}
           />
-          {promoHint ? (
-            <p className="mb-4 text-sm text-zinc-600" role="status">
-              {promoHint}
-            </p>
-          ) : null}
           <Field
             label="Link"
             value={promoHref}
             onChange={(e) => setPromoHref(e.target.value)}
             hint="Where the tile goes when clicked. Default is the shop."
           />
-          <Button
-            type="submit"
-            loading={busy === 'promo'}
-            disabled={promoUploading || promoImage.startsWith('blob:')}
-          >
+          <Button type="submit" loading={busy === 'promo'}>
             Add tile
           </Button>
         </form>

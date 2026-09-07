@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import type { FormEvent } from 'react';
 import { cn } from '@/lib/cn';
+import { SEARCH_DEBOUNCE_MS, SEARCH_MIN_CHARS } from '@/lib/search';
+import { SpinnerIcon } from '@/components/ui/Spinner';
 
 type Props = {
   className?: string;
@@ -11,45 +12,73 @@ export function SearchBar({ className = '' }: Props) {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const [params] = useSearchParams();
-  const [q, setQ] = useState(() => params.get('q') ?? '');
+  const urlQ = params.get('q') ?? '';
+  const [draft, setDraft] = useState(urlQ);
+  const [pending, setPending] = useState(false);
 
   useEffect(() => {
-    setQ(params.get('q') ?? '');
-  }, [params]);
+    setDraft(urlQ);
+  }, [urlQ]);
 
-  function onSubmit(event: FormEvent) {
-    event.preventDefault();
-    const term = q.trim();
-    const next = new URLSearchParams(params);
-    if (term) {
-      next.set('q', term);
-    } else {
-      next.delete('q');
+  useEffect(() => {
+    const term = draft.trim();
+    const current = urlQ.trim();
+
+    if (term === current) {
+      setPending(false);
+      return;
     }
-    const shopPath = pathname.startsWith('/shop') ? pathname : '/shop';
-    const qs = next.toString();
-    navigate(qs ? `${shopPath}?${qs}` : shopPath);
-  }
+
+    setPending(true);
+    const timer = window.setTimeout(() => {
+      const next = new URLSearchParams(params);
+      if (term.length >= SEARCH_MIN_CHARS) {
+        next.set('q', term);
+      } else {
+        next.delete('q');
+      }
+      const qs = next.toString();
+
+      if (!pathname.startsWith('/shop')) {
+        navigate(qs ? `/shop?${qs}` : '/shop');
+        setPending(false);
+        return;
+      }
+
+      const base =
+        pathname.startsWith('/shop/') && pathname !== '/shop'
+          ? pathname
+          : '/shop';
+      navigate(qs ? `${base}?${qs}` : base, { replace: true });
+      setPending(false);
+    }, SEARCH_DEBOUNCE_MS);
+
+    return () => window.clearTimeout(timer);
+  }, [draft, urlQ, params, pathname, navigate]);
 
   return (
-    <form
-      onSubmit={onSubmit}
-      className={cn('flex w-full items-stretch gap-0', className)}
-    >
+    <div className={cn('relative w-full', className)}>
       <input
         type="search"
-        value={q}
-        onChange={(event) => setQ(event.target.value)}
+        value={draft}
+        onChange={(event) => setDraft(event.target.value)}
         placeholder="Search products"
-        className="min-w-0 flex-1 rounded-l-lg border border-zinc-300 border-r-0 bg-white px-4 py-2.5 text-sm text-zinc-900 outline-none focus:border-emerald-700 focus:ring-2 focus:ring-emerald-700/20"
+        autoComplete="off"
+        spellCheck={false}
         aria-label="Search products"
+        aria-busy={pending}
+        className="w-full rounded-lg border border-zinc-300 bg-white py-2.5 pl-4 pr-10 text-sm text-zinc-900 outline-none focus:border-emerald-700 focus:ring-2 focus:ring-emerald-700/20"
       />
-      <button
-        type="submit"
-        className="shrink-0 rounded-r-lg bg-emerald-700 px-5 py-2.5 text-sm font-semibold text-white hover:bg-emerald-800"
-      >
-        Search
-      </button>
-    </form>
+      {pending ? (
+        <SpinnerIcon
+          className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400"
+        />
+      ) : null}
+      {draft.trim().length > 0 && draft.trim().length < SEARCH_MIN_CHARS ? (
+        <p className="mt-1 text-xs text-zinc-500">
+          Type at least {SEARCH_MIN_CHARS} characters to search.
+        </p>
+      ) : null}
+    </div>
   );
 }

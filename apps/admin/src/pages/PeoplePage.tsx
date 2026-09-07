@@ -9,6 +9,7 @@ import {
 } from '@/api';
 import { AddressFields, emptyAddress } from '@/components/account';
 import { Button, Field, Flash, PageLoader } from '@/components/ui';
+import { confirmAction } from '@/lib/confirm';
 import { useAuth } from '@/hooks';
 
 function formatAddress(address?: Address) {
@@ -102,6 +103,7 @@ export function PeoplePage() {
         address: editAddress,
       });
       setEditingId('');
+      setNotice('Address updated.');
       await reload();
     } catch (err) {
       setError(apiMessage(err));
@@ -109,9 +111,19 @@ export function PeoplePage() {
   }
 
   async function setUserRole(person: User, next: 'customer' | 'admin') {
+    const label = next === 'admin' ? 'admin' : 'customer';
+    if (
+      !confirmAction(
+        `Make ${person.name} a ${label}?`,
+      )
+    ) {
+      return;
+    }
     setError('');
+    setNotice('');
     try {
       await http.patch(urls.userRole(docId(person)), { role: next });
+      setNotice(`${person.name} is now a ${label}.`);
       await reload();
     } catch (err) {
       setError(apiMessage(err));
@@ -119,9 +131,18 @@ export function PeoplePage() {
   }
 
   async function remove(person: User) {
+    if (
+      !confirmAction(
+        `Delete ${person.name} (${person.email})? This cannot be undone.`,
+      )
+    ) {
+      return;
+    }
     setError('');
+    setNotice('');
     try {
       await http.delete(urls.user(docId(person)));
+      setNotice('Account removed.');
       await reload();
     } catch (err) {
       setError(apiMessage(err));
@@ -260,6 +281,11 @@ function Group({
     <section className="mb-8 max-w-3xl rounded-xl border border-zinc-200 bg-white">
       <h2 className="border-b border-zinc-100 px-4 py-3 font-semibold">{title}</h2>
       <ul>
+        {people.length === 0 ? (
+          <li className="px-4 py-6 text-center text-sm text-zinc-500">
+            No {title.toLowerCase()} yet.
+          </li>
+        ) : null}
         {people.map((person) => {
           const id = docId(person);
           const mine = id === myId;
@@ -292,6 +318,7 @@ function Group({
                       type="button"
                       variant="secondary"
                       disabled={mine}
+                      title={mine ? "You can't change your own role here" : undefined}
                       onClick={() => onRole(person, 'customer')}
                     >
                       Make customer
@@ -309,6 +336,7 @@ function Group({
                     type="button"
                     variant="danger"
                     disabled={mine}
+                    title={mine ? "You can't delete your own account" : undefined}
                     onClick={() => onRemove(person)}
                   >
                     Delete

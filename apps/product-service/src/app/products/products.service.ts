@@ -13,6 +13,15 @@ import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { Product } from './schemas/product.schema';
 
+type ProductListFilters = {
+  category?: string;
+  featured?: boolean;
+  q?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  sort?: string;
+};
+
 @Injectable()
 export class ProductsService {
   constructor(
@@ -23,12 +32,22 @@ export class ProductsService {
     private readonly catalogCache: CatalogCache,
   ) {}
 
-  async findAll(filters: { category?: string; featured?: boolean } = {}) {
-    const cacheName = `products:${filters.category ?? 'all'}:${filters.featured ? '1' : '0'}`;
-    const cached = await this.catalogCache.getJson<unknown[]>(cacheName);
-    if (cached) {
-      return cached;
+  async findAll(filters: ProductListFilters = {}) {
+    const q = filters.q?.trim();
+    const searchable = Boolean(q && q.length >= 2);
+    const hasPriceFilter =
+      filters.minPrice != null || filters.maxPrice != null;
+    const canCache =
+      !searchable && !hasPriceFilter && !filters.sort;
+
+    if (canCache) {
+      const cacheName = `products:${filters.category ?? 'all'}:${filters.featured ? '1' : '0'}`;
+      const cached = await this.catalogCache.getJson<unknown[]>(cacheName);
+      if (cached) {
+        return cached;
+      }
     }
+
     const query: Record<string, unknown> = {};
     if (filters.category) {
       await this.categories.findBySlug(filters.category);
@@ -37,8 +56,32 @@ export class ProductsService {
     if (filters.featured) {
       query.featured = true;
     }
-    const rows = await this.productModel.find(query).lean().exec();
-    await this.catalogCache.setJson(cacheName, rows);
+    if (searchable) {
+      const escaped = q!.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const regex = new RegExp(escaped, 'i');
+      query.$or = [{ name: regex }, { description: regex }, { sku: regex }];
+    }
+    if (filters.minPrice != null || filters.maxPrice != null) {
+      const price: Record<string, number> = {};
+      if (filters.minPrice != null) {
+        price.$gte = filters.minPrice;
+      }
+      if (filters.maxPrice != null) {
+        price.$lte = filters.maxPrice;
+      }
+      query.price = price;
+    }
+
+    const rows = await this.productModel
+      .find(query)
+      .sort(sortOption(filters.sort))
+      .lean()
+      .exec();
+
+    if (canCache) {
+      const cacheName = `products:${filters.category ?? 'all'}:${filters.featured ? '1' : '0'}`;
+      await this.catalogCache.setJson(cacheName, rows);
+    }
     return rows;
   }
 
@@ -97,5 +140,20 @@ export class ProductsService {
     await this.findOne(id);
     await this.productModel.findByIdAndDelete(id).exec();
     await this.catalogCache.bump();
+  }
+}
+
+function sortOption(sort?: string): Record<string, 1 | -1> {
+  switch (sort) {
+    case 'price-asc':
+      return { price: 1 };
+    case 'price-desc':
+      return { price: -1 };
+    case 'name-desc':
+      return { name: -1 };
+    case 'newest':
+      return { createdAt: -1 };
+    default:
+      return { name: 1 };
   }
 }

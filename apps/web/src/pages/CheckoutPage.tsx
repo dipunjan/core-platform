@@ -5,6 +5,7 @@ import {
   emptyDelivery,
   Button,
   Card,
+  EmptyState,
   Flash,
   PageTitle,
   PageLoader,
@@ -61,7 +62,7 @@ export function CheckoutPage() {
     const ok = await placeOrder(delivery.address);
     setBusy(false);
     if (ok) {
-      navigate('/orders');
+      navigate('/orders', { state: { orderPlaced: true } });
     }
   }
 
@@ -71,9 +72,12 @@ export function CheckoutPage() {
 
   if (!cart || items.length === 0) {
     return (
-      <p className="text-sm text-zinc-600">
-        Cart is empty. <TextLink to="/shop">Shop</TextLink>
-      </p>
+      <>
+        <PageTitle className="mb-6">Checkout</PageTitle>
+        <EmptyState>
+          Your cart is empty. <TextLink to="/shop">Browse products</TextLink>
+        </EmptyState>
+      </>
     );
   }
 

@@ -1,15 +1,23 @@
 import { Link } from 'react-router-dom';
 import { shopPath, type Category } from '@/api';
-import { Card } from '@/components/ui';
+import { Card, EmptyState } from '@/components/ui';
 
 type Props = {
   categories: Category[];
+  loading?: boolean;
 };
 
-export function CategoryGrid({ categories }: Props) {
+export function CategoryGrid({ categories, loading = false }: Props) {
   const tiles = categories.filter((category) => category.showOnHome);
-  if (tiles.length === 0) {
+  if (loading && tiles.length === 0) {
     return null;
+  }
+  if (tiles.length === 0) {
+    return (
+      <EmptyState>
+        No categories on the home page yet. Staff can add them in admin.
+      </EmptyState>
+    );
   }
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">

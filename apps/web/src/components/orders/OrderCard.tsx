@@ -1,14 +1,15 @@
-import { docId, type Order } from '@/api';
+import { docId, type Order, type Product } from '@/api';
 import { Button, Card } from '@/components/ui';
 import { useMoney } from '@/hooks';
 
 type Props = {
   order: Order;
+  productsById: Map<string, Product>;
   busy: boolean;
   onCancel: (id: string) => void;
 };
 
-export function OrderCard({ order, busy, onCancel }: Props) {
+export function OrderCard({ order, productsById, busy, onCancel }: Props) {
   const money = useMoney();
   const id = docId(order);
   return (
@@ -24,21 +25,26 @@ export function OrderCard({ order, busy, onCancel }: Props) {
         </p>
       ) : null}
       <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-zinc-600">
-        {order.items.map((item) => (
-          <li key={item.productId}>
-            {item.quantity} × {item.productId} @ {money(item.unitPrice)}
-          </li>
-        ))}
+        {order.items.map((item) => {
+          const product = productsById.get(item.productId);
+          const label = product?.name ?? item.productId;
+          return (
+            <li key={item.productId}>
+              {item.quantity} × {label} @ {money(item.unitPrice)}
+            </li>
+          );
+        })}
       </ul>
       {order.status === 'pending' ? (
         <Button
           variant="danger"
           type="button"
           className="mt-4"
-          disabled={busy}
+          loading={busy}
+          loadingLabel="Cancelling…"
           onClick={() => onCancel(id)}
         >
-          Cancel
+          Cancel order
         </Button>
       ) : null}
     </Card>

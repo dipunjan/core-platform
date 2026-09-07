@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { docId, type Category, type Product } from '@/api';
-import { Badge, Button, Card } from '@/components/ui';
+import { Badge, Button, Card, TextLink } from '@/components/ui';
 import { useCart, useMoney } from '@/hooks';
 
 type Props = {
@@ -14,12 +14,17 @@ export function ProductCard({ product, categories }: Props) {
   const id = docId(product);
   const { addItem, loading: cartBusy } = useCart();
   const [busy, setBusy] = useState(false);
+  const [added, setAdded] = useState(false);
   const category = categories.find((row) => row.slug === product.category);
 
   async function onAdd() {
     setBusy(true);
-    await addItem(id, 1);
+    const ok = await addItem(id, 1);
     setBusy(false);
+    if (ok) {
+      setAdded(true);
+      window.setTimeout(() => setAdded(false), 2500);
+    }
   }
 
   return (
@@ -39,14 +44,21 @@ export function ProductCard({ product, categories }: Props) {
           {money(product.price)}
         </p>
       </Link>
-      <Button
-        type="button"
-        className="mt-4 w-full"
-        disabled={busy || cartBusy}
-        onClick={() => void onAdd()}
-      >
-        Add to cart
-      </Button>
+      {added ? (
+        <p className="mt-4 text-center text-sm font-medium text-emerald-800">
+          Added to cart. <TextLink to="/cart">View cart</TextLink>
+        </p>
+      ) : (
+        <Button
+          type="button"
+          className="mt-4 w-full"
+          loading={busy || cartBusy}
+          loadingLabel="Adding…"
+          onClick={() => void onAdd()}
+        >
+          Add to cart
+        </Button>
+      )}
     </Card>
   );
 }

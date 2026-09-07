@@ -1,20 +1,39 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { apiMessage, docId, http, urls, type Category, type Product } from '@/api';
-import { Button, Field, Flash, PageLoader } from '@/components/ui';
+import {
+  Button,
+  Field,
+  Flash,
+  PageLoader,
+  SelectField,
+  TextAreaField,
+} from '@/components/ui';
+import { confirmAction } from '@/lib/confirm';
 import { useMoney } from '@/hooks';
 
-const empty = {
+type ProductForm = {
+  name: string;
+  description: string;
+  price: string;
+  sku: string;
+  category: string;
+  featured: boolean;
+};
+
+const emptyForm = (): ProductForm => ({
   name: '',
   description: '',
   price: '1299',
   sku: '',
   category: '',
   featured: false,
-};
+});
 
-type FieldErrors = Partial<Record<'name' | 'sku' | 'description' | 'price' | 'category', string>>;
+type FieldErrors = Partial<
+  Record<'name' | 'sku' | 'description' | 'price' | 'category', string>
+>;
 
-function validateForm(form: typeof empty): FieldErrors {
+function validateForm(form: ProductForm): FieldErrors {
   const errors: FieldErrors = {};
   if (!form.name.trim()) {
     errors.name = 'Enter a product name.';
@@ -35,14 +54,30 @@ function validateForm(form: typeof empty): FieldErrors {
   return errors;
 }
 
+function productToForm(product: Product): ProductForm {
+  return {
+    name: product.name,
+    description: product.description,
+    price: String(product.price),
+    sku: product.sku,
+    category: product.category,
+    featured: Boolean(product.featured),
+  };
+}
+
 export function ProductsPage() {
   const money = useMoney();
+  const editPanelRef = useRef<HTMLElement>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [form, setForm] = useState(empty);
+  const [form, setForm] = useState<ProductForm>(emptyForm());
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [editingId, setEditingId] = useState('');
+  const [editForm, setEditForm] = useState<ProductForm>(emptyForm());
+  const [editErrors, setEditErrors] = useState<FieldErrors>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [editSaving, setEditSaving] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
 
@@ -66,6 +101,30 @@ export function ProductsPage() {
       .finally(() => setLoading(false));
   }, []);
 
+  useEffect(() => {
+    if (editingId && editPanelRef.current) {
+      editPanelRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }, [editingId]);
+
+  function categoryName(slug: string) {
+    return categories.find((row) => row.slug === slug)?.name ?? slug;
+  }
+
+  function startEdit(product: Product) {
+    setError('');
+    setNotice('');
+    setEditingId(docId(product));
+    setEditForm(productToForm(product));
+    setEditErrors({});
+  }
+
+  function cancelEdit() {
+    setEditingId('');
+    setEditForm(emptyForm());
+    setEditErrors({});
+  }
+
   async function create(event: FormEvent) {
     event.preventDefault();
     setError('');
@@ -85,7 +144,7 @@ export function ProductsPage() {
         description: form.description.trim(),
         price: Number(form.price),
       });
-      setForm({ ...empty, category: form.category });
+      setForm({ ...emptyForm(), category: form.category });
       setFieldErrors({});
       setNotice('Product added.');
       await reload();
@@ -96,40 +155,65 @@ export function ProductsPage() {
     }
   }
 
-  async function toggleFeatured(product: Product) {
+  async function saveEdit(event: FormEvent) {
+    event.preventDefault();
     setError('');
     setNotice('');
-    try {
-      await http.patch(urls.product(docId(product)), {
-        featured: !product.featured,
-      });
-      await reload();
-    } catch (err) {
-      setError(apiMessage(err));
+    const errors = validateForm(editForm);
+    setEditErrors(errors);
+    if (Object.keys(errors).length > 0) {
+      setError('Fix the highlighted fields and try again.');
+      return;
     }
-  }
-
-  async function assignCategory(product: Product, category: string) {
-    setError('');
-    setNotice('');
+    setEditSaving(true);
     try {
-      await http.patch(urls.product(docId(product)), { category });
+      await http.patch(urls.product(editingId), {
+        name: editForm.name.trim(),
+        sku: editForm.sku.trim(),
+        description: editForm.description.trim(),
+        price: Number(editForm.price),
+        category: editForm.category,
+        featured: editForm.featured,
+      });
+      setNotice('Product updated.');
+      cancelEdit();
       await reload();
     } catch (err) {
       setError(apiMessage(err));
+    } finally {
+      setEditSaving(false);
     }
   }
 
   async function remove(product: Product) {
+    if (
+      !confirmAction(`Delete "${product.name}"? This cannot be undone.`)
+    ) {
+      return;
+    }
     setError('');
     setNotice('');
     try {
+      if (editingId === docId(product)) {
+        cancelEdit();
+      }
       await http.delete(urls.product(docId(product)));
       setNotice('Product removed.');
       await reload();
     } catch (err) {
       setError(apiMessage(err));
     }
+  }
+
+  function categoryOptions() {
+    if (categories.length === 0) {
+      return <option value="">Add a category first</option>;
+    }
+    return categories.map((category) => (
+      <option key={category.slug} value={category.slug}>
+        {category.name}
+      </option>
+    ));
   }
 
   if (loading) {
@@ -141,10 +225,13 @@ export function ProductsPage() {
       <h1 className="mb-6 text-2xl font-semibold tracking-tight">Products</h1>
       <Flash tone="success">{notice}</Flash>
       <Flash>{error}</Flash>
+
       <form
         onSubmit={(event) => void create(event)}
+        noValidate
         className="mb-8 grid max-w-2xl gap-0 rounded-xl border border-zinc-200 bg-white p-6 sm:grid-cols-2 sm:gap-x-4"
       >
+        <h2 className="mb-2 text-lg font-semibold sm:col-span-2">Add product</h2>
         <Field
           label="Name"
           value={form.name}
@@ -160,24 +247,14 @@ export function ProductsPage() {
           hint="Unique code for this product, e.g. SWOOP-TEE-01."
           required
         />
-        <label className="mb-4 grid gap-1.5 text-sm font-medium text-zinc-700 sm:col-span-2">
-          Description
-          <input
-            className={`rounded-lg border bg-white px-3 py-2 font-normal text-zinc-900 shadow-sm outline-none focus:ring-2 ${
-              fieldErrors.description
-                ? 'border-red-400 focus:border-red-600 focus:ring-red-600/20'
-                : 'border-zinc-300 focus:border-emerald-700 focus:ring-emerald-700/20'
-            }`}
-            value={form.description}
-            onChange={(e) => setForm({ ...form, description: e.target.value })}
-            required
-          />
-          {fieldErrors.description ? (
-            <span className="text-xs font-normal text-red-700">
-              {fieldErrors.description}
-            </span>
-          ) : null}
-        </label>
+        <TextAreaField
+          label="Description"
+          className="sm:col-span-2"
+          value={form.description}
+          onChange={(e) => setForm({ ...form, description: e.target.value })}
+          error={fieldErrors.description}
+          required
+        />
         <Field
           label="Price (cents)"
           type="number"
@@ -188,34 +265,16 @@ export function ProductsPage() {
           hint="Whole cents only. 1299 = $12.99."
           required
         />
-        <label className="mb-4 grid gap-1.5 text-sm font-medium text-zinc-700">
-          Category
-          <select
-            className={`rounded-lg border bg-white px-3 py-2 outline-none focus:ring-2 ${
-              fieldErrors.category
-                ? 'border-red-400 focus:border-red-600 focus:ring-red-600/20'
-                : 'border-zinc-300 focus:border-emerald-700 focus:ring-emerald-700/20'
-            }`}
-            value={form.category}
-            onChange={(e) => setForm({ ...form, category: e.target.value })}
-            required
-          >
-            {categories.length === 0 ? (
-              <option value="">Add a category first</option>
-            ) : (
-              categories.map((category) => (
-                <option key={category.slug} value={category.slug}>
-                  {category.name}
-                </option>
-              ))
-            )}
-          </select>
-          {fieldErrors.category ? (
-            <span className="text-xs font-normal text-red-700">
-              {fieldErrors.category}
-            </span>
-          ) : null}
-        </label>
+        <SelectField
+          label="Category"
+          value={form.category}
+          onChange={(e) => setForm({ ...form, category: e.target.value })}
+          error={fieldErrors.category}
+          required
+          disabled={categories.length === 0}
+        >
+          {categoryOptions()}
+        </SelectField>
         <label className="mb-4 flex items-center gap-2 text-sm font-medium text-zinc-700 sm:col-span-2">
           <input
             type="checkbox"
@@ -228,8 +287,91 @@ export function ProductsPage() {
           <Button type="submit" loading={saving} disabled={categories.length === 0}>
             Add product
           </Button>
+          {categories.length === 0 ? (
+            <p className="mt-2 text-sm text-zinc-500">
+              Create a category first, then you can add products.
+            </p>
+          ) : null}
         </div>
       </form>
+
+      {editingId ? (
+        <section
+          ref={editPanelRef}
+          className="mb-8 max-w-2xl rounded-xl border border-emerald-200 bg-emerald-50/40 p-6"
+        >
+          <h2 className="mb-4 text-lg font-semibold">Edit product</h2>
+          <form
+            onSubmit={(event) => void saveEdit(event)}
+            noValidate
+            className="grid gap-0 sm:grid-cols-2 sm:gap-x-4"
+          >
+            <Field
+              label="Name"
+              value={editForm.name}
+              onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+              error={editErrors.name}
+              required
+            />
+            <Field
+              label="SKU"
+              value={editForm.sku}
+              onChange={(e) => setEditForm({ ...editForm, sku: e.target.value })}
+              error={editErrors.sku}
+              required
+            />
+            <TextAreaField
+              label="Description"
+              className="sm:col-span-2"
+              value={editForm.description}
+              onChange={(e) =>
+                setEditForm({ ...editForm, description: e.target.value })
+              }
+              error={editErrors.description}
+              required
+            />
+            <Field
+              label="Price (cents)"
+              type="number"
+              min={0}
+              value={editForm.price}
+              onChange={(e) => setEditForm({ ...editForm, price: e.target.value })}
+              error={editErrors.price}
+              required
+            />
+            <SelectField
+              label="Category"
+              value={editForm.category}
+              onChange={(e) =>
+                setEditForm({ ...editForm, category: e.target.value })
+              }
+              error={editErrors.category}
+              required
+            >
+              {categoryOptions()}
+            </SelectField>
+            <label className="mb-4 flex items-center gap-2 text-sm font-medium text-zinc-700 sm:col-span-2">
+              <input
+                type="checkbox"
+                checked={editForm.featured}
+                onChange={(e) =>
+                  setEditForm({ ...editForm, featured: e.target.checked })
+                }
+              />
+              Featured on the home page
+            </label>
+            <div className="flex flex-wrap gap-2 sm:col-span-2">
+              <Button type="submit" loading={editSaving}>
+                Save changes
+              </Button>
+              <Button type="button" variant="secondary" onClick={cancelEdit}>
+                Cancel
+              </Button>
+            </div>
+          </form>
+        </section>
+      ) : null}
+
       <div className="overflow-x-auto rounded-xl border border-zinc-200 bg-white">
         <table className="w-full text-left text-sm">
           <thead className="border-b border-zinc-200 text-xs uppercase text-zinc-500">
@@ -238,7 +380,7 @@ export function ProductsPage() {
               <th className="px-4 py-3">Category</th>
               <th className="px-4 py-3">Price</th>
               <th className="px-4 py-3">Featured</th>
-              <th className="px-4 py-3" />
+              <th className="px-4 py-3 text-right">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -249,44 +391,44 @@ export function ProductsPage() {
                 </td>
               </tr>
             ) : (
-              products.map((product) => (
-                <tr key={docId(product)} className="border-b border-zinc-100">
-                  <td className="px-4 py-3">
-                    <strong>{product.name}</strong>
-                    <p className="text-xs text-zinc-500">{product.sku}</p>
-                  </td>
-                  <td className="px-4 py-3">
-                    <select
-                      className="rounded-md border border-zinc-300 px-2 py-1"
-                      value={product.category}
-                      onChange={(e) => void assignCategory(product, e.target.value)}
-                    >
-                      {categories.map((category) => (
-                        <option key={category.slug} value={category.slug}>
-                          {category.name}
-                        </option>
-                      ))}
-                    </select>
-                  </td>
-                  <td className="px-4 py-3 tabular-nums">{money(product.price)}</td>
-                  <td className="px-4 py-3">
-                    <input
-                      type="checkbox"
-                      checked={Boolean(product.featured)}
-                      onChange={() => void toggleFeatured(product)}
-                    />
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <Button
-                      type="button"
-                      variant="danger"
-                      onClick={() => void remove(product)}
-                    >
-                      Delete
-                    </Button>
-                  </td>
-                </tr>
-              ))
+              products.map((product) => {
+                const id = docId(product);
+                const editing = editingId === id;
+                return (
+                  <tr
+                    key={id}
+                    className={`border-b border-zinc-100 ${editing ? 'bg-emerald-50/50' : ''}`}
+                  >
+                    <td className="px-4 py-3">
+                      <strong>{product.name}</strong>
+                      <p className="text-xs text-zinc-500">{product.sku}</p>
+                    </td>
+                    <td className="px-4 py-3">{categoryName(product.category)}</td>
+                    <td className="px-4 py-3 tabular-nums">{money(product.price)}</td>
+                    <td className="px-4 py-3">
+                      {product.featured ? 'Yes' : '—'}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          onClick={() => startEdit(product)}
+                        >
+                          Edit
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="danger"
+                          onClick={() => void remove(product)}
+                        >
+                          Delete
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>

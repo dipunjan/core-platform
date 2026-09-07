@@ -13,7 +13,9 @@ type Props = {
   onChange: (url: string) => void;
   onError?: (message: string) => void;
   onBusyChange?: (busy: boolean) => void;
+  required?: boolean;
   hint?: string;
+  error?: string;
   kind?: BrandImageKind;
   onRemove?: () => void;
 };
@@ -24,7 +26,9 @@ export function ImagePicker({
   onChange,
   onError,
   onBusyChange,
+  required = false,
   hint,
+  error,
   kind = 'logo',
   onRemove,
 }: Props) {
@@ -67,10 +71,18 @@ export function ImagePicker({
     }
   }
 
+  const hintId = hint ? `picker-${kind}-hint` : undefined;
+  const errorId = error ? `picker-${kind}-error` : undefined;
+
   return (
     <div className="mb-4">
       <div className="mb-1.5 flex items-center justify-between gap-2">
-        <p className="text-sm font-medium text-zinc-700">{label}</p>
+        <p className="text-sm font-medium text-zinc-700">
+          {label}
+          {required ? (
+            <span className="text-red-600" aria-hidden="true"> *</span>
+          ) : null}
+        </p>
         <span
           className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
             live
@@ -85,13 +97,17 @@ export function ImagePicker({
         src={preview}
         alt=""
         onError={() => setBroken(true)}
-        className="mb-3 h-24 w-full max-w-xs rounded-lg border border-zinc-200 object-cover"
+        className={`mb-3 h-24 w-full max-w-xs rounded-lg border object-cover ${
+          error ? 'border-red-400' : 'border-zinc-200'
+        }`}
       />
       <div className="flex flex-wrap items-center gap-2">
         <input
           type="file"
           accept="image/jpeg,image/png,image/gif,image/webp,image/svg+xml"
           disabled={busy}
+          aria-invalid={error ? true : undefined}
+          aria-describedby={[hintId, errorId].filter(Boolean).join(' ') || undefined}
           onChange={(event) => void onPick(event.target.files?.[0])}
           className="block text-sm text-zinc-600 file:mr-3 file:rounded-lg file:border-0 file:bg-zinc-950 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-white"
         />
@@ -111,8 +127,14 @@ export function ImagePicker({
           <SpinnerIcon className="h-3.5 w-3.5" />
           Uploading…
         </p>
+      ) : error ? (
+        <p id={errorId} className="mt-1 text-xs font-normal text-red-700" role="alert">
+          {error}
+        </p>
       ) : hint ? (
-        <p className="mt-1 text-xs font-normal text-zinc-500">{hint}</p>
+        <p id={hintId} className="mt-1 text-xs font-normal text-zinc-500">
+          {hint}
+        </p>
       ) : null}
     </div>
   );

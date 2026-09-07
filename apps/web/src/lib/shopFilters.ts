@@ -1,4 +1,5 @@
 import type { Product } from '@/api/types';
+import { PRODUCT_API } from '@/api/urls';
 
 export type ShopSort =
   | 'name-asc'
@@ -46,7 +47,7 @@ export function parseShopFilters(
 export function buildShopUrl(filters: ShopFilters): string {
   const path = filters.category ? `/shop/${filters.category}` : '/shop';
   const params = new URLSearchParams();
-  if (filters.q) {
+  if (filters.q && filters.q.length >= 2) {
     params.set('q', filters.q);
   }
   if (filters.minPrice != null) {
@@ -62,21 +63,34 @@ export function buildShopUrl(filters: ShopFilters): string {
   return qs ? `${path}?${qs}` : path;
 }
 
+/** Build product list API URL from shop filters (server-side search + filters). */
+export function productsListUrl(filters: ShopFilters): string {
+  const params = new URLSearchParams();
+  if (filters.category) {
+    params.set('category', filters.category);
+  }
+  if (filters.q && filters.q.length >= 2) {
+    params.set('q', filters.q);
+  }
+  if (filters.minPrice != null) {
+    params.set('min', String(filters.minPrice));
+  }
+  if (filters.maxPrice != null) {
+    params.set('max', String(filters.maxPrice));
+  }
+  if (filters.sort !== 'name-asc') {
+    params.set('sort', filters.sort);
+  }
+  const qs = params.toString();
+  return qs ? `${PRODUCT_API}/products?${qs}` : `${PRODUCT_API}/products`;
+}
+
 export function filterProducts(
   products: Product[],
   filters: ShopFilters,
 ): Product[] {
   let list = products;
-  const q = filters.q?.toLowerCase();
 
-  if (q) {
-    list = list.filter(
-      (product) =>
-        product.name.toLowerCase().includes(q) ||
-        product.description.toLowerCase().includes(q) ||
-        product.sku.toLowerCase().includes(q),
-    );
-  }
   if (filters.category) {
     list = list.filter((product) => product.category === filters.category);
   }

@@ -1,3 +1,4 @@
+import axios from 'axios';
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import {
   apiMessage,
@@ -9,24 +10,30 @@ import {
   type Storefront,
   urls,
 } from '@/api';
+import type { ShopFilters } from '@/lib/shopFilters';
+import { productsListUrl } from '@/lib/shopFilters';
 
 type CatalogState = {
   products: Product[];
+  shopProducts: Product[];
   categories: Category[];
   storefront: Storefront | null;
   product: Product | null;
   inventory: Inventory | null;
   loading: boolean;
+  shopLoading: boolean;
   error: string;
 };
 
 const initialState: CatalogState = {
   products: [],
+  shopProducts: [],
   categories: [],
   storefront: null,
   product: null,
   inventory: null,
   loading: false,
+  shopLoading: false,
   error: '',
 };
 
@@ -37,6 +44,23 @@ export const fetchProducts = createAsyncThunk(
       const { data } = await http.get<Product[]>(urls.products);
       return data;
     } catch (err) {
+      return rejectWithValue(apiMessage(err));
+    }
+  },
+);
+
+export const fetchShopProducts = createAsyncThunk(
+  'catalog/shop',
+  async (filters: ShopFilters, { signal, rejectWithValue }) => {
+    try {
+      const { data } = await http.get<Product[]>(productsListUrl(filters), {
+        signal,
+      });
+      return data;
+    } catch (err) {
+      if (axios.isCancel(err)) {
+        throw err;
+      }
       return rejectWithValue(apiMessage(err));
     }
   },
@@ -112,6 +136,21 @@ const catalogSlice = createSlice({
       })
       .addCase(fetchProducts.rejected, (state, action) => {
         state.loading = false;
+        state.error = String(action.payload ?? 'Could not load products');
+      })
+      .addCase(fetchShopProducts.pending, (state) => {
+        state.shopLoading = true;
+        state.error = '';
+      })
+      .addCase(fetchShopProducts.fulfilled, (state, action) => {
+        state.shopLoading = false;
+        state.shopProducts = action.payload;
+      })
+      .addCase(fetchShopProducts.rejected, (state, action) => {
+        state.shopLoading = false;
+        if (action.meta.aborted) {
+          return;
+        }
         state.error = String(action.payload ?? 'Could not load products');
       })
       .addCase(fetchCategories.fulfilled, (state, action) => {

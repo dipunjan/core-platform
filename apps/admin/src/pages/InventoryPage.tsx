@@ -15,6 +15,7 @@ export function InventoryPage() {
   const [draft, setDraft] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState('');
+  const [rowErrors, setRowErrors] = useState<Record<string, string>>({});
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
 
@@ -42,10 +43,18 @@ export function InventoryPage() {
   async function save(productId: string) {
     setError('');
     setNotice('');
+    setRowErrors((prev) => {
+      const next = { ...prev };
+      delete next[productId];
+      return next;
+    });
     const raw = draft[productId] ?? '0';
     const quantity = Number(raw);
     if (raw === '' || Number.isNaN(quantity) || quantity < 0) {
-      setError('Enter a whole number 0 or higher.');
+      setRowErrors((prev) => ({
+        ...prev,
+        [productId]: 'Enter a whole number, 0 or higher.',
+      }));
       return;
     }
     setSavingId(productId);
@@ -105,12 +114,19 @@ export function InventoryPage() {
                       <input
                         type="number"
                         min={0}
-                        className="w-24 rounded-md border border-zinc-300 px-2 py-1"
+                        className={`w-24 rounded-md border px-2 py-1 ${
+                          rowErrors[id]
+                            ? 'border-red-400'
+                            : 'border-zinc-300'
+                        }`}
                         value={draft[id] ?? '0'}
                         onChange={(e) =>
                           setDraft({ ...draft, [id]: e.target.value })
                         }
                       />
+                      {rowErrors[id] ? (
+                        <p className="mt-1 text-xs text-red-700">{rowErrors[id]}</p>
+                      ) : null}
                     </td>
                     <td className="px-4 py-3">
                       <Button

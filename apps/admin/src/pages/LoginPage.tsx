@@ -39,8 +39,7 @@ export function LoginPage() {
           Staff sign in
         </h1>
         <p className="mt-2 mb-6 text-sm text-zinc-500">
-          Same accounts as the shop. Only the email in ADMIN_EMAIL (default Ada)
-          is treated as admin.
+          Staff sign-in only. Use the same email and password as the shop.
         </p>
         <Flash>{error}</Flash>
         <Field

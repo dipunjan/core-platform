@@ -43,7 +43,7 @@ export function HomePage() {
         title="Shop by category"
         description="Pick a lane. Everything else can wait."
       >
-        <CategoryGrid categories={categories} />
+        <CategoryGrid categories={categories} loading={loading} />
       </Section>
       <Section
         title="Featured"

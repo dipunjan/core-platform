@@ -17,7 +17,25 @@ Each API `.env` must allow both sites in `CORS_ORIGIN` (`http://localhost:5173` 
 
 Admin screens: `/` sales, `/branding` (currency, file picker for logo/hero/tiles), `/people` (phone + address), `/products`, `/categories`, `/inventory`, `/login`.
 
-**Admin UX:** pages show a loader on first fetch; save buttons show a spinner while working; validation uses plain-English field hints (not browser-only tooltips). Branding promo tiles only nudge you after you start filling the form or click Add tile — not on a blank screen. Sample branding files: `branding-samples/README.md`.
+**Admin UX:** pages show a loader on first fetch; save buttons show a spinner while working; validation uses plain-English field hints (not browser-only tooltips). Required fields use a red **\*** on the label; gray hints sit under the field; red errors appear under the field only after submit (e.g. promo **Add tile**). Branding sample files: `branding-samples/README.md`.
+
+### Shop UX highlights
+
+- **Loaders** on home, shop, cart, orders, checkout, and product detail — no “empty” flash before data arrives.
+- **Cart** shows a subtotal; header cart count loads on app start (guest bag included).
+- **Add to cart** from the grid shows brief “Added” feedback with a link to the cart.
+- **Out of stock** disables add on the product page.
+- **Checkout** → **Orders** shows a green “Order placed” message; order lines use product names.
+- **Orders** nav link is hidden until you are signed in (avoids a surprise login redirect).
+- **Buttons** use `loading` labels (“Signing in…”, “Placing order…”) instead of silent disabled states.
+
+### Admin UX highlights
+
+- **Confirm** before delete (products, categories, people, promo tiles).
+- **Success banners** after saves; **field hints** and inline errors on forms.
+- **Inventory** errors appear on the row you edited, not only at the top.
+- **People:** success after role/address changes; tooltips when you cannot edit your own account; empty group messages.
+- **Sales** stats use plain labels (All orders, Active orders, Gross revenue).
 
 Catalog edits belong in **admin**: categories, products, featured flags, inventory, logo, banners, currency.
 
@@ -51,6 +69,20 @@ Redux only keeps a **copy** of data so the screen can re-render. The **real** ca
 
 Prices from the API are **minor units** (1299 cents). The shop formats them with `storefront.currency` from admin Branding (`useMoney`).
 
+### Search (AJAX, no button)
+
+There is **no separate search results page** — industry standard is `/shop?q=term` (shareable URL, back button works). Same page handles browse and search.
+
+1. Header `SearchBar` debounces input (**300ms**), then updates the URL.
+2. Minimum **2 characters** before querying (reduces noise and DB load).
+3. `ShopPage` calls `GET /api/products?q=…&category=…&min=…&max=…&sort=…` — server-side filter/sort, not client-side over the full catalog.
+4. In-flight requests are **aborted** when the query changes (RTK + `signal`).
+5. Uncached on the API when `q` or price filters are present; full catalog list stays cached.
+
+```bash
+curl 'http://localhost:3001/api/products?q=shirt&sort=price-asc'
+```
+
 ## URLs (routing)
 
 Routing is **not** mixed into `App.tsx`. The list of pages is in **`src/routes/router.tsx`**. React Router reads that list and shows the matching page.
@@ -72,7 +104,7 @@ Admin (`apps/admin`) uses the **same names and folders**. Staff `Layout` is a si
 | URL | Who can open it | Screen |
 |---|---|---|
 | `/` | Anyone | Home (hero, categories, featured) |
-| `/shop` | Anyone | All products — search, category, price, sort |
+| `/shop` | Anyone | All products — search, category, price, sort (`?q=` for search results) |
 | `/shop/:slug` | Anyone | One category (same filters as `/shop`) |
 | `/products/:id` | Anyone | One product, stock, add to cart |
 | `/cart` | Anyone | Cart. Checkout asks you to sign in |

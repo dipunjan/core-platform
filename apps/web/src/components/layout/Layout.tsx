@@ -51,9 +51,11 @@ export function Layout() {
             <NavLink to="/cart" className={linkClass}>
               Cart{cartCount ? ` (${cartCount})` : ''}
             </NavLink>
-            <NavLink to="/orders" className={linkClass}>
-              Orders
-            </NavLink>
+            {user ? (
+              <NavLink to="/orders" className={linkClass}>
+                Orders
+              </NavLink>
+            ) : null}
           </div>
           <div className="ml-auto flex items-center gap-2">
             {loading ? (

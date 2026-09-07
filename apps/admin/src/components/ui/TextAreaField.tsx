@@ -1,20 +1,21 @@
-import type { InputHTMLAttributes } from 'react';
+import type { TextareaHTMLAttributes } from 'react';
 
-export type FieldProps = InputHTMLAttributes<HTMLInputElement> & {
+export type TextAreaFieldProps = TextareaHTMLAttributes<HTMLTextAreaElement> & {
   label: string;
   hint?: string;
   error?: string;
 };
 
-export function Field({
+export function TextAreaField({
   label,
   id,
   className = '',
   hint,
   error,
   required,
+  rows = 3,
   ...props
-}: FieldProps) {
+}: TextAreaFieldProps) {
   const fieldId = id ?? props.name ?? label.toLowerCase().replace(/\s+/g, '-');
   const hintId = hint ? `${fieldId}-hint` : undefined;
   const errorId = error ? `${fieldId}-error` : undefined;
@@ -29,12 +30,13 @@ export function Field({
           <span className="text-red-600" aria-hidden="true"> *</span>
         ) : null}
       </span>
-      <input
+      <textarea
         id={fieldId}
+        rows={rows}
         required={required}
         aria-invalid={error ? true : undefined}
         aria-describedby={[hintId, errorId].filter(Boolean).join(' ') || undefined}
-        className={`rounded-lg border bg-white px-3 py-2 font-normal text-zinc-900 shadow-sm outline-none focus:ring-2 ${
+        className={`resize-y rounded-lg border bg-white px-3 py-2 font-normal text-zinc-900 shadow-sm outline-none focus:ring-2 ${
           error
             ? 'border-red-400 focus:border-red-600 focus:ring-red-600/20'
             : 'border-zinc-300 focus:border-emerald-700 focus:ring-emerald-700/20'

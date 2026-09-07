@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { apiMessage, http, urls } from '@/api';
 import {
   brandImage,
@@ -24,8 +24,18 @@ export function ImagePicker({
   onRemove,
 }: Props) {
   const [busy, setBusy] = useState(false);
-  const live = hasBrandImage(value);
-  const preview = value.startsWith('blob:') ? value : brandImage(value, kind);
+  const [broken, setBroken] = useState(false);
+  const live = hasBrandImage(value) && !broken;
+  const preview =
+    value.startsWith('blob:') || (hasBrandImage(value) && !broken)
+      ? value.startsWith('blob:')
+        ? value
+        : value.trim()
+      : brandImage(value, kind);
+
+  useEffect(() => {
+    setBroken(false);
+  }, [value]);
 
   async function onPick(file: File | undefined) {
     if (!file) {
@@ -66,6 +76,7 @@ export function ImagePicker({
       <img
         src={preview}
         alt=""
+        onError={() => setBroken(true)}
         className="mb-3 h-24 w-full max-w-xs rounded-lg border border-zinc-200 object-cover"
       />
       <div className="flex flex-wrap items-center gap-2">
@@ -76,7 +87,7 @@ export function ImagePicker({
           onChange={(event) => void onPick(event.target.files?.[0])}
           className="block text-sm text-zinc-600 file:mr-3 file:rounded-lg file:border-0 file:bg-zinc-950 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-white"
         />
-        {live && onRemove ? (
+        {value.trim() && onRemove ? (
           <button
             type="button"
             disabled={busy}

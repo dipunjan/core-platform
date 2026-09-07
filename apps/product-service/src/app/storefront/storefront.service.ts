@@ -165,15 +165,6 @@ export class StorefrontService {
         ...DEFAULT_STOREFRONT.hero,
         imageUrl: fileUrl(SEED_UPLOADS.hero),
       },
-      banners: [
-        {
-          headline: 'Featured picks',
-          sub: 'Staff favorites — updated often.',
-          imageUrl: fileUrl(SEED_UPLOADS.promo),
-          href: '/shop',
-          sortOrder: 0,
-        },
-      ],
     });
   }
 

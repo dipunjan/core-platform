@@ -95,6 +95,34 @@ Every API call also touches Redis for **rate limiting** first.
 
 ---
 
+## Troubleshooting: 15–30 second requests (your screenshot)
+
+If DevTools shows **304** or **200** but **Time** is 15s–30s+, the usual cause locally is **Redis not running**.
+
+Every API calls Redis on **every request** (rate limit). When Redis is down, the client waits on reconnect — the browser still eventually gets 304/200, but only after a long hang.
+
+```bash
+docker compose ps           # redis must show "Up"
+docker compose up -d redis  # start if missing
+```
+
+Then **restart the five APIs** so they reconnect.
+
+| Redis | Typical local time per request |
+|-------|-------------------------------|
+| Down | 10–30 seconds |
+| Up | Usually **under 1 second** |
+
+**Also check:**
+
+- **React StrictMode** (dev only) runs effects twice → duplicate `storefront`, `me`, `users` rows in Network. Normal in dev; not in production builds.
+- **304 is not “free”** — server still runs throttle + handler; it should be fast when Redis is up.
+- **Cold webpack** — first hit after `nx serve` can be slow; wait until all services log “Application is running.”
+
+We tightened the Redis client to **fail fast** when Redis is unreachable (`connectTimeout` 3s, `enableOfflineQueue: false`) so a missing Redis hurts less after you redeploy common.
+
+---
+
 ## What we optimized
 
 | Done | Why |

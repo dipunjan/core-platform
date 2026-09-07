@@ -14,7 +14,9 @@ import { TokenDenylist } from './token-denylist';
       useFactory: (config: ConfigService) => {
         const url = config.get<string>('REDIS_URL') ?? 'redis://localhost:6379';
         const client = new Redis(url, {
-          maxRetriesPerRequest: 2,
+          maxRetriesPerRequest: 1,
+          connectTimeout: 3_000,
+          enableOfflineQueue: false,
         });
         const log = new Logger('Redis');
         client.on('error', (err) => {

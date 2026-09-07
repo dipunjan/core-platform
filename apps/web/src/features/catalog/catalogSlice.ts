@@ -2,6 +2,7 @@ import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import {
   apiMessage,
   http,
+  storefrontIsNewer,
   type Category,
   type Inventory,
   type Product,
@@ -117,7 +118,9 @@ const catalogSlice = createSlice({
         state.categories = action.payload;
       })
       .addCase(fetchStorefront.fulfilled, (state, action) => {
-        state.storefront = action.payload;
+        if (storefrontIsNewer(action.payload, state.storefront)) {
+          state.storefront = action.payload;
+        }
       })
       .addCase(fetchProduct.pending, (state) => {
         state.loading = true;

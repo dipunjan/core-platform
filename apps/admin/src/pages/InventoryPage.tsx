@@ -7,13 +7,16 @@ import {
   type Inventory,
   type Product,
 } from '@/api';
-import { Button, Flash } from '@/components/ui';
+import { Button, Flash, PageLoader } from '@/components/ui';
 
 export function InventoryPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [stock, setStock] = useState<Inventory[]>([]);
   const [draft, setDraft] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState(true);
+  const [savingId, setSavingId] = useState('');
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
 
   async function reload() {
     const [p, i] = await Promise.all([
@@ -30,26 +33,43 @@ export function InventoryPage() {
   }
 
   useEffect(() => {
-    void reload().catch((err) => setError(apiMessage(err)));
+    setLoading(true);
+    void reload()
+      .catch((err) => setError(apiMessage(err)))
+      .finally(() => setLoading(false));
   }, []);
 
   async function save(productId: string) {
     setError('');
+    setNotice('');
+    const raw = draft[productId] ?? '0';
+    const quantity = Number(raw);
+    if (raw === '' || Number.isNaN(quantity) || quantity < 0) {
+      setError('Enter a whole number 0 or higher.');
+      return;
+    }
+    setSavingId(productId);
     try {
-      await http.put(urls.inventoryItem(productId), {
-        quantity: Number(draft[productId] ?? 0),
-      });
+      await http.put(urls.inventoryItem(productId), { quantity });
+      setNotice('Stock updated.');
       await reload();
     } catch (err) {
       setError(apiMessage(err));
+    } finally {
+      setSavingId('');
     }
   }
 
   const byId = new Map(stock.map((row) => [row.productId, row]));
 
+  if (loading) {
+    return <PageLoader label="Loading inventory…" />;
+  }
+
   return (
     <>
       <h1 className="mb-6 text-2xl font-semibold tracking-tight">Inventory</h1>
+      <Flash tone="success">{notice}</Flash>
       <Flash>{error}</Flash>
       <div className="overflow-x-auto rounded-xl border border-zinc-200 bg-white">
         <table className="w-full text-left text-sm">
@@ -63,36 +83,48 @@ export function InventoryPage() {
             </tr>
           </thead>
           <tbody>
-            {products.map((product) => {
-              const id = docId(product);
-              const row = byId.get(id);
-              return (
-                <tr key={id} className="border-b border-zinc-100">
-                  <td className="px-4 py-3">
-                    <strong>{product.name}</strong>
-                    <p className="text-xs text-zinc-500">{product.sku}</p>
-                  </td>
-                  <td className="px-4 py-3 tabular-nums">{row?.quantity ?? '—'}</td>
-                  <td className="px-4 py-3 tabular-nums">{row?.reserved ?? '—'}</td>
-                  <td className="px-4 py-3">
-                    <input
-                      type="number"
-                      min={0}
-                      className="w-24 rounded-md border border-zinc-300 px-2 py-1"
-                      value={draft[id] ?? '0'}
-                      onChange={(e) =>
-                        setDraft({ ...draft, [id]: e.target.value })
-                      }
-                    />
-                  </td>
-                  <td className="px-4 py-3">
-                    <Button type="button" onClick={() => void save(id)}>
-                      Save
-                    </Button>
-                  </td>
-                </tr>
-              );
-            })}
+            {products.length === 0 ? (
+              <tr>
+                <td className="px-4 py-8 text-center text-zinc-500" colSpan={5}>
+                  No products yet. Add products first, then set stock here.
+                </td>
+              </tr>
+            ) : (
+              products.map((product) => {
+                const id = docId(product);
+                const row = byId.get(id);
+                return (
+                  <tr key={id} className="border-b border-zinc-100">
+                    <td className="px-4 py-3">
+                      <strong>{product.name}</strong>
+                      <p className="text-xs text-zinc-500">{product.sku}</p>
+                    </td>
+                    <td className="px-4 py-3 tabular-nums">{row?.quantity ?? '—'}</td>
+                    <td className="px-4 py-3 tabular-nums">{row?.reserved ?? '—'}</td>
+                    <td className="px-4 py-3">
+                      <input
+                        type="number"
+                        min={0}
+                        className="w-24 rounded-md border border-zinc-300 px-2 py-1"
+                        value={draft[id] ?? '0'}
+                        onChange={(e) =>
+                          setDraft({ ...draft, [id]: e.target.value })
+                        }
+                      />
+                    </td>
+                    <td className="px-4 py-3">
+                      <Button
+                        type="button"
+                        loading={savingId === id}
+                        onClick={() => void save(id)}
+                      >
+                        Save
+                      </Button>
+                    </td>
+                  </tr>
+                );
+              })
+            )}
           </tbody>
         </table>
       </div>

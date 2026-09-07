@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="560" viewBox="0 0 1400 560">
+  <defs>
+    <linearGradient id="sky" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="55%" stop-color="#134e4a"/>
+      <stop offset="100%" stop-color="#064e3b"/>
+    </linearGradient>
+    <linearGradient id="glow" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#34d399" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#34d399" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect width="1400" height="560" fill="url(#sky)"/>
+  <ellipse cx="1050" cy="120" rx="280" ry="180" fill="url(#glow)"/>
+  <rect x="80" y="80" width="520" height="400" rx="24" fill="#1e293b" opacity="0.55"/>
+  <rect x="120" y="140" width="200" height="200" rx="16" fill="#334155"/>
+  <rect x="360" y="180" width="180" height="24" rx="12" fill="#64748b"/>
+  <rect x="360" y="220" width="140" height="16" rx="8" fill="#475569"/>
+  <rect x="360" y="252" width="160" height="16" rx="8" fill="#475569"/>
+  <circle cx="220" cy="240" r="56" fill="#10b981" opacity="0.9"/>
+  <text x="220" y="248" text-anchor="middle" font-family="system-ui,sans-serif" font-size="28" font-weight="700" fill="#ecfdf5">S</text>
+  <text x="700" y="270" text-anchor="middle" font-family="system-ui,sans-serif" font-size="42" font-weight="700" fill="#f8fafc">Spring collection</text>
+  <text x="700" y="320" text-anchor="middle" font-family="system-ui,sans-serif" font-size="22" fill="#a7f3d0">Upload this as your home hero background</text>
+</svg>

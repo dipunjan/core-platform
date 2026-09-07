@@ -71,7 +71,20 @@ export type Storefront = {
   currency?: string;
   hero?: HeroBanner;
   banners: Banner[];
+  updatedAt?: string;
 };
+
+export function storefrontIsNewer(
+  next: Storefront | null | undefined,
+  prev: Storefront | null | undefined,
+) {
+  if (!next) {
+    return false;
+  }
+  const prevAt = prev?.updatedAt ? Date.parse(prev.updatedAt) : 0;
+  const nextAt = next.updatedAt ? Date.parse(next.updatedAt) : 0;
+  return !prevAt || !nextAt || nextAt >= prevAt;
+}
 
 export type OrderItem = {
   productId: string;

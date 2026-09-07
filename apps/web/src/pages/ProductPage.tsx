@@ -4,7 +4,7 @@ import {
   Button,
   Card,
   Flash,
-  Spinner,
+  PageLoader,
   TextLink,
 } from '@/components';
 import { useCart, useMoney, useProduct } from '@/hooks';
@@ -29,7 +29,7 @@ export function ProductPage() {
     return <Flash>{error}</Flash>;
   }
   if (loading || !product) {
-    return <Spinner />;
+    return <PageLoader label="Loading product…" />;
   }
 
   const available = inventory
@@ -65,7 +65,12 @@ export function ProductPage() {
         </p>
         <div className="mt-6">
           <Flash>{cartError}</Flash>
-          <Button type="button" disabled={cartBusy} onClick={() => void onAdd()}>
+          <Button
+            type="button"
+            loading={cartBusy}
+            loadingLabel="Adding…"
+            onClick={() => void onAdd()}
+          >
             Add to cart
           </Button>
         </div>

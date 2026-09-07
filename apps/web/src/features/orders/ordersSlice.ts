@@ -58,13 +58,19 @@ const ordersSlice = createSlice({
         state.loading = false;
         state.error = String(action.payload ?? 'Could not load orders');
       })
+      .addCase(cancelOrder.pending, (state) => {
+        state.loading = true;
+        state.error = '';
+      })
       .addCase(cancelOrder.fulfilled, (state, action) => {
+        state.loading = false;
         const id = docId(action.payload);
         state.orders = state.orders.map((order) =>
           docId(order) === id ? action.payload : order,
         );
       })
       .addCase(cancelOrder.rejected, (state, action) => {
+        state.loading = false;
         state.error = String(action.payload ?? 'Could not cancel');
       })
       .addCase(logout.fulfilled, () => initialState);

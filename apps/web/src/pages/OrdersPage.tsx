@@ -1,9 +1,18 @@
 import { docId } from '@/api';
-import { EmptyState, Flash, OrderCard, PageTitle, TextLink } from '@/components';
+import { EmptyState, Flash, OrderCard, PageLoader, PageTitle, TextLink } from '@/components';
 import { useOrders } from '@/hooks';
 
 export function OrdersPage() {
   const { orders, error, loading, cancel } = useOrders({ load: true });
+
+  if (loading && orders.length === 0) {
+    return (
+      <>
+        <PageTitle className="mb-6">Orders</PageTitle>
+        <PageLoader label="Loading your orders…" />
+      </>
+    );
+  }
 
   return (
     <>

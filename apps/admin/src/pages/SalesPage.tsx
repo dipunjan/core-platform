@@ -1,25 +1,29 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { apiMessage, docId, http, urls, type Order } from '@/api';
-import { Flash } from '@/components/ui';
+import { Flash, PageLoader } from '@/components/ui';
 import { useMoney } from '@/hooks';
 
 export function SalesPage() {
   const money = useMoney();
   const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
+    setLoading(true);
     void http
       .get<Order[]>(urls.ordersAdmin)
       .then(({ data }) => setOrders(data))
-      .catch((err) => setError(apiMessage(err)));
+      .catch((err) => setError(apiMessage(err)))
+      .finally(() => setLoading(false));
   }, []);
 
   const paidish = orders.filter((order) => order.status !== 'cancelled');
-  const revenue = useMemo(
-    () => paidish.reduce((sum, order) => sum + order.total, 0),
-    [paidish],
-  );
+  const revenue = paidish.reduce((sum, order) => sum + order.total, 0);
+
+  if (loading) {
+    return <PageLoader label="Loading sales…" />;
+  }
 
   return (
     <>
@@ -41,18 +45,26 @@ export function SalesPage() {
             </tr>
           </thead>
           <tbody>
-            {orders.map((order) => (
-              <tr key={docId(order)} className="border-b border-zinc-100">
-                <td className="px-4 py-3 font-mono text-xs">{docId(order)}</td>
-                <td className="px-4 py-3 capitalize">{order.status}</td>
-                <td className="px-4 py-3">
-                  {order.items.reduce((sum, item) => sum + item.quantity, 0)}
-                </td>
-                <td className="px-4 py-3 text-right tabular-nums">
-                  {money(order.total)}
+            {orders.length === 0 ? (
+              <tr>
+                <td className="px-4 py-8 text-center text-zinc-500" colSpan={4}>
+                  No orders yet.
                 </td>
               </tr>
-            ))}
+            ) : (
+              orders.map((order) => (
+                <tr key={docId(order)} className="border-b border-zinc-100">
+                  <td className="px-4 py-3 font-mono text-xs">{docId(order)}</td>
+                  <td className="px-4 py-3 capitalize">{order.status}</td>
+                  <td className="px-4 py-3">
+                    {order.items.reduce((sum, item) => sum + item.quantity, 0)}
+                  </td>
+                  <td className="px-4 py-3 text-right tabular-nums">
+                    {money(order.total)}
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>

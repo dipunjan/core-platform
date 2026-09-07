@@ -1,5 +1,11 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
-import { apiMessage, http, urls, type Storefront } from '@/api';
+import {
+  apiMessage,
+  http,
+  storefrontIsNewer,
+  urls,
+  type Storefront,
+} from '@/api';
 
 type StorefrontState = {
   storefront: Storefront | null;
@@ -40,7 +46,9 @@ const storefrontSlice = createSlice({
       })
       .addCase(fetchStorefront.fulfilled, (state, action) => {
         state.loading = false;
-        state.storefront = action.payload;
+        if (storefrontIsNewer(action.payload, state.storefront)) {
+          state.storefront = action.payload;
+        }
         state.error = '';
       })
       .addCase(fetchStorefront.rejected, (state, action) => {

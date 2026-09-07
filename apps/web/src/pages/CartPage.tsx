@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { Button, Card, CartLine, EmptyState, Flash, PageTitle, TextLink } from '@/components';
+import { Button, Card, CartLine, EmptyState, Flash, PageLoader, PageTitle, TextLink } from '@/components';
 import { useAuth, useCart } from '@/hooks';
 
 export function CartPage() {
@@ -8,6 +8,15 @@ export function CartPage() {
   const { cart, error, loading, productsById, setQty } = useCart({
     load: true,
   });
+
+  if (loading && !cart) {
+    return (
+      <>
+        <PageTitle className="mb-6">Cart</PageTitle>
+        <PageLoader label="Loading your cart…" />
+      </>
+    );
+  }
 
   return (
     <>
@@ -44,7 +53,7 @@ export function CartPage() {
           <div className="border-t border-zinc-100 px-4 py-4 sm:px-6">
             <Button
               type="button"
-              disabled={loading}
+              loading={loading}
               onClick={() => {
                 if (user) {
                   navigate('/checkout');

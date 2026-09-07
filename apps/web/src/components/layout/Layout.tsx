@@ -1,7 +1,7 @@
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useAuth, useCart, useCatalog, siteName, useSiteBranding } from '@/hooks';
 import { brandImage } from '@/lib/brandImage';
-import { Button } from '@/components/ui';
+import { Button, SpinnerIcon } from '@/components/ui';
 import { SearchBar } from './SearchBar';
 
 const linkClass = ({ isActive }: { isActive: boolean }) =>
@@ -57,7 +57,7 @@ export function Layout() {
           </div>
           <div className="ml-auto flex items-center gap-2">
             {loading ? (
-              <span className="text-sm text-zinc-500">…</span>
+              <SpinnerIcon className="h-4 w-4 text-zinc-400" />
             ) : user ? (
               <>
                 <span className="hidden text-sm font-medium text-zinc-800 sm:inline">

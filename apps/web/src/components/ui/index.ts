@@ -16,5 +16,5 @@ export { PromoTile } from './PromoTile';
 export { Section } from './Section';
 export { SelectField } from './SelectField';
 export type { SelectFieldProps } from './SelectField';
-export { Spinner } from './Spinner';
+export { Spinner, SpinnerIcon, PageLoader } from './Spinner';
 export { TextLink } from './TextLink';

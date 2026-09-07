@@ -2,14 +2,14 @@ import { useEffect } from 'react';
 import { Navigate, useParams, useSearchParams } from 'react-router-dom';
 import { docId } from '@/api';
 import { ProductCard, ShopFilters } from '@/components';
-import { EmptyState, Flash, PageHeader, ProductGrid } from '@/components/ui';
+import { EmptyState, Flash, PageHeader, PageLoader, ProductGrid } from '@/components/ui';
 import { activeFilterCount, filterProducts, parseShopFilters } from '@/lib/shopFilters';
 import { useCatalog } from '@/hooks';
 
 export function ShopPage() {
   const { category: slug } = useParams<{ category?: string }>();
   const [searchParams] = useSearchParams();
-  const { products, categories, error, loadCatalog } = useCatalog();
+  const { products, categories, error, loading, loadCatalog } = useCatalog();
 
   useEffect(() => {
     loadCatalog();
@@ -28,6 +28,10 @@ export function ShopPage() {
   const blurb = filters.q
     ? `${list.length} result${list.length === 1 ? '' : 's'} for “${filters.q}”.`
     : (category?.blurb ?? 'Refine with category, price, or sort.');
+
+  if (loading && products.length === 0) {
+    return <PageLoader label="Loading products…" />;
+  }
 
   return (
     <>

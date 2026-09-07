@@ -45,6 +45,21 @@ npx nx serve admin    # http://localhost:5174
 
 Start **inventory** before creating products. Admin: `ADMIN_EMAIL` (default `ada@example.com`) — log out and back in once for admin role.
 
+### Staff panel & branding
+
+| URL | Purpose |
+|-----|---------|
+| http://localhost:5174 | Admin (sales, products, people, inventory) |
+| http://localhost:5174/branding | Logo, hero, currency, promo tiles |
+
+Upload images on **Branding** — they go live on the shop immediately. Empty slots show placeholders until you upload something.
+
+Sample SVGs and copy to paste: [branding-samples/README.md](branding-samples/README.md).
+
+**Promo tiles** (optional, under the hero): headline + image + link, then **Add tile**. The form stays quiet until you start typing or click Add tile; validation messages appear only then.
+
+Admin forms use inline hints, loading spinners, and green success banners so non-technical staff get clear feedback.
+
 ```bash
 curl http://localhost:3000/api/health/live
 ```

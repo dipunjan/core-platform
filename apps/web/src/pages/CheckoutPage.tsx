@@ -7,7 +7,7 @@ import {
   Card,
   Flash,
   PageTitle,
-  Spinner,
+  PageLoader,
   TextLink,
 } from '@/components';
 import { updateMe } from '@/features/auth';
@@ -66,7 +66,7 @@ export function CheckoutPage() {
   }
 
   if (loading && !cart) {
-    return <Spinner />;
+    return <PageLoader label="Loading checkout…" />;
   }
 
   if (!cart || items.length === 0) {
@@ -92,7 +92,12 @@ export function CheckoutPage() {
             Shipping address
           </h2>
           <AddressFields value={delivery} onChange={setDelivery} />
-          <Button type="submit" className="w-full" disabled={busy || loading}>
+          <Button
+            type="submit"
+            className="w-full"
+            loading={busy || loading}
+            loadingLabel="Placing order…"
+          >
             Place order
           </Button>
         </Card>

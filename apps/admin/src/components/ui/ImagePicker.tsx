@@ -5,12 +5,15 @@ import {
   hasBrandImage,
   type BrandImageKind,
 } from '@/lib/brandImage';
+import { SpinnerIcon } from './Spinner';
 
 type Props = {
   label: string;
   value: string;
   onChange: (url: string) => void;
   onError?: (message: string) => void;
+  onBusyChange?: (busy: boolean) => void;
+  hint?: string;
   kind?: BrandImageKind;
   onRemove?: () => void;
 };
@@ -20,6 +23,8 @@ export function ImagePicker({
   value,
   onChange,
   onError,
+  onBusyChange,
+  hint,
   kind = 'logo',
   onRemove,
 }: Props) {
@@ -44,6 +49,7 @@ export function ImagePicker({
     const previewUrl = URL.createObjectURL(file);
     onChange(previewUrl);
     setBusy(true);
+    onBusyChange?.(true);
     try {
       const body = new FormData();
       body.append('file', file);
@@ -53,9 +59,11 @@ export function ImagePicker({
       );
       onChange(data.url);
     } catch (err) {
+      onChange('');
       onError?.(apiMessage(err, 'Could not upload that image'));
     } finally {
       setBusy(false);
+      onBusyChange?.(false);
     }
   }
 
@@ -99,7 +107,12 @@ export function ImagePicker({
         ) : null}
       </div>
       {busy ? (
-        <p className="mt-1 text-xs text-zinc-500">Uploading…</p>
+        <p className="mt-1 flex items-center gap-1.5 text-xs text-zinc-500">
+          <SpinnerIcon className="h-3.5 w-3.5" />
+          Uploading…
+        </p>
+      ) : hint ? (
+        <p className="mt-1 text-xs font-normal text-zinc-500">{hint}</p>
       ) : null}
     </div>
   );

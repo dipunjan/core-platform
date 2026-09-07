@@ -5,6 +5,7 @@ import {
   EmptyState,
   Flash,
   HeroBanner,
+  PageLoader,
   ProductGrid,
   PromoGrid,
   Section,
@@ -12,7 +13,7 @@ import {
 import { useCatalog, siteName } from '@/hooks';
 
 export function HomePage() {
-  const { products, categories, storefront, error, loadCatalog } = useCatalog();
+  const { products, categories, storefront, error, loading, loadCatalog } = useCatalog();
 
   useEffect(() => {
     loadCatalog();
@@ -25,6 +26,10 @@ export function HomePage() {
   const extras = [...(storefront?.banners ?? [])].sort(
     (a, b) => a.sortOrder - b.sortOrder,
   );
+
+  if (loading && products.length === 0) {
+    return <PageLoader label="Loading shop…" />;
+  }
 
   return (
     <>

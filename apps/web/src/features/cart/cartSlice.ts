@@ -177,10 +177,15 @@ const cartSlice = createSlice({
       .addCase(mergeGuestCart.fulfilled, setCart)
       .addCase(mergeGuestCart.rejected, fail)
       .addCase(addToCart.pending, (state) => {
+        state.loading = true;
         state.error = '';
       })
       .addCase(addToCart.fulfilled, setCart)
       .addCase(addToCart.rejected, fail)
+      .addCase(setCartQty.pending, (state) => {
+        state.loading = true;
+        state.error = '';
+      })
       .addCase(setCartQty.fulfilled, setCart)
       .addCase(setCartQty.rejected, fail)
       .addCase(checkout.pending, (state) => {

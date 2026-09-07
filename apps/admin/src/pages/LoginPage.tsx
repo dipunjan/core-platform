@@ -12,11 +12,17 @@ export function LoginPage() {
   const [email, setEmail] = useState('ada@example.com');
   const [password, setPassword] = useState('secret12');
   const [busy, setBusy] = useState(false);
+  const [emailError, setEmailError] = useState('');
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
+    setEmailError('');
+    if (!email.trim()) {
+      setEmailError('Enter your email address.');
+      return;
+    }
     setBusy(true);
-    const ok = await signIn(email, password);
+    const ok = await signIn(email.trim(), password);
     setBusy(false);
     if (ok) {
       navigate(next);
@@ -40,18 +46,23 @@ export function LoginPage() {
         <Field
           label="Email"
           type="email"
+          autoComplete="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
+          error={emailError}
           required
         />
         <Field
           label="Password"
           type="password"
+          autoComplete="current-password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
+          hint="At least 8 characters."
+          minLength={8}
           required
         />
-        <Button type="submit" className="w-full" disabled={busy}>
+        <Button type="submit" className="w-full" loading={busy} loadingLabel="Signing in…">
           Log in
         </Button>
       </form>

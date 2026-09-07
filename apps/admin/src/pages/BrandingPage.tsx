@@ -8,12 +8,17 @@ import {
   type Banner,
   type Storefront,
 } from '@/api';
-import { Button, Field, Flash, ImagePicker } from '@/components/ui';
+import { Button, Field, Flash, ImagePicker, PageLoader } from '@/components/ui';
 import { brandImage, hasBrandImage } from '@/lib/brandImage';
 import { useStorefront } from '@/hooks';
 
 export function BrandingPage() {
-  const { storefront: store, remember } = useStorefront();
+  const {
+    storefront: store,
+    loading: storeLoading,
+    error: loadError,
+    remember,
+  } = useStorefront();
   const [appName, setAppName] = useState('');
   const [tagline, setTagline] = useState('');
   const [faviconUrl, setFaviconUrl] = useState('');
@@ -28,7 +33,11 @@ export function BrandingPage() {
   const [promoSub, setPromoSub] = useState('');
   const [promoImage, setPromoImage] = useState('');
   const [promoHref, setPromoHref] = useState('/shop');
+  const [promoUploading, setPromoUploading] = useState(false);
+  const [promoTouched, setPromoTouched] = useState(false);
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
+  const [busy, setBusy] = useState('');
 
   function syncForm(data: Storefront) {
     setAppName(data.appName ?? '');
@@ -48,6 +57,11 @@ export function BrandingPage() {
     syncForm(data);
   }
 
+  function clearStatus() {
+    setError('');
+    setNotice('');
+  }
+
   useEffect(() => {
     if (store) {
       syncForm(store);
@@ -56,20 +70,28 @@ export function BrandingPage() {
 
   async function saveSite(event: FormEvent) {
     event.preventDefault();
-    setError('');
+    clearStatus();
+    if (!appName.trim()) {
+      setError('Enter a shop name.');
+      return;
+    }
     if (faviconUrl.startsWith('blob:')) {
       setError('Wait for the favicon upload to finish.');
       return;
     }
+    setBusy('site');
     try {
       const { data } = await http.patch<Storefront>(urls.storefront, {
-        appName,
-        tagline,
+        appName: appName.trim(),
+        tagline: tagline.trim(),
         faviconUrl,
       });
       apply(data);
+      setNotice('Site identity saved.');
     } catch (err) {
       setError(apiMessage(err));
+    } finally {
+      setBusy('');
     }
   }
 
@@ -78,14 +100,18 @@ export function BrandingPage() {
     if (url.startsWith('blob:')) {
       return;
     }
-    setError('');
+    clearStatus();
+    setBusy('logo');
     try {
       const { data } = await http.patch<Storefront>(urls.storefront, {
         logoUrl: url,
       });
       apply(data);
+      setNotice(url ? 'Logo updated.' : 'Logo removed.');
     } catch (err) {
       setError(apiMessage(err));
+    } finally {
+      setBusy('');
     }
   }
 
@@ -95,91 +121,161 @@ export function BrandingPage() {
 
   async function removeFavicon() {
     setFaviconUrl('');
-    setError('');
+    clearStatus();
+    setBusy('site');
     try {
       const { data } = await http.patch<Storefront>(urls.storefront, {
         faviconUrl: '',
       });
       apply(data);
+      setNotice('Favicon removed.');
     } catch (err) {
       setError(apiMessage(err));
+    } finally {
+      setBusy('');
     }
   }
 
   async function removeHeroImage() {
     setImageUrl('');
-    setError('');
+    clearStatus();
+    setBusy('hero');
     try {
       const { data } = await http.patch<Storefront>(urls.storefront, {
         hero: { headline, sub, imageUrl: '', href, cta },
       });
       apply(data);
+      setNotice('Hero image removed.');
     } catch (err) {
       setError(apiMessage(err));
+    } finally {
+      setBusy('');
     }
   }
 
   async function saveCurrency(event: FormEvent) {
     event.preventDefault();
-    setError('');
+    clearStatus();
+    setBusy('currency');
     try {
       const { data } = await http.patch<Storefront>(urls.storefront, {
         currency,
       });
       apply(data);
+      setNotice('Currency saved.');
     } catch (err) {
       setError(apiMessage(err));
+    } finally {
+      setBusy('');
     }
   }
 
   async function saveHero(event: FormEvent) {
     event.preventDefault();
-    setError('');
-    if (imageUrl.startsWith('blob:')) {
-      setError('Wait for the image upload to finish.');
+    clearStatus();
+    if (!headline.trim()) {
+      setError('Enter a hero headline.');
       return;
     }
+    if (imageUrl.startsWith('blob:')) {
+      setError('Wait for the hero image upload to finish.');
+      return;
+    }
+    setBusy('hero');
     try {
       const { data } = await http.patch<Storefront>(urls.storefront, {
-        hero: { headline, sub, imageUrl, href, cta },
+        hero: {
+          headline: headline.trim(),
+          sub: sub.trim(),
+          imageUrl,
+          href: href.trim() || '/shop',
+          cta: cta.trim() || 'Shop all',
+        },
       });
       apply(data);
+      setNotice('Hero saved.');
     } catch (err) {
       setError(apiMessage(err));
+    } finally {
+      setBusy('');
     }
   }
 
   async function addBanner(event: FormEvent) {
     event.preventDefault();
-    setError('');
-    if (!promoImage || promoImage.startsWith('blob:')) {
-      setError('Choose a promo image and wait for the upload to finish.');
+    clearStatus();
+    setPromoTouched(true);
+    const headline = promoHeadline.trim();
+    if (!headline) {
+      setError('Enter a headline for the promo tile.');
       return;
     }
+    if (!promoImage || promoImage.startsWith('blob:')) {
+      setError('Upload a tile image before adding this promo.');
+      return;
+    }
+    if (promoUploading) {
+      setError('Wait for the image upload to finish.');
+      return;
+    }
+    setBusy('promo');
     try {
       const { data } = await http.post<Storefront>(urls.banners, {
-        headline: promoHeadline,
-        sub: promoSub,
+        headline,
+        sub: promoSub.trim(),
         imageUrl: promoImage,
-        href: promoHref,
+        href: promoHref.trim() || '/shop',
       });
       apply(data);
       setPromoHeadline('');
       setPromoSub('');
       setPromoImage('');
+      setPromoTouched(false);
+      setNotice('Promo tile added.');
     } catch (err) {
       setError(apiMessage(err));
+    } finally {
+      setBusy('');
     }
   }
 
+  function promoGuidance() {
+    if (!promoTouched) {
+      return null;
+    }
+    if (promoUploading || promoImage.startsWith('blob:')) {
+      return 'Uploading image… wait a moment, then click Add tile again.';
+    }
+    if (!promoHeadline.trim() && !promoImage) {
+      return 'Enter a headline and choose an image to add this tile.';
+    }
+    if (!promoHeadline.trim()) {
+      return 'Add a headline for this tile.';
+    }
+    if (!promoImage) {
+      return 'Choose an image for this tile.';
+    }
+    return null;
+  }
+
+  const promoHint = promoGuidance();
+
   async function removeBanner(banner: Banner) {
-    setError('');
+    clearStatus();
+    setBusy(`delete-${docId(banner)}`);
     try {
       const { data } = await http.delete<Storefront>(urls.banner(docId(banner)));
       apply(data);
+      setNotice('Promo tile removed.');
     } catch (err) {
       setError(apiMessage(err));
+    } finally {
+      setBusy('');
     }
+  }
+
+  if (storeLoading && !store) {
+    return <PageLoader label="Loading branding…" />;
   }
 
   return (
@@ -189,7 +285,8 @@ export function BrandingPage() {
         Uploaded images are live on the shop. Empty slots show a placeholder on
         the website until you upload something.
       </p>
-      <Flash>{error}</Flash>
+      <Flash tone="success">{notice}</Flash>
+      <Flash>{loadError || error}</Flash>
       <form
         onSubmit={(event) => void saveSite(event)}
         className="mb-10 max-w-xl rounded-xl border border-zinc-200 bg-white p-6"
@@ -214,7 +311,7 @@ export function BrandingPage() {
           onError={setError}
           onRemove={() => void removeFavicon()}
         />
-        <Button type="submit">Save site identity</Button>
+        <Button type="submit" loading={busy === 'site'}>Save site identity</Button>
       </form>
       <form
         onSubmit={(event) => void saveCurrency(event)}
@@ -235,7 +332,7 @@ export function BrandingPage() {
             ))}
           </select>
         </label>
-        <Button type="submit">Save currency</Button>
+        <Button type="submit" loading={busy === 'currency'}>Save currency</Button>
       </form>
       <section className="mb-10 max-w-xl rounded-xl border border-zinc-200 bg-white p-6">
         <h2 className="mb-4 font-semibold">Logo (header)</h2>
@@ -278,10 +375,15 @@ export function BrandingPage() {
           value={href}
           onChange={(e) => setHref(e.target.value)}
         />
-        <Button type="submit">Save hero</Button>
+        <Button type="submit" loading={busy === 'hero'}>Save hero</Button>
       </form>
       <section className="max-w-xl rounded-xl border border-zinc-200 bg-white p-6">
-        <h2 className="mb-4 font-semibold">Promo tiles (under the hero)</h2>
+        <h2 className="mb-2 font-semibold">Promo tiles (under the hero)</h2>
+        <p className="mb-6 text-sm text-zinc-500">
+          Optional cards on the shop home page, below the hero. Enter a headline,
+          upload an image, then click <strong>Add tile</strong>. Sample files
+          are in <code className="text-xs">branding-samples/</code>.
+        </p>
         <ul className="mb-6 grid gap-3">
           {(store?.banners ?? []).map((banner) => (
             <li
@@ -313,6 +415,8 @@ export function BrandingPage() {
               <Button
                 type="button"
                 variant="danger"
+                loading={busy === `delete-${docId(banner)}`}
+                loadingLabel="Deleting…"
                 onClick={() => void removeBanner(banner)}
               >
                 Delete
@@ -324,7 +428,10 @@ export function BrandingPage() {
           <Field
             label="Headline"
             value={promoHeadline}
-            onChange={(e) => setPromoHeadline(e.target.value)}
+            onChange={(e) => {
+              setPromoTouched(true);
+              setPromoHeadline(e.target.value);
+            }}
             required
           />
           <Field
@@ -336,15 +443,32 @@ export function BrandingPage() {
             label="Tile image"
             kind="promo"
             value={promoImage}
-            onChange={setPromoImage}
+            onChange={(url) => {
+              setPromoTouched(true);
+              setPromoImage(url);
+            }}
+            onBusyChange={setPromoUploading}
             onError={setError}
+            hint="Required for each tile. JPEG, PNG, GIF, WebP, or SVG."
           />
+          {promoHint ? (
+            <p className="mb-4 text-sm text-zinc-600" role="status">
+              {promoHint}
+            </p>
+          ) : null}
           <Field
             label="Link"
             value={promoHref}
             onChange={(e) => setPromoHref(e.target.value)}
+            hint="Where the tile goes when clicked. Default is the shop."
           />
-          <Button type="submit">Add tile</Button>
+          <Button
+            type="submit"
+            loading={busy === 'promo'}
+            disabled={promoUploading || promoImage.startsWith('blob:')}
+          >
+            Add tile
+          </Button>
         </form>
       </section>
     </>

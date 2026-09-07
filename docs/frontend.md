@@ -17,6 +17,8 @@ Each API `.env` must allow both sites in `CORS_ORIGIN` (`http://localhost:5173` 
 
 Admin screens: `/` sales, `/branding` (currency, file picker for logo/hero/tiles), `/people` (phone + address), `/products`, `/categories`, `/inventory`, `/login`.
 
+**Admin UX:** pages show a loader on first fetch; save buttons show a spinner while working; validation uses plain-English field hints (not browser-only tooltips). Branding promo tiles only nudge you after you start filling the form or click Add tile — not on a blank screen. Sample branding files: `branding-samples/README.md`.
+
 Catalog edits belong in **admin**: categories, products, featured flags, inventory, logo, banners, currency.
 
 ## Shopper flow (Amazon-shaped)
@@ -129,7 +131,7 @@ import { money } from '@/api';
 | `AuthCard` | Login / register forms |
 | `TextLink` | Emerald in-text links |
 | `Badge` | Category / featured labels |
-| `Button`, `Field`, `Flash`, `EmptyState`, `Spinner` | Forms and feedback |
+| `Button`, `Field`, `Flash`, `EmptyState`, `Spinner`, `PageLoader` | Forms and feedback (`Flash` supports success/error tones; `Button` has `loading`) |
 
 Pages compose these; they should not repeat long `className` strings for the same pattern.
 

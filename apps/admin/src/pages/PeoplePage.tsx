@@ -8,7 +8,7 @@ import {
   type User,
 } from '@/api';
 import { AddressFields, emptyAddress } from '@/components/account';
-import { Button, Field, Flash } from '@/components/ui';
+import { Button, Field, Flash, PageLoader } from '@/components/ui';
 import { useAuth } from '@/hooks';
 
 function formatAddress(address?: Address) {
@@ -22,7 +22,10 @@ function formatAddress(address?: Address) {
 export function PeoplePage() {
   const { user: me } = useAuth();
   const [people, setPeople] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('secret12');
@@ -39,28 +42,48 @@ export function PeoplePage() {
   }
 
   useEffect(() => {
-    void reload().catch((err) => setError(apiMessage(err)));
+    setLoading(true);
+    void reload()
+      .catch((err) => setError(apiMessage(err)))
+      .finally(() => setLoading(false));
   }, []);
 
   async function create(event: FormEvent) {
     event.preventDefault();
     setError('');
+    setNotice('');
+    if (!name.trim() || !email.trim() || password.length < 8) {
+      setError('Name, email, and a password of at least 8 characters are required.');
+      return;
+    }
+    if (!phone.trim() || phone.trim().length < 7) {
+      setError('Enter a valid mobile phone number.');
+      return;
+    }
+    if (!address.line1.trim() || !address.city.trim() || !address.postalCode.trim()) {
+      setError('Fill in the shipping address (street, city, and postal code).');
+      return;
+    }
+    setSaving(true);
     try {
       await http.post(urls.managedUsers, {
-        name,
-        email,
+        name: name.trim(),
+        email: email.trim(),
         password,
         role,
-        phone,
+        phone: phone.trim(),
         address,
       });
       setName('');
       setEmail('');
       setPhone('');
       setAddress(emptyAddress());
+      setNotice('Account created.');
       await reload();
     } catch (err) {
       setError(apiMessage(err));
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -109,6 +132,10 @@ export function PeoplePage() {
   const admins = people.filter((person) => person.role === 'admin');
   const customers = people.filter((person) => person.role !== 'admin');
 
+  if (loading) {
+    return <PageLoader label="Loading people…" />;
+  }
+
   return (
     <>
       <h1 className="mb-2 text-2xl font-semibold tracking-tight">People</h1>
@@ -116,6 +143,7 @@ export function PeoplePage() {
         Create shoppers or staff with a shipping address. You cannot delete or
         demote yourself, or remove the last admin.
       </p>
+      <Flash tone="success">{notice}</Flash>
       <Flash>{error}</Flash>
       <form
         onSubmit={(event) => void create(event)}
@@ -163,7 +191,7 @@ export function PeoplePage() {
             <option value="admin">Admin</option>
           </select>
         </label>
-        <Button type="submit">Create</Button>
+        <Button type="submit" loading={saving}>Create</Button>
       </form>
       <Group
         title="Admins"

@@ -6,6 +6,7 @@ import {
   hasCsrfCookie,
   http,
   urls,
+  type Address,
   type User,
 } from '@/api';
 
@@ -51,7 +52,13 @@ export const login = createAsyncThunk(
 export const register = createAsyncThunk(
   'auth/register',
   async (
-    input: { email: string; name: string; password: string },
+    input: {
+      email: string;
+      name: string;
+      password: string;
+      phone: string;
+      address: Address;
+    },
     { rejectWithValue },
   ) => {
     try {
@@ -59,6 +66,21 @@ export const register = createAsyncThunk(
       return data.user;
     } catch (err) {
       return rejectWithValue(apiMessage(err, 'Could not register'));
+    }
+  },
+);
+
+export const updateMe = createAsyncThunk(
+  'auth/updateMe',
+  async (
+    input: { phone?: string; address?: Address; name?: string },
+    { rejectWithValue },
+  ) => {
+    try {
+      const { data } = await http.patch<User>(urls.me, input);
+      return data;
+    } catch (err) {
+      return rejectWithValue(apiMessage(err, 'Could not save address'));
     }
   },
 );
@@ -105,6 +127,13 @@ const authSlice = createSlice({
       })
       .addCase(register.rejected, (state, action) => {
         state.error = String(action.payload ?? 'Could not register');
+      })
+      .addCase(updateMe.fulfilled, (state, action) => {
+        state.user = action.payload;
+        state.error = '';
+      })
+      .addCase(updateMe.rejected, (state, action) => {
+        state.error = String(action.payload ?? 'Could not save address');
       })
       .addCase(logout.fulfilled, (state) => {
         state.user = null;

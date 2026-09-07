@@ -17,7 +17,11 @@ import { AuthModule, bootstrapNestApp, CurrentUser } from '@core-platform/common
 
 Do not import files deep inside `packages/common/src/...`. If we move a file, your app would break.
 
+Feature folders inside each API: [conventions.md](conventions.md).
+
 This library is **not** published to npm. It only exists in this folder. Nx builds it with the apps.
+
+How the five APIs and two UIs fit together: [architecture.md](architecture.md).
 
 ## What you get (plain names)
 

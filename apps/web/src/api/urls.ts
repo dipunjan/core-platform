@@ -12,6 +12,8 @@ export const urls = {
   refresh: `${USER_API}/auth/refresh`,
   products: `${PRODUCT_API}/products`,
   product: (id: string) => `${PRODUCT_API}/products/${id}`,
+  categories: `${PRODUCT_API}/categories`,
+  storefront: `${PRODUCT_API}/storefront`,
   inventory: (productId: string) => `${INVENTORY_API}/inventory/${productId}`,
   cart: `${CART_API}/carts`,
   cartItems: `${CART_API}/carts/items`,

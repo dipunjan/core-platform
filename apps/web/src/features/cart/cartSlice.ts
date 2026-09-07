@@ -1,12 +1,18 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import {
+  addGuestItem,
   apiMessage,
+  clearGuestCart,
   docId,
   http,
+  readGuestCart,
+  setGuestQty,
   urls,
+  type Address,
   type Cart,
   type OrderItem,
   type Product,
+  type User,
 } from '@/api';
 import { logout } from '@/features/auth';
 
@@ -14,6 +20,12 @@ type CartState = {
   cart: Cart | null;
   loading: boolean;
   error: string;
+};
+
+type RootSnap = {
+  auth: { user: User | null };
+  cart: CartState;
+  catalog: { products: Product[] };
 };
 
 const initialState: CartState = {
@@ -24,7 +36,11 @@ const initialState: CartState = {
 
 export const fetchCart = createAsyncThunk(
   'cart/fetch',
-  async (_, { rejectWithValue }) => {
+  async (_, { getState, rejectWithValue }) => {
+    const { user } = (getState() as RootSnap).auth;
+    if (!user) {
+      return readGuestCart();
+    }
     try {
       const { data } = await http.get<Cart>(urls.cart);
       return data;
@@ -34,12 +50,33 @@ export const fetchCart = createAsyncThunk(
   },
 );
 
+export const mergeGuestCart = createAsyncThunk(
+  'cart/mergeGuest',
+  async (_, { rejectWithValue }) => {
+    try {
+      const guest = readGuestCart();
+      for (const item of guest.items) {
+        await http.post<Cart>(urls.cartItems, item);
+      }
+      clearGuestCart();
+      const { data } = await http.get<Cart>(urls.cart);
+      return data;
+    } catch (err) {
+      return rejectWithValue(apiMessage(err, 'Could not move cart to your account'));
+    }
+  },
+);
+
 export const addToCart = createAsyncThunk(
   'cart/add',
   async (
     input: { productId: string; quantity: number },
-    { rejectWithValue },
+    { getState, rejectWithValue },
   ) => {
+    const { user } = (getState() as RootSnap).auth;
+    if (!user) {
+      return addGuestItem(input.productId, input.quantity);
+    }
     try {
       const { data } = await http.post<Cart>(urls.cartItems, input);
       return data;
@@ -53,8 +90,12 @@ export const setCartQty = createAsyncThunk(
   'cart/qty',
   async (
     input: { productId: string; quantity: number },
-    { rejectWithValue },
+    { getState, rejectWithValue },
   ) => {
+    const { user } = (getState() as RootSnap).auth;
+    if (!user) {
+      return setGuestQty(input.productId, input.quantity);
+    }
     try {
       if (input.quantity < 1) {
         const { data } = await http.delete<Cart>(urls.cartItem(input.productId));
@@ -72,11 +113,11 @@ export const setCartQty = createAsyncThunk(
 
 export const checkout = createAsyncThunk(
   'cart/checkout',
-  async (_, { getState, rejectWithValue }) => {
-    const state = getState() as {
-      cart: CartState;
-      catalog: { products: Product[] };
-    };
+  async (shippingAddress: Address, { getState, rejectWithValue }) => {
+    const state = getState() as RootSnap;
+    if (!state.auth.user) {
+      return rejectWithValue('Sign in to checkout');
+    }
     const items = state.cart.cart?.items ?? [];
     if (items.length === 0) {
       return rejectWithValue('Cart is empty');
@@ -97,7 +138,7 @@ export const checkout = createAsyncThunk(
       });
     }
     try {
-      await http.post(urls.orders, { items: orderItems });
+      await http.post(urls.orders, { items: orderItems, shippingAddress });
       await http.delete(urls.cart);
       const { data } = await http.get<Cart>(urls.cart);
       return data;
@@ -112,10 +153,7 @@ const cartSlice = createSlice({
   initialState,
   reducers: {},
   extraReducers: (builder) => {
-    const setCart = (
-      state: CartState,
-      action: { payload: Cart },
-    ) => {
+    const setCart = (state: CartState, action: { payload: Cart }) => {
       state.loading = false;
       state.cart = action.payload;
       state.error = '';
@@ -132,6 +170,8 @@ const cartSlice = createSlice({
       })
       .addCase(fetchCart.fulfilled, setCart)
       .addCase(fetchCart.rejected, fail)
+      .addCase(mergeGuestCart.fulfilled, setCart)
+      .addCase(mergeGuestCart.rejected, fail)
       .addCase(addToCart.pending, (state) => {
         state.error = '';
       })

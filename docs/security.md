@@ -92,10 +92,13 @@ Only listed website URLs (`CORS_ORIGIN`). In production you cannot use “allow 
 | | No login | Login needed |
 |---|---|---|
 | Users | register, login, refresh | my profile, logout |
-| Products | list, get one | create / edit / delete |
-| Stock | list, get one | set amount, reserve, release |
-| Cart | — | everything |
-| Orders | — | everything |
+| Products | list, get one, storefront get | create / edit / delete **admin** |
+| Categories | list, get one | create / edit / delete **admin** |
+| Storefront | get, files | patch, upload, banners **admin** |
+| Stock | list, get one | set amount **admin** |
+| Cart (API) | — | everything (the cart row is keyed by user id) |
+| Cart (shop site) | add / view as a guest | sign-in copies the guest bag onto the API cart |
+| Orders | — | shopper: own orders. **admin**: `GET /orders/admin` |
 | Health | `/api/health/live` and `/ready` | — |
 
 Looking at products does **not** need a pass. To test logout, use “my profile” or “refresh”, not “get product”.
@@ -113,10 +116,10 @@ Looking at products does **not** need a pass. To test logout, use “my profile�
 curl -X POST http://localhost:3000/api/users \
   -H 'Content-Type: application/json' \
   -H 'X-Auth-Response: tokens' \
-  -d '{"email":"ada@example.com","name":"Ada","password":"secret12"}'
+  -d '{"email":"ada@example.com","name":"Ada","password":"secret12","phone":"5550100","address":{"line1":"123 Market St","city":"San Francisco","region":"CA","postalCode":"94103","country":"US"}}'
 ```
 
-Password at least 8 characters. Same email twice → **409**.
+Password at least 8 characters. New accounts also need **phone** and **address**. Same email twice → **409**. An older test user may still log in without those fields; checkout will ask for them.
 
 ```bash
 curl -X POST http://localhost:3000/api/auth/login \

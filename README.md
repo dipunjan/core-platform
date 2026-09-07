@@ -1,6 +1,6 @@
 # Core Platform
 
-This folder is the **shop backend** plus a small **React website** in `apps/web`.
+This folder is the **shop backend**, the **shop website** (`apps/web`), and a **staff admin** (`apps/admin`).
 
 The website talks to the five APIs. It keeps you logged in with **cookies** (not `localStorage`).
 
@@ -9,38 +9,48 @@ The website talks to the five APIs. It keeps you logged in with **cookies** (not
 | I want to… | Open |
 |---|---|
 | Understand the whole project | This file |
+| See how the pieces connect | [docs/architecture.md](docs/architecture.md) |
 | Understand login, cookies, Bearer, CSRF | [docs/security.md](docs/security.md) |
 | Understand stock updates after an order | [docs/rabbitmq.md](docs/rabbitmq.md) |
-| Build the website | `apps/web` and [docs/frontend.md](docs/frontend.md) |
+| Build the shop or admin UI | [docs/frontend.md](docs/frontend.md) |
 | Put this on the internet | [docs/deploy.md](docs/deploy.md) |
 | See shared code used by every service | [docs/common.md](docs/common.md) |
 | Click through the APIs in Postman | [docs/postman.md](docs/postman.md) |
+| Match folder names (Layout vs Shell, Nest features) | [docs/conventions.md](docs/conventions.md) |
 
 ## Simple picture
 
-Instead of one big program, there are **five small programs**. Each one does one job and has its own database.
+Five APIs, two websites, one Mongo, one RabbitMQ. Full diagrams: [docs/architecture.md](docs/architecture.md).
 
-```
-  You (browser or Postman)
-           │
-           │  normal web requests (HTTP)
-           ▼
-   user     product    inventory    cart     orders
-   :3000    :3001      :3002        :3003    :3004
-           │
-           ├── MongoDB     (saves data)
-           └── RabbitMQ    (passes notes between programs)
+```mermaid
+flowchart LR
+  Shop["Shop :5173"]
+  Admin["Admin :5174"]
+  U["users :3000"]
+  P["products :3001"]
+  I["stock :3002"]
+  C["cart :3003"]
+  O["orders :3004"]
+  Mongo[(Mongo)]
+  Rabbit[[RabbitMQ]]
+
+  Shop --> U & P & I & C & O
+  Admin --> U & P & I & O
+  U & P & I & C & O --> Mongo
+  P -->|"product created"| Rabbit
+  O -->|"order created / cancelled"| Rabbit
+  Rabbit --> I
 ```
 
 | Program | Port | What it stores | Like this page on a shop |
 |---|---|---|---|
-| user-service | 3000 | Accounts and login | Sign in, my profile |
-| product-service | 3001 | Product list | Home, product page |
+| user-service | 3000 | Accounts, login, addresses | Sign in, my profile |
+| product-service | 3001 | Products, categories, storefront, image files | Home, product page, logo |
 | inventory-service | 3002 | How many are in stock | “In stock” |
-| cart-service | 3003 | Your cart | Cart |
+| cart-service | 3003 | Signed-in cart | Cart after login |
 | order-service | 3004 | Your orders | Checkout, my orders |
 
-Anyone can **look at products** without logging in (like Amazon). Cart, checkout, and “my profile” need a login.
+Anyone can **look at products and fill a cart** without logging in (like Amazon). **Checkout and order history** need an account. Amazon.com does not let you complete a purchase as a true guest either: sign-in happens after the cart, not before “add to cart.”
 
 When you place an order, the order program saves it, then **sends a message** (RabbitMQ) so the stock program can hold those items. The website does not wait for stock in that same click — it happens a moment later.
 
@@ -53,11 +63,13 @@ The website should keep those in **cookies**, not in `localStorage`. Details: [d
 
 ## A customer’s path
 
-1. Open the catalog — no login.
-2. Register or log in — cookies are set.
-3. Load “me” to show the name in the header.
-4. Add to cart.
-5. Place an order. Stock is reserved shortly after, via a message.
+Same shape as Amazon:
+
+1. Open the catalog — no login. Categories are taxonomy (Apparel, Shoes). **Featured** is a flag on a product, not a category.
+2. Add to cart as a guest. The shop keeps those lines in the browser until you sign in. (Amazon keeps a guest cart in a session cookie; our cart API is still per account.)
+3. Open **Cart**. Still no login.
+4. **Proceed to checkout** → register or log in. The guest cart is copied onto your account.
+5. Confirm **shipping address** (saved on the user, copied onto the order) and place the order. Stock is reserved shortly after, via a message.
 6. If a request says “not logged in” (401), ask for a new short pass, then try again.
 7. Log out. The long pass is thrown away. The short one may still work for a few minutes.
 
@@ -81,12 +93,44 @@ npx nx serve product-service
 npx nx serve inventory-service
 npx nx serve cart-service
 npx nx serve order-service
-npx nx serve web                 # http://localhost:5173
+npx nx serve web                 # shop  http://localhost:5173
+npx nx serve admin               # admin http://localhost:5174
 ```
 
-The shop site is **http://localhost:5173**. APIs must be running too. Create a product in Postman if the home page is empty.
+The shop site is **http://localhost:5173**. The staff panel is **http://localhost:5174**. APIs must be running too. Start **inventory** before you create products, so stock rows can be created automatically.
 
-Start **inventory** before you create products, so stock rows can be created automatically.
+Staff login uses the same users as the shop. The email in `ADMIN_EMAIL` (default `ada@example.com`) is promoted to **admin** on login. Log out and back in once after that change so the pass includes the role.
+
+## Admin panel
+
+A **separate app** (`apps/admin`) so the storefront stays a shop. It talks to the same APIs.
+
+| Screen | What you can do |
+|---|---|
+| Branding | Logo and images (file picker), home hero, promo tiles, **currency** |
+| People | Add/delete admins and customers, address, change role |
+| Products | Add/delete, assign category, featured flag |
+| Categories | Add/delete taxonomy |
+| Inventory | Set on-hand quantity |
+| Sales | All orders and a simple gross total |
+
+Payment is not in this panel. Catalog writes and stock sets require the admin role.
+
+## Catalog: categories vs featured
+
+These are different fields. A product can be **both**.
+
+| | What it is | In the database | Shop URL |
+|---|---|---|---|
+| **Category** | Taxonomy (type of product) | `categories` collection: Apparel, Shoes, Bags, … Product has `category: "apparel"` | `/shop/apparel` |
+| **Featured** | Merchandising flag (home-row pick) | `featured: true` on the **product**. Not a category row | `/shop?featured=1` |
+| **All** | Unfiltered catalog | Not a category | `/shop` |
+
+Do **not** store `all` or `featured` as categories. The shop chips are exclusive: All, one category, or Featured.
+
+Example: Cloud Zip Hoodie can be `category: apparel` and `featured: true`. It shows under Apparel **and** under Featured.
+
+Create categories first, then products. Product `category` must be a real category slug. The admin panel can do this from the UI.
 
 Check it is up:
 
@@ -107,7 +151,9 @@ Copy `.env.example` to `.env` in each app. Do not commit real secrets.
 | `JWT_REFRESH_SECRET` | Secret for the long pass |
 | `JWT_ACCESS_EXPIRES_IN` | Default `15m` |
 | `JWT_REFRESH_EXPIRES_IN` | Default `7d` |
-| `CORS_ORIGIN` | Which website is allowed to call the API (your frontend URL) |
+| `CORS_ORIGIN` | Which website is allowed to call the API (shop 5173 and admin 5174) |
+| `ADMIN_EMAIL` | user-service only — this email is admin on login |
+| `STOREFRONT_UPLOAD_DIR` | product-service only — where logo/hero/promo files are saved |
 | `COOKIE_SECURE` | `false` on http://localhost; `true` on https |
 | `NODE_ENV=production` | Stricter rules (real secrets, real website URL) |
 
@@ -128,13 +174,14 @@ Copy `.env.example` to `.env` in each app. Do not commit real secrets.
 ## Folders
 
 ```
-apps/user-service     login and users
-apps/product-service  products
-apps/inventory-service  stock
-apps/cart-service     carts
-apps/order-service    orders
-packages/common       shared start-up, login check, messages
-apps/web              React shop (Vite, port 5173)
-docs/                 guides
-postman/              click-to-run API collection
+apps/user-service        login and users
+apps/product-service     products, categories, storefront + uploads
+apps/inventory-service   stock
+apps/cart-service        carts
+apps/order-service       orders
+packages/common          shared start-up, login check, messages
+apps/web                 React shop (Vite, port 5173)
+apps/admin               React staff panel (Vite, port 5174)
+docs/                    guides (architecture, security, frontend, …)
+postman/                 click-to-run API collection
 ```

@@ -38,6 +38,9 @@ testem.log
 .env
 apps/*/.env
 
+# local storefront images
+apps/product-service/uploads
+
 # System Files
 .DS_Store
 Thumbs.db

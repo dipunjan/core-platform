@@ -7,6 +7,7 @@ import {
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { isValidObjectId, Model } from 'mongoose';
+import { CategoriesService } from './categories.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { Product } from './schemas/product.schema';
@@ -17,10 +18,19 @@ export class ProductsService {
     @InjectModel(Product.name)
     private readonly productModel: Model<Product>,
     private readonly events: EventPublisher,
+    private readonly categories: CategoriesService,
   ) {}
 
-  findAll() {
-    return this.productModel.find().exec();
+  async findAll(filters: { category?: string; featured?: boolean } = {}) {
+    const query: Record<string, unknown> = {};
+    if (filters.category) {
+      await this.categories.findBySlug(filters.category);
+      query.category = filters.category;
+    }
+    if (filters.featured) {
+      query.featured = true;
+    }
+    return this.productModel.find(query).exec();
   }
 
   async findOne(id: string) {
@@ -35,8 +45,12 @@ export class ProductsService {
   }
 
   async create(input: CreateProductDto) {
+    await this.categories.requireCategorySlug(input.category);
     const product = await mongoWrite(
-      this.productModel.create(input),
+      this.productModel.create({
+        ...input,
+        featured: input.featured ?? false,
+      }),
       'SKU already exists',
     );
     await this.events.publish<ProductCreatedEvent>(Events.PRODUCT_CREATED, {
@@ -49,6 +63,9 @@ export class ProductsService {
 
   async update(id: string, input: UpdateProductDto) {
     await this.findOne(id);
+    if (input.category) {
+      await this.categories.requireCategorySlug(input.category);
+    }
     const product = await mongoWrite(
       this.productModel.findByIdAndUpdate(id, input, { new: true }).exec(),
       'SKU already exists',

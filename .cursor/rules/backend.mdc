@@ -1,0 +1,27 @@
+---
+description: NestJS feature-folder pattern for APIs and common
+globs: apps/*-service/**/*,packages/common/**/*
+alwaysApply: false
+---
+
+# Backend
+
+Each API: `src/main.ts` → `bootstrapNestApp` → `src/app/app.module.ts`.
+
+Feature code lives in `src/app/<feature>/`:
+
+```
+<feature>.module.ts
+<feature>.controller.ts
+<feature>.service.ts
+dto/
+schemas/
+```
+
+Related HTTP (e.g. `auth.controller.ts` next to users, `categories.controller.ts` next to products) stays in that feature folder. Wire extra controllers on the same module.
+
+- DTOs validate input. Schemas are Mongoose. Business rules stay in the service.
+- Public routes: `@Public()`. Staff writes: `@Roles('admin')` after JWT.
+- Import `@core-platform/common` only. Do not add a sixth service unless a new bounded context needs its own DB.
+- Storefront images live on **product-service** (`POST /api/storefront/assets`). Do not add a media service.
+- HTTP prefix is `/api`. Mongo via `MONGO_URI`. Events via RabbitMQ in the owning service.

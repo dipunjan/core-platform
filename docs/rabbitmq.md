@@ -4,7 +4,7 @@ The website talks to our programs with normal web requests.
 
 The programs also talk to **each other**, but not with those same web requests. They leave **notes** in a mailbox called RabbitMQ. The stock program reads those notes and updates how many items are left.
 
-On your machine: `docker compose up -d`. Web UI: http://localhost:15672 (user `guest`, password `guest`).
+On your machine: `docker compose up -d`. Web UI: http://localhost:15672 (user `guest`, password `guest`). How this sits next to the websites: [architecture.md](architecture.md).
 
 ## Why a mailbox?
 

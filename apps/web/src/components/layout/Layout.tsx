@@ -1,5 +1,6 @@
-import { Link, NavLink, Outlet } from 'react-router-dom';
-import { useAuth } from '@/hooks';
+import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
+import { useEffect } from 'react';
+import { useAuth, useCart, useCatalog } from '@/hooks';
 import { Button } from '@/components/ui';
 
 const linkClass = ({ isActive }: { isActive: boolean }) =>
@@ -12,6 +13,17 @@ const linkClass = ({ isActive }: { isActive: boolean }) =>
 
 export function Layout() {
   const { user, loading, signOut } = useAuth();
+  const { cart } = useCart();
+  const { storefront, loadStorefront } = useCatalog();
+  const { pathname } = useLocation();
+  const shopOn = pathname === '/shop' || pathname.startsWith('/shop/');
+  const cartCount =
+    cart?.items.reduce((sum, item) => sum + item.quantity, 0) ?? 0;
+  const logo = storefront?.logoUrl || '/swoop-logo.png';
+
+  useEffect(() => {
+    loadStorefront();
+  }, [loadStorefront]);
 
   return (
     <div className="flex min-h-screen flex-col bg-zinc-50">
@@ -22,7 +34,7 @@ export function Layout() {
             to="/"
           >
             <img
-              src="/swoop-logo.png"
+              src={logo}
               alt=""
               width={36}
               height={36}
@@ -34,10 +46,16 @@ export function Layout() {
           </Link>
           <div className="flex items-center gap-0.5">
             <NavLink to="/" className={linkClass} end>
-              Products
+              Home
+            </NavLink>
+            <NavLink
+              to="/shop"
+              className={linkClass({ isActive: shopOn })}
+            >
+              Shop
             </NavLink>
             <NavLink to="/cart" className={linkClass}>
-              Cart
+              Cart{cartCount ? ` (${cartCount})` : ''}
             </NavLink>
             <NavLink to="/orders" className={linkClass}>
               Orders

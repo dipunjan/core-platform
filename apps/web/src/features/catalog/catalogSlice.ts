@@ -1,8 +1,18 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
-import { apiMessage, http, type Inventory, type Product, urls } from '@/api';
+import {
+  apiMessage,
+  http,
+  type Category,
+  type Inventory,
+  type Product,
+  type Storefront,
+  urls,
+} from '@/api';
 
 type CatalogState = {
   products: Product[];
+  categories: Category[];
+  storefront: Storefront | null;
   product: Product | null;
   inventory: Inventory | null;
   loading: boolean;
@@ -11,6 +21,8 @@ type CatalogState = {
 
 const initialState: CatalogState = {
   products: [],
+  categories: [],
+  storefront: null,
   product: null,
   inventory: null,
   loading: false,
@@ -25,6 +37,30 @@ export const fetchProducts = createAsyncThunk(
       return data;
     } catch (err) {
       return rejectWithValue(apiMessage(err));
+    }
+  },
+);
+
+export const fetchCategories = createAsyncThunk(
+  'catalog/categories',
+  async (_, { rejectWithValue }) => {
+    try {
+      const { data } = await http.get<Category[]>(urls.categories);
+      return data;
+    } catch (err) {
+      return rejectWithValue(apiMessage(err));
+    }
+  },
+);
+
+export const fetchStorefront = createAsyncThunk(
+  'catalog/storefront',
+  async () => {
+    try {
+      const { data } = await http.get<Storefront>(urls.storefront);
+      return data;
+    } catch {
+      return null;
     }
   },
 );
@@ -76,6 +112,12 @@ const catalogSlice = createSlice({
       .addCase(fetchProducts.rejected, (state, action) => {
         state.loading = false;
         state.error = String(action.payload ?? 'Could not load products');
+      })
+      .addCase(fetchCategories.fulfilled, (state, action) => {
+        state.categories = action.payload;
+      })
+      .addCase(fetchStorefront.fulfilled, (state, action) => {
+        state.storefront = action.payload;
       })
       .addCase(fetchProduct.pending, (state) => {
         state.loading = true;

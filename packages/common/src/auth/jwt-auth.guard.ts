@@ -49,14 +49,20 @@ export class JwtAuthGuard implements CanActivate {
     }
 
     try {
-      const payload = this.jwt.verify<AuthUser & { typ?: string }>(token);
+      const payload = this.jwt.verify<AuthUser & { typ?: string; role?: string }>(
+        token,
+      );
       if (payload.typ && payload.typ !== 'access') {
         throw new UnauthorizedException();
       }
       if (!fromHeader) {
         assertCsrf(request.method, request.headers);
       }
-      request.user = { sub: payload.sub, email: payload.email };
+      request.user = {
+        sub: payload.sub,
+        email: payload.email,
+        role: payload.role === 'admin' ? 'admin' : 'customer',
+      };
       return true;
     } catch (error) {
       if (error instanceof ForbiddenException) {

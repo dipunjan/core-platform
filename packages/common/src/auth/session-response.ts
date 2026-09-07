@@ -5,7 +5,21 @@ export type AuthSession = {
   refreshToken: string;
   tokenType: 'Bearer';
   expiresIn: string;
-  user: { id: string; email: string; name: string };
+  user: {
+    id: string;
+    email: string;
+    name: string;
+    phone?: string;
+    role?: 'customer' | 'admin';
+    address?: {
+      line1: string;
+      line2?: string;
+      city: string;
+      region: string;
+      postalCode: string;
+      country: string;
+    };
+  };
 };
 
 export function wantsJsonTokens(headers: {

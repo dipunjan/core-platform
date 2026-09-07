@@ -33,12 +33,12 @@ Register and Login send `X-Auth-Response: tokens` so the **body includes tokens*
 ## Click this order
 
 1. **Health → Live** — user program is up
-2. **Auth → Register** — if email already exists (409), use **Login**
+2. **Auth → Register** — needs phone + address JSON. If email already exists (409), use **Login**
 3. **Users → Me** — your profile (no password)
 4. **Products → Create** — wait a second
 5. **Inventory → Get by product id** — amount 0, then set amount to 50
 6. **Cart → Add item**
-7. **Orders → Create** — stock “reserved” should go up
+7. **Orders → Create** — include `shippingAddress`; stock “reserved” should go up
 8. **Orders → Cancel** — reserved goes down
 
 **Refresh** gives new tokens — keep both. **Logout** last, or the rest of the run has no pass.

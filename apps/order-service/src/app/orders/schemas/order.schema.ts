@@ -26,6 +26,29 @@ export class OrderItem {
 
 const OrderItemSchema = SchemaFactory.createForClass(OrderItem);
 
+@Schema({ _id: false })
+export class ShippingAddress {
+  @Prop({ required: true })
+  line1!: string;
+
+  @Prop({ default: '' })
+  line2!: string;
+
+  @Prop({ required: true })
+  city!: string;
+
+  @Prop({ required: true })
+  region!: string;
+
+  @Prop({ required: true })
+  postalCode!: string;
+
+  @Prop({ required: true })
+  country!: string;
+}
+
+const ShippingAddressSchema = SchemaFactory.createForClass(ShippingAddress);
+
 @Schema({ timestamps: true })
 export class Order {
   @Prop({ required: true })
@@ -33,6 +56,9 @@ export class Order {
 
   @Prop({ type: [OrderItemSchema], required: true })
   items!: OrderItem[];
+
+  @Prop({ type: ShippingAddressSchema, required: true })
+  shippingAddress!: ShippingAddress;
 
   @Prop({ required: true, min: 0 })
   total!: number;

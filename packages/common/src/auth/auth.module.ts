@@ -5,6 +5,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AuthCookieService } from './auth-cookie.service';
 import { JwtAuthGuard } from './jwt-auth.guard';
+import { RolesGuard } from './roles.guard';
 
 @Global()
 @Module({
@@ -32,6 +33,10 @@ import { JwtAuthGuard } from './jwt-auth.guard';
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: RolesGuard,
     },
   ],
   exports: [JwtModule, AuthCookieService],

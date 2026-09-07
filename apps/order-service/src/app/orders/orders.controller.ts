@@ -1,5 +1,5 @@
 import { Body, Controller, Get, Param, Patch, Post } from '@nestjs/common';
-import { CurrentUser, type AuthUser } from '@core-platform/common';
+import { CurrentUser, Roles, type AuthUser } from '@core-platform/common';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { OrdersService } from './orders.service';
@@ -11,6 +11,12 @@ export class OrdersController {
   @Get()
   findMine(@CurrentUser() user: AuthUser) {
     return this.ordersService.findByUser(user.sub);
+  }
+
+  @Roles('admin')
+  @Get('admin')
+  findAll() {
+    return this.ordersService.findAll();
   }
 
   @Get(':id')

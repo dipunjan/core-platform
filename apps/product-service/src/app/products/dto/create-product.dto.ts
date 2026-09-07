@@ -1,4 +1,12 @@
-import { IsNumber, IsString, Min, MinLength } from 'class-validator';
+import { Type } from 'class-transformer';
+import {
+  IsBoolean,
+  IsNumber,
+  IsOptional,
+  IsString,
+  Min,
+  MinLength,
+} from 'class-validator';
 
 export class CreateProductDto {
   @IsString()
@@ -16,4 +24,13 @@ export class CreateProductDto {
   @IsString()
   @MinLength(1)
   sku!: string;
+
+  @IsString()
+  @MinLength(1)
+  category!: string;
+
+  @IsOptional()
+  @Type(() => Boolean)
+  @IsBoolean()
+  featured?: boolean;
 }

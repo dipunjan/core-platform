@@ -16,7 +16,8 @@ export {
 } from './auth/session-response';
 export { CurrentUser } from './auth/current-user.decorator';
 export { Public } from './auth/public.decorator';
-export type { AuthUser } from './auth/auth.types';
+export { Roles } from './auth/roles.decorator';
+export type { AuthUser, UserRole } from './auth/auth.types';
 export { bootstrapNestApp } from './bootstrap/bootstrap';
 export { databaseImports } from './database/database';
 export {

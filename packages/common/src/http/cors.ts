@@ -5,8 +5,10 @@ export const LOCAL_CORS_ORIGINS = [
   'http://localhost:3003',
   'http://localhost:3004',
   'http://localhost:5173',
+  'http://localhost:5174',
   'http://localhost:4200',
   'http://127.0.0.1:5173',
+  'http://127.0.0.1:5174',
 ];
 
 export function corsOrigins(

@@ -19,7 +19,7 @@ You can show the APIs with Postman without a website. You **cannot** point a rea
   People
     │  https
     ▼
-  Website  (`apps/web` locally)     see frontend.md
+  Website  (`apps/web` shop + `apps/admin` staff)     see frontend.md and architecture.md
     │
     ▼
   One public API address      e.g. https://api.myshop.com

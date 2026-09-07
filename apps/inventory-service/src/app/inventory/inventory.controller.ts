@@ -6,7 +6,7 @@ import {
   Post,
   Put,
 } from '@nestjs/common';
-import { Public } from '@core-platform/common';
+import { Public, Roles } from '@core-platform/common';
 import { AdjustStockDto } from './dto/adjust-stock.dto';
 import { SetQuantityDto } from './dto/set-quantity.dto';
 import { InventoryService } from './inventory.service';
@@ -27,6 +27,7 @@ export class InventoryController {
     return this.inventoryService.findOne(productId);
   }
 
+  @Roles('admin')
   @Put(':productId')
   setQuantity(
     @Param('productId') productId: string,
@@ -35,6 +36,7 @@ export class InventoryController {
     return this.inventoryService.setQuantity(productId, body);
   }
 
+  @Roles('admin')
   @Post(':productId/reserve')
   reserve(
     @Param('productId') productId: string,
@@ -43,6 +45,7 @@ export class InventoryController {
     return this.inventoryService.reserve(productId, body);
   }
 
+  @Roles('admin')
   @Post(':productId/release')
   release(
     @Param('productId') productId: string,

@@ -1,10 +1,11 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { Button, CartLine, EmptyState, Flash } from '@/components';
-import { useCart } from '@/hooks';
+import { useAuth, useCart } from '@/hooks';
 
 export function CartPage() {
   const navigate = useNavigate();
-  const { cart, error, loading, productsById, setQty, placeOrder } = useCart({
+  const { user } = useAuth();
+  const { cart, error, loading, productsById, setQty } = useCart({
     load: true,
   });
 
@@ -17,7 +18,7 @@ export function CartPage() {
       {error ? null : !cart || cart.items.length === 0 ? (
         <EmptyState>
           Empty.{' '}
-          <Link className="font-medium text-emerald-800 hover:underline" to="/">
+          <Link className="font-medium text-emerald-800 hover:underline" to="/shop">
             Browse products
           </Link>
         </EmptyState>
@@ -50,15 +51,21 @@ export function CartPage() {
               type="button"
               disabled={loading}
               onClick={() => {
-                void placeOrder().then((ok) => {
-                  if (ok) {
-                    navigate('/orders');
-                  }
-                });
+                if (user) {
+                  navigate('/checkout');
+                  return;
+                }
+                navigate('/login?next=/checkout');
               }}
             >
-              Place order
+              {user ? 'Proceed to checkout' : 'Sign in to check out'}
             </Button>
+            {!user ? (
+              <p className="mt-3 text-sm text-zinc-500">
+                You can add items without an account. Sign in is required to
+                place the order.
+              </p>
+            ) : null}
           </div>
         </div>
       )}

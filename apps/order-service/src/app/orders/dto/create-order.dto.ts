@@ -9,6 +9,7 @@ import {
   MinLength,
   ValidateNested,
 } from 'class-validator';
+import { ShippingAddressDto } from './shipping-address.dto';
 
 export class CreateOrderItemDto {
   @IsString()
@@ -32,4 +33,8 @@ export class CreateOrderDto {
   @ValidateNested({ each: true })
   @Type(() => CreateOrderItemDto)
   items!: CreateOrderItemDto[];
+
+  @ValidateNested()
+  @Type(() => ShippingAddressDto)
+  shippingAddress!: ShippingAddressDto;
 }

@@ -1,5 +1,6 @@
-import { money, type CartItem, type Product } from '@/api';
+import { type CartItem, type Product } from '@/api';
 import { Button } from '@/components/ui';
+import { useMoney } from '@/hooks';
 
 type Props = {
   item: CartItem;
@@ -9,6 +10,7 @@ type Props = {
 };
 
 export function CartLine({ item, product, busy, onQty }: Props) {
+  const money = useMoney();
   return (
     <tr className="border-b border-zinc-100 last:border-0">
       <td className="py-3 pr-4 font-medium text-zinc-900">

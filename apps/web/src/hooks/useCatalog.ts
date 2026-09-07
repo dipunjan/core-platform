@@ -1,9 +1,11 @@
 import { useCallback, useEffect } from 'react';
 import {
   clearProduct,
+  fetchCategories,
   fetchInventory,
   fetchProduct,
   fetchProducts,
+  fetchStorefront,
 } from '@/features/catalog';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 
@@ -11,22 +13,32 @@ export function useCatalog() {
   const dispatch = useAppDispatch();
   const catalog = useAppSelector((state) => state.catalog);
 
-  const loadProducts = useCallback(
-    () => dispatch(fetchProducts()),
-    [dispatch],
-  );
+  const loadCatalog = useCallback(() => {
+    void dispatch(fetchProducts());
+    void dispatch(fetchCategories());
+    void dispatch(fetchStorefront());
+  }, [dispatch]);
+
+  const loadStorefront = useCallback(() => {
+    void dispatch(fetchStorefront());
+  }, [dispatch]);
 
   return {
     ...catalog,
-    loadProducts,
+    loadCatalog,
+    loadStorefront,
   };
 }
 
 export function useProduct(id: string | undefined) {
   const dispatch = useAppDispatch();
-  const { product, inventory, error, loading } = useAppSelector(
+  const { product, inventory, categories, error, loading } = useAppSelector(
     (state) => state.catalog,
   );
+
+  useEffect(() => {
+    void dispatch(fetchCategories());
+  }, [dispatch]);
 
   useEffect(() => {
     if (!id) {
@@ -39,5 +51,5 @@ export function useProduct(id: string | undefined) {
     };
   }, [dispatch, id]);
 
-  return { product, inventory, error, loading };
+  return { product, inventory, categories, error, loading };
 }

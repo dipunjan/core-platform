@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  Param,
   Patch,
   Post,
   Req,
@@ -13,13 +14,17 @@ import {
   AuthCookieService,
   CurrentUser,
   Public,
+  Roles,
   sessionForClient,
   wantsJsonTokens,
   type AuthUser,
   type CookieResponse,
 } from '@core-platform/common';
+import { CreateManagedUserDto } from './dto/create-managed-user.dto';
 import { CreateUserDto } from './dto/create-user.dto';
+import { UpdateManagedUserDto } from './dto/update-managed-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { UpdateUserRoleDto } from './dto/update-user-role.dto';
 import { UsersService } from './users.service';
 
 @Controller('users')
@@ -42,6 +47,18 @@ export class UsersController {
     return sessionForClient(session, wantsJsonTokens(req.headers));
   }
 
+  @Roles('admin')
+  @Get()
+  findAll() {
+    return this.usersService.findAll();
+  }
+
+  @Roles('admin')
+  @Post('managed')
+  createManaged(@Body() body: CreateManagedUserDto) {
+    return this.usersService.createManaged(body);
+  }
+
   @Get('me')
   me(@CurrentUser() user: AuthUser) {
     return this.usersService.findMe(user.sub);
@@ -59,6 +76,32 @@ export class UsersController {
   ) {
     await this.usersService.remove(user.sub);
     this.cookies.clear(res);
+    return { deleted: true };
+  }
+
+  @Roles('admin')
+  @Patch(':id')
+  updateManaged(@Param('id') id: string, @Body() body: UpdateManagedUserDto) {
+    return this.usersService.updateManaged(id, body);
+  }
+
+  @Roles('admin')
+  @Patch(':id/role')
+  updateRole(
+    @CurrentUser() actor: AuthUser,
+    @Param('id') id: string,
+    @Body() body: UpdateUserRoleDto,
+  ) {
+    return this.usersService.updateRole(id, body, actor.sub);
+  }
+
+  @Roles('admin')
+  @Delete(':id')
+  async removeManaged(
+    @CurrentUser() actor: AuthUser,
+    @Param('id') id: string,
+  ) {
+    await this.usersService.removeManaged(id, actor.sub);
     return { deleted: true };
   }
 }

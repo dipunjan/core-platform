@@ -34,6 +34,10 @@ export class OrdersService {
     return this.orderModel.find({ userId }).exec();
   }
 
+  findAll() {
+    return this.orderModel.find().sort({ createdAt: -1 }).exec();
+  }
+
   async findOne(id: string, userId: string) {
     if (!isValidObjectId(id)) {
       throw new NotFoundException(`Order ${id} not found`);
@@ -54,6 +58,7 @@ export class OrdersService {
       this.orderModel.create({
         userId,
         items: input.items,
+        shippingAddress: input.shippingAddress,
         total,
         status: 'pending',
       }),

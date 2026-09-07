@@ -1,0 +1,24 @@
+---
+description: Core-platform map — five APIs, two React apps, catalog vs featured
+alwaysApply: true
+---
+
+# Core platform
+
+Nx monorepo. Brand **swoop**. Prices are **cents**. Auth is **HttpOnly cookies + CSRF** (Postman may send Bearer).
+
+| App | Port |
+|---|---|
+| user-service | 3000 |
+| product-service | 3001 |
+| inventory-service | 3002 |
+| cart-service | 3003 |
+| order-service | 3004 |
+| web (shop) | 5173 |
+| admin (staff) | 5174 |
+
+Shared code: import `@core-platform/common` only (never `packages/common/src/...`).
+
+**Category** = taxonomy slug on the product. **Featured** = `featured: boolean`, not a category. **All** = `/shop`. Do not invent `all`/`featured` category rows.
+
+Folder patterns: [docs/conventions.md](docs/conventions.md). Map of the system: [docs/architecture.md](docs/architecture.md).

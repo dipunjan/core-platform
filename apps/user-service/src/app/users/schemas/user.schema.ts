@@ -3,6 +3,29 @@ import { HydratedDocument } from 'mongoose';
 
 export type UserDocument = HydratedDocument<User>;
 
+@Schema({ _id: false })
+export class Address {
+  @Prop({ required: true, trim: true })
+  line1!: string;
+
+  @Prop({ default: '', trim: true })
+  line2!: string;
+
+  @Prop({ required: true, trim: true })
+  city!: string;
+
+  @Prop({ required: true, trim: true })
+  region!: string;
+
+  @Prop({ required: true, trim: true })
+  postalCode!: string;
+
+  @Prop({ required: true, trim: true, default: 'US' })
+  country!: string;
+}
+
+export const AddressSchema = SchemaFactory.createForClass(Address);
+
 @Schema({
   timestamps: true,
   toJSON: {
@@ -22,6 +45,15 @@ export class User {
 
   @Prop({ required: true, select: false })
   password!: string;
+
+  @Prop({ default: '', trim: true })
+  phone!: string;
+
+  @Prop({ type: String, enum: ['customer', 'admin'], default: 'customer' })
+  role!: 'customer' | 'admin';
+
+  @Prop({ type: AddressSchema })
+  address?: Address;
 
   @Prop({ select: false })
   refreshTokenHash?: string;

@@ -2,17 +2,37 @@
 
 The shop site lives in **`apps/web`**. It is a React app (Vite + Tailwind) at **http://localhost:5173**. The storefront is branded **swoop**.
 
+Staff UI is a **second app**, **`apps/admin`**, at **http://localhost:5174**. It is not mixed into the shop routes. Logo and banners are uploaded as files there and stored by product-service. The shop reads them via `GET /api/storefront`. Currency is also set on that record.
+
 It talks to the five APIs. Login is stored in **cookies**, not in `localStorage`. Why, and how Postman/Bearer fits: [security.md](security.md). Going live: [deploy.md](deploy.md).
 
 ## Run it
 
 1. Start Mongo, RabbitMQ, and the five API programs (see the main README).
 2. `npx nx serve web` (or `cd apps/web && npm run dev`)
-3. Open http://localhost:5173
+3. Staff: `npx nx serve admin` → http://localhost:5174
+4. Open http://localhost:5173
 
-Each API `.env` must allow this site in `CORS_ORIGIN` (the examples already include `http://localhost:5173`).
+Each API `.env` must allow both sites in `CORS_ORIGIN` (`http://localhost:5173` and `http://localhost:5174`).
 
-If the home page is empty, create a product with Postman while **inventory-service** is running, then refresh.
+Admin screens: `/` sales, `/branding` (currency, file picker for logo/hero/tiles), `/people` (phone + address), `/products`, `/categories`, `/inventory`, `/login`.
+
+Catalog edits belong in **admin**: categories, products, featured flags, inventory, logo, banners, currency.
+
+## Shopper flow (Amazon-shaped)
+
+Amazon.com lets you browse and fill a cart without an account. **Placing the order requires sign-in** (or creating an account). True “checkout as guest” is not what Amazon.com does for a full purchase.
+
+This shop follows that:
+
+1. Guest: home, shop, product, **add to cart**, **view cart**.
+2. **Proceed to checkout** → `/login?next=/checkout` (or register). The guest bag is copied onto the signed-in cart API.
+3. Checkout: confirm **shipping address**, place order.
+4. **Orders** stay behind a login (your purchases).
+
+Amazon’s own **Create account** form is name / email / password (and often a mobile). The **address book** is filled at checkout. We collect phone + address on **register** as well, and show them again at checkout, because a shop cannot ship without a delivery address.
+
+Guest cart lines live in the **browser** (`localStorage`), not in cart-service, until you sign in. Tokens still stay in **HttpOnly cookies**, not `localStorage`.
 
 ## How a click becomes an API call
 
@@ -27,7 +47,7 @@ Browser URL
 
 Redux only keeps a **copy** of data so the screen can re-render. The **real** cart, orders, and login live on the server. Your user id still comes from the cookie, not from Redux.
 
-Prices from the API are **cents** (1299 → $12.99).
+Prices from the API are **minor units** (1299 cents). The shop formats them with `storefront.currency` from admin Branding (`useMoney`).
 
 ## URLs (routing)
 
@@ -35,21 +55,29 @@ Routing is **not** mixed into `App.tsx`. The list of pages is in **`src/routes/r
 
 `App.tsx` only:
 
-1. Asks “who am I?” once on load (`useAuth().loadMe()`).
+1. Asks “who am I?” once on load (`useAuth().loadMe()`), and loads storefront (currency, logo).
 2. Hands the router to the screen (`RouterProvider`).
 
-The header is `Layout`. Two gates sit under it:
+Crashes: **`ErrorBoundary`** in `main.tsx` (tree outside the router). Route render/loader failures: **`errorElement: <RouteError />`** in `routes/router.tsx`, nested *under* `Layout` so the header or sidebar stays. Both live in `src/components/` (`ErrorPanel`, `ErrorBoundary`, `RouteError`). Do not put them in `routes/`.
+
+The header is **`Layout`** (never `Shell`). Two gates sit under it:
 
 - **`ProtectedRoute`** — must be logged in. Otherwise go to `/login`.
 - **`GuestRoute`** — must be logged *out*. If you already have a session (header shows your name), `/login` and `/register` send you home. The URL can still say `/login` for a moment; then it redirects. Being logged in and seeing the login form was a missing gate, not a second account.
 
+Admin (`apps/admin`) uses the **same names and folders**. Staff `Layout` is a sidebar and hides that chrome on `/login`. Staff `ProtectedRoute` also requires `role === 'admin'`. See [conventions.md](conventions.md).
+
 | URL | Who can open it | Screen |
 |---|---|---|
-| `/` | Anyone | Product list |
+| `/` | Anyone | Home (hero, categories, featured) |
+| `/shop` | Anyone | All products |
+| `/shop?featured=1` | Anyone | Products with `featured: true` |
+| `/shop/:slug` | Anyone | One category (taxonomy slug from the database) |
 | `/products/:id` | Anyone | One product, stock, add to cart |
-| `/login` | Guests only | Sign in |
-| `/register` | Guests only | Create account |
-| `/cart` | Logged in | Cart, place order |
+| `/cart` | Anyone | Cart. Checkout asks you to sign in |
+| `/checkout` | Logged in | Address + place order |
+| `/login` | Guests only | Sign in (`?next=` returns you to checkout) |
+| `/register` | Guests only | Create account (phone + shipping address) |
 | `/orders` | Logged in | Order history, cancel pending |
 | anything else | — | Redirects to `/` |
 
@@ -57,18 +85,24 @@ The header is `Layout`. Two gates sit under it:
 
 ## Folders (what each one is for)
 
+`apps/admin/src` uses the same tree (`pages`, `hooks`, `features`, `components/layout`, `api`, `routes`, `store`).
+
 ```
 apps/web/src/
-  main.tsx         starts React, wraps the app in the Redux store
+  main.tsx         ErrorBoundary, Redux Provider, then App
   App.tsx          load current user, then start the router
   routes/          which URL shows which page
   pages/           one file per screen (puts hooks + components together)
   hooks/           “do this for me” functions pages call (login, load cart, …)
   features/        Redux slices (the actual server calls and saved copies)
   components/
-    ui/            shared bits: Button, Field, Flash, EmptyState, Spinner
+    ErrorBoundary  React class boundary (main.tsx)
+    RouteError     React Router errorElement
+    ErrorPanel     shared error screen
+    ui/            Button, Field, Flash, EmptyState, Spinner, ImagePicker (admin)
     layout/        Layout, ProtectedRoute (logged in), GuestRoute (logged out)
-    catalog/       ProductCard
+    catalog/       ProductCard, category chips
+    account/       AddressFields (register + checkout)
     cart/          CartLine
     orders/        OrderCard
   api/             axios client, API URLs, TypeScript types
@@ -90,12 +124,13 @@ Files inside a folder still import siblings with `./` (a Button file does not go
 
 | Hook | Used on | What it does |
 |---|---|---|
-| `useAuth` | App, Layout, login/register, product | Me, login, register, logout |
-| `useCatalog` / `useProduct` | Home, product | Product list / one product + stock |
-| `useCart` | Cart, product | Load cart, change qty, checkout |
+| `useAuth` | App, Layout, login/register, checkout | Me, login, register, logout; after login, merge guest cart |
+| `useCatalog` / `useProduct` | Home, shop, product | Product list / one product + stock |
+| `useCart` | Cart, checkout, product cards | Guest or server cart, qty, checkout |
 | `useOrders` | Orders | List orders, cancel |
+| `useMoney` | prices | Format cents using storefront currency |
 
-Checkout is: create an order, then delete the cart (that logic is in the cart slice, not in the page).
+Checkout is: save address on the user, create an order (with a shipping snapshot), then delete the cart (that logic is in the cart slice, not in the page).
 
 ## Login on this site
 
@@ -115,8 +150,9 @@ The name in the header is from Redux (`fetchMe`). Logging out hits the API and a
 |---|---|
 | Empty product list | No products yet, or product-service is down |
 | Stock says “not available” | inventory-service was not running when the product was created |
-| Sent to `/login` on cart/orders | Not logged in, or cookies blocked |
+| Sent to `/login` on checkout/orders | Not logged in, or cookies blocked. Cart itself is open to guests |
+| Register 400 | Phone or address missing |
 | CORS error in the browser console | `CORS_ORIGIN` missing `http://localhost:5173` |
 | `ERR_CONNECTION_REFUSED` on port 3004 | **order-service is not running.** `npx nx serve order-service` |
 | Same error on 3000–3003 | That API is down. Start the matching `npx nx serve …` |
-| 403 on add-to-cart | CSRF header missing (should be automatic in `http.ts`) |
+| A styled “this page hit a snag” screen | Caught by `RouteError` / `ErrorBoundary`. Try again or start the APIs |

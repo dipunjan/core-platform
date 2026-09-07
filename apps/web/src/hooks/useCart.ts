@@ -40,10 +40,13 @@ export function useCart(options?: { load?: boolean }) {
     [dispatch],
   );
 
-  const placeOrder = useCallback(async () => {
-    const result = await dispatch(checkout());
-    return checkout.fulfilled.match(result);
-  }, [dispatch]);
+  const placeOrder = useCallback(
+    async (shippingAddress: Parameters<typeof checkout>[0]) => {
+      const result = await dispatch(checkout(shippingAddress));
+      return checkout.fulfilled.match(result);
+    },
+    [dispatch],
+  );
 
   return {
     cart,

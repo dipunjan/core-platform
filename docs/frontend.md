@@ -70,9 +70,8 @@ Admin (`apps/admin`) uses the **same names and folders**. Staff `Layout` is a si
 | URL | Who can open it | Screen |
 |---|---|---|
 | `/` | Anyone | Home (hero, categories, featured) |
-| `/shop` | Anyone | All products |
-| `/shop?featured=1` | Anyone | Products with `featured: true` |
-| `/shop/:slug` | Anyone | One category (taxonomy slug from the database) |
+| `/shop` | Anyone | All products — search, category, price, sort |
+| `/shop/:slug` | Anyone | One category (same filters as `/shop`) |
 | `/products/:id` | Anyone | One product, stock, add to cart |
 | `/cart` | Anyone | Cart. Checkout asks you to sign in |
 | `/checkout` | Logged in | Address + place order |

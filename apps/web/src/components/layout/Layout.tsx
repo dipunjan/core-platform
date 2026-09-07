@@ -2,6 +2,7 @@ import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useEffect } from 'react';
 import { useAuth, useCart, useCatalog, siteName, useSiteBranding } from '@/hooks';
 import { Button } from '@/components/ui';
+import { SearchBar } from './SearchBar';
 
 const linkClass = ({ isActive }: { isActive: boolean }) =>
   [
@@ -63,6 +64,9 @@ export function Layout() {
             <NavLink to="/orders" className={linkClass}>
               Orders
             </NavLink>
+          </div>
+          <div className="flex min-w-0 flex-1 px-2 sm:px-4">
+            <SearchBar />
           </div>
           <div className="ml-auto flex items-center gap-2">
             {loading ? (

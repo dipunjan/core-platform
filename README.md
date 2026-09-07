@@ -128,10 +128,10 @@ These are different fields. A product can be **both**.
 | | What it is | In the database | Shop URL |
 |---|---|---|---|
 | **Category** | Taxonomy (type of product) | `categories` collection: Apparel, Shoes, Bags, … Product has `category: "apparel"` | `/shop/apparel` |
-| **Featured** | Merchandising flag (home-row pick) | `featured: true` on the **product**. Not a category row | `/shop?featured=1` |
+| **Featured** | Merchandising flag (home-row pick) | `featured: true` on the **product**. Not a category row | Home page featured section only |
 | **All** | Unfiltered catalog | Not a category | `/shop` |
 
-Do **not** store `all` or `featured` as categories. The shop chips are exclusive: All, one category, or Featured.
+Do **not** store `all` or `featured` as categories. Featured products appear on the **home page** only — not as a shop filter.
 
 Example: Cloud Zip Hoodie can be `category: apparel` and `featured: true`. It shows under Apparel **and** under Featured.
 

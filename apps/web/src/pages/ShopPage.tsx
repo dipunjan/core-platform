@@ -1,70 +1,64 @@
 import { useEffect } from 'react';
 import { Navigate, useParams, useSearchParams } from 'react-router-dom';
 import { docId } from '@/api';
-import { CategoryFilter, ProductCard } from '@/components';
+import { ProductCard, ShopFilters } from '@/components';
 import { EmptyState, Flash, PageHeader, ProductGrid } from '@/components/ui';
+import { activeFilterCount, filterProducts, parseShopFilters } from '@/lib/shopFilters';
 import { useCatalog } from '@/hooks';
 
 export function ShopPage() {
   const { category: slug } = useParams<{ category?: string }>();
-  const [params] = useSearchParams();
-  const featuredOnly =
-    params.get('featured') === '1' || params.get('featured') === 'true';
+  const [searchParams] = useSearchParams();
   const { products, categories, error, loadCatalog } = useCatalog();
 
   useEffect(() => {
     loadCatalog();
   }, [loadCatalog]);
 
-  if (slug === 'featured' || (featuredOnly && slug)) {
-    return <Navigate to="/shop?featured=1" replace />;
+  if (slug === 'featured') {
+    return <Navigate to="/shop" replace />;
   }
 
-  const category = slug
-    ? categories.find((row) => row.slug === slug)
+  const filters = parseShopFilters(slug, searchParams.toString());
+  const category = filters.category
+    ? categories.find((row) => row.slug === filters.category)
     : undefined;
-
-  const list = products.filter((product) => {
-    if (slug && product.category !== slug) {
-      return false;
-    }
-    if (featuredOnly && !product.featured) {
-      return false;
-    }
-    return true;
-  });
-
-  const title = featuredOnly
-    ? 'Featured'
-    : (category?.name ?? 'All products');
-
-  const blurb = featuredOnly
-    ? 'Picks with the featured flag. Each one still sits in a real category (Apparel, Shoes, …).'
-    : (category?.blurb ?? 'The full catalog.');
+  const list = filterProducts(products, filters);
+  const title = category?.name ?? (filters.q ? 'Search results' : 'All products');
+  const blurb = filters.q
+    ? `Showing matches for “${filters.q}”.`
+    : (category?.blurb ?? 'Search, filter by category or price, and sort below.');
 
   return (
     <>
-      <PageHeader eyebrow="Shop" title={title} description={blurb}>
-        <CategoryFilter
+      <PageHeader eyebrow="Shop" title={title} description={blurb} />
+      <div className="grid gap-8 lg:grid-cols-[15rem_1fr]">
+        <ShopFilters
           categories={categories}
-          active={slug}
-          featured={featuredOnly}
+          filters={filters}
+          resultCount={list.length}
         />
-      </PageHeader>
-      <Flash>{error}</Flash>
-      {!error && list.length === 0 ? (
-        <EmptyState>Nothing in this view yet.</EmptyState>
-      ) : (
-        <ProductGrid>
-          {list.map((product) => (
-            <ProductCard
-              key={docId(product)}
-              product={product}
-              categories={categories}
-            />
-          ))}
-        </ProductGrid>
-      )}
+        <div>
+          <Flash>{error}</Flash>
+          {!error && list.length === 0 ? (
+            <EmptyState>
+              {activeFilterCount(filters) > 0
+                ? 'No products match these filters.'
+                : 'Nothing in the catalog yet.'}
+            </EmptyState>
+          ) : (
+            <ProductGrid>
+              {list.map((product) => (
+                <ProductCard
+                  key={docId(product)}
+                  product={product}
+                  categories={categories}
+                />
+              ))}
+            </ProductGrid>
+          )}
+        </div>
+      </div>
     </>
   );
 }

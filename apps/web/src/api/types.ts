@@ -65,6 +65,7 @@ export type Product = {
   sku: string;
   category: string;
   featured?: boolean;
+  createdAt?: string;
 };
 
 export type Inventory = {

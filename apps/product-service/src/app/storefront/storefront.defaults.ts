@@ -20,7 +20,7 @@ export const DEFAULT_STOREFRONT = {
       sub: 'Staff favorites — updated often.',
       imageUrl:
         'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=900&q=80&auto=format&fit=crop',
-      href: '/shop?featured=1',
+      href: '/shop',
       sortOrder: 0,
     },
     {

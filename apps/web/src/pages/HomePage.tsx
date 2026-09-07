@@ -43,7 +43,6 @@ export function HomePage() {
       <Section
         title="Featured"
         description="Picked in the catalog. An admin can change this later."
-        action={{ to: '/shop?featured=1', label: 'View featured' }}
       >
         <Flash>{error}</Flash>
         {!error && featured.length === 0 ? (

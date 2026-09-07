@@ -53,3 +53,4 @@ Example: products + categories share `products/`. Auth HTTP lives in `users/` be
 - Logo/hero/promo images: admin file upload → `POST /api/storefront/assets`, files on product-service.
 - Category = taxonomy slug. Featured = product boolean. All = unfiltered list.
 - Shop CORS includes `5173` and `5174`.
+- Redis is shared memory (throttle, logout denylist, catalog cache), not the database. See [redis.md](redis.md).

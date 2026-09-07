@@ -15,7 +15,7 @@ Every program checks the access pass with the same secret (`JWT_SECRET`). Refres
 
 The pass contains your user id (`sub`). Cart and orders use that. **Do not send `userId` in the body** — the server ignores a fake one.
 
-Logout throws away the stored refresh and clears cookies. The old access pass may still work until its ~15 minutes are up. That is normal for this design.
+Logout throws away the stored refresh, clears cookies, and puts the **access** pass on a Redis denylist until it would have expired. Cart and orders then reject that pass immediately. If Redis is down, you are back to “the short pass may still work for a few minutes.” [redis.md](redis.md).
 
 Login/register: 5 tries per minute. Refresh: 10 per minute.
 
@@ -49,7 +49,7 @@ You always need **some** proof after login. The question is only **where it live
 | Where | Textbook? | Why |
 |---|---|---|
 | **`localStorage` / `sessionStorage`** | No for a real shop | Any script that runs on your page can read it and send it like Postman. Tutorials do this because it is easy, not because it is safe. |
-| **Classic session cookie** | Yes for **one** server | Browser gets a random id (`abc123`). The **server** remembers “abc123 = Ada” in Redis/memory. Logout is instant (delete the row). All five of our programs would need that **same** session store on every request. |
+| **Classic session cookie** | Yes for **one** server | Browser gets a random id (`abc123`). The **server** remembers “abc123 = Ada” in Redis/memory. Logout is instant (delete the row). All five of our programs would need that **same** session store on every request. We did **not** switch the whole login to sessions; we only use Redis for logout denylist + rate limits. |
 | **JWT in an HttpOnly cookie** (this project) | Yes for **several APIs** | Each program checks the short pass with `JWT_SECRET`. No shared “who is logged in” database on cart/orders/products. Refresh is still stored (hashed) so you can kill the long pass. |
 
 Textbook for **this** shape (five APIs + a React shop):
@@ -63,7 +63,7 @@ Textbook for **this** shape (five APIs + a React shop):
 
 A bigger production shop sometimes adds a **BFF** (one backend-for-frontend): the browser only has a session cookie; that one program talks to the five APIs with tokens. Same idea (browser never holds JWTs). We skipped the extra program and put the JWTs in cookies instead.
 
-**Session vs JWT** is not “secure vs insecure.” Session = server remembers you (easy revoke, extra Redis). JWT cookie = each API can check the pass itself (fits microservices; revoke of the short pass waits until it expires).
+**Session vs JWT** is not “secure vs insecure.” Session = server remembers you (easy revoke, extra Redis on every request). JWT cookie = each API can check the pass itself (fits microservices). Redis here is a **helper** (denylist + throttle), not the session store. Details: [redis.md](redis.md).
 
 ## Extra check for the browser (CSRF)
 

@@ -10,7 +10,7 @@ You can show the APIs with Postman without a website. You **cannot** point a rea
 
 - Passwords, carts, and stock cannot live only in the browser.
 - The five programs should run as five processes so one can restart without killing all of them.
-- Mongo (data) and RabbitMQ (notes between programs) must keep running.
+- Mongo (data), Redis (short shared state), and RabbitMQ (notes between programs) must keep running.
 - Cookies marked “secure” only work on **https**.
 
 ## Simple production picture
@@ -29,6 +29,7 @@ You can show the APIs with Postman without a website. You **cannot** point a rea
     ▼
   The five programs
     ├── MongoDB (data)
+    ├── Redis (rate limits, logout denylist, catalog cache)
     └── RabbitMQ (notes)
 ```
 
@@ -39,8 +40,8 @@ On the laptop the website would call five different ports. On the internet, put 
 1. **Package each program**  
    Build it (`npx nx build …`) and run `node dist/main.js` in a container. Do not put Mongo inside the same image.
 
-2. **Use a real Mongo and Rabbit**  
-   Not `guest/guest` from local Docker. Use a hosted database and a hosted message broker, with backups.
+2. **Use a real Mongo, Redis, and Rabbit**  
+   Not `guest/guest` from local Docker. Use hosted stores with backups. Redis is not a substitute for Mongo.
 
 3. **Secrets**  
    Long random `JWT_SECRET` (same in all five programs) and `JWT_REFRESH_SECRET`. Put them in the host’s secret store, not in GitHub. Set `NODE_ENV=production`.

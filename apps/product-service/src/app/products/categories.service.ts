@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { isValidObjectId, Model } from 'mongoose';
-import { mongoWrite } from '@core-platform/common';
+import { CatalogCache, mongoWrite } from '@core-platform/common';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import { Category } from './schemas/category.schema';
@@ -15,10 +15,21 @@ export class CategoriesService {
   constructor(
     @InjectModel(Category.name)
     private readonly categoryModel: Model<Category>,
+    private readonly catalogCache: CatalogCache,
   ) {}
 
-  findAll() {
-    return this.categoryModel.find().sort({ sortOrder: 1, name: 1 }).exec();
+  async findAll() {
+    const cached = await this.catalogCache.getJson<unknown[]>('categories');
+    if (cached) {
+      return cached;
+    }
+    const rows = await this.categoryModel
+      .find()
+      .sort({ sortOrder: 1, name: 1 })
+      .lean()
+      .exec();
+    await this.catalogCache.setJson('categories', rows);
+    return rows;
   }
 
   async findBySlug(slug: string) {
@@ -38,7 +49,12 @@ export class CategoriesService {
   }
 
   async create(input: CreateCategoryDto) {
-    return mongoWrite(this.categoryModel.create(input), 'Slug already exists');
+    const row = await mongoWrite(
+      this.categoryModel.create(input),
+      'Slug already exists',
+    );
+    await this.catalogCache.bump();
+    return row;
   }
 
   async update(id: string, input: UpdateCategoryDto) {
@@ -52,6 +68,7 @@ export class CategoriesService {
     if (!category) {
       throw new NotFoundException(`Category ${id} not found`);
     }
+    await this.catalogCache.bump();
     return category;
   }
 
@@ -63,5 +80,6 @@ export class CategoriesService {
     if (!category) {
       throw new NotFoundException(`Category ${id} not found`);
     }
+    await this.catalogCache.bump();
   }
 }

@@ -16,15 +16,17 @@ import {
 } from './auth-cookies';
 import type { AuthUser } from './auth.types';
 import { IS_PUBLIC_KEY } from './public.decorator';
+import { TokenDenylist } from '../redis/token-denylist';
 
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
   constructor(
     private readonly jwt: JwtService,
     private readonly reflector: Reflector,
+    private readonly denylist: TokenDenylist,
   ) {}
 
-  canActivate(context: ExecutionContext): boolean {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
     const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
       context.getHandler(),
       context.getClass(),
@@ -45,6 +47,9 @@ export class JwtAuthGuard implements CanActivate {
     const fromHeader = bearerToken(request.headers.authorization);
     const token = fromHeader ?? readCookie(request.headers.cookie, ACCESS_COOKIE);
     if (!token) {
+      throw new UnauthorizedException();
+    }
+    if (await this.denylist.isRevoked(token)) {
       throw new UnauthorizedException();
     }
 

@@ -4,6 +4,7 @@ import { randomUUID } from 'crypto';
 import { mkdir, readFile, writeFile } from 'fs/promises';
 import { Model, Types } from 'mongoose';
 import { join } from 'path';
+import { CatalogCache } from '@core-platform/common';
 import { CreateBannerDto, UpdateStorefrontDto } from './dto/storefront.dto';
 import { Storefront } from './schemas/storefront.schema';
 
@@ -21,18 +22,22 @@ export class StorefrontService {
   constructor(
     @InjectModel(Storefront.name)
     private readonly model: Model<Storefront>,
+    private readonly catalogCache: CatalogCache,
   ) {}
 
   async get() {
-    const existing = await this.model.findOne({ key: 'default' }).exec();
-    if (existing) {
-      return existing;
+    const cached = await this.catalogCache.getJson<unknown>('storefront');
+    if (cached) {
+      return cached;
     }
-    return this.model.create({ key: 'default' });
+    const row = await this.load();
+    const json = row.toJSON();
+    await this.catalogCache.setJson('storefront', json);
+    return json;
   }
 
   async update(input: UpdateStorefrontDto) {
-    const row = await this.get();
+    const row = await this.load();
     if (input.logoUrl) {
       row.logoUrl = input.logoUrl;
     }
@@ -49,11 +54,12 @@ export class StorefrontService {
       });
     }
     await row.save();
+    await this.catalogCache.bump();
     return row;
   }
 
   async addBanner(input: CreateBannerDto) {
-    const current = await this.get();
+    const current = await this.load();
     const row = await this.model
       .findOneAndUpdate(
         { key: 'default' },
@@ -74,6 +80,7 @@ export class StorefrontService {
     if (!row) {
       throw new NotFoundException('Storefront not found');
     }
+    await this.catalogCache.bump();
     return row;
   }
 
@@ -91,6 +98,7 @@ export class StorefrontService {
     if (!row) {
       throw new NotFoundException('Storefront not found');
     }
+    await this.catalogCache.bump();
     return row;
   }
 
@@ -116,6 +124,14 @@ export class StorefrontService {
     } catch {
       throw new NotFoundException('File not found');
     }
+  }
+
+  private async load() {
+    const existing = await this.model.findOne({ key: 'default' }).exec();
+    if (existing) {
+      return existing;
+    }
+    return this.model.create({ key: 'default' });
   }
 
   private uploadDir() {

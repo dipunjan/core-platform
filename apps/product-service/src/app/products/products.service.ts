@@ -1,4 +1,5 @@
 import {
+  CatalogCache,
   EventPublisher,
   Events,
   mongoWrite,
@@ -19,9 +20,15 @@ export class ProductsService {
     private readonly productModel: Model<Product>,
     private readonly events: EventPublisher,
     private readonly categories: CategoriesService,
+    private readonly catalogCache: CatalogCache,
   ) {}
 
   async findAll(filters: { category?: string; featured?: boolean } = {}) {
+    const cacheName = `products:${filters.category ?? 'all'}:${filters.featured ? '1' : '0'}`;
+    const cached = await this.catalogCache.getJson<unknown[]>(cacheName);
+    if (cached) {
+      return cached;
+    }
     const query: Record<string, unknown> = {};
     if (filters.category) {
       await this.categories.findBySlug(filters.category);
@@ -30,17 +37,25 @@ export class ProductsService {
     if (filters.featured) {
       query.featured = true;
     }
-    return this.productModel.find(query).exec();
+    const rows = await this.productModel.find(query).lean().exec();
+    await this.catalogCache.setJson(cacheName, rows);
+    return rows;
   }
 
   async findOne(id: string) {
     if (!isValidObjectId(id)) {
       throw new NotFoundException(`Product ${id} not found`);
     }
-    const product = await this.productModel.findById(id).exec();
+    const cacheName = `product:${id}`;
+    const cached = await this.catalogCache.getJson<unknown>(cacheName);
+    if (cached) {
+      return cached;
+    }
+    const product = await this.productModel.findById(id).lean().exec();
     if (!product) {
       throw new NotFoundException(`Product ${id} not found`);
     }
+    await this.catalogCache.setJson(cacheName, product);
     return product;
   }
 
@@ -58,6 +73,7 @@ export class ProductsService {
       name: product.name,
       sku: product.sku,
     });
+    await this.catalogCache.bump();
     return product;
   }
 
@@ -73,11 +89,13 @@ export class ProductsService {
     if (!product) {
       throw new NotFoundException(`Product ${id} not found`);
     }
+    await this.catalogCache.bump();
     return product;
   }
 
   async remove(id: string) {
     await this.findOne(id);
     await this.productModel.findByIdAndDelete(id).exec();
+    await this.catalogCache.bump();
   }
 }

@@ -6,7 +6,7 @@ Five programs would copy the same “start the server, check login, talk to the 
 
 ## Rule of thumb
 
-- Shared start-up, login check, health URL, sending notes → **common**
+- Shared start-up, login check, health URL, sending notes, Redis client → **common**
 - Users, products, carts, orders → **the matching app**
 
 Apps import from the package name only:
@@ -33,7 +33,8 @@ How the five APIs and two UIs fit together: [architecture.md](architecture.md).
 | `AuthModule` | Checks the access pass on every route unless marked public |
 | `Public` | “No login needed” (catalog, login, health) |
 | `CurrentUser` | The logged-in user id and email |
-| `HealthModule` | “Am I up?” and “Can I reach the database?” |
+| `HealthModule` | “Am I up?” Mongo, Redis, Rabbit if used |
+| `RedisModule` / `CatalogCache` / `TokenDenylist` | Rate limits, logout denylist, catalog cache |
 | `MessagingModule` / `EventPublisher` | Send notes through RabbitMQ |
 
 ## Folders
@@ -44,6 +45,7 @@ packages/common/src/
   auth/         login check and cookies
   database/     Mongo helpers
   health/       live / ready
+  redis/        ioredis, throttle storage, denylist, catalog cache
   messaging/    RabbitMQ
   http/         which websites may call us
 ```

@@ -10,6 +10,7 @@ The website talks to the five APIs. It keeps you logged in with **cookies** (not
 |---|---|
 | Understand the whole project | This file |
 | See how the pieces connect | [docs/architecture.md](docs/architecture.md) |
+| Understand Redis (when / why / not) | [docs/redis.md](docs/redis.md) |
 | Understand login, cookies, Bearer, CSRF | [docs/security.md](docs/security.md) |
 | Understand stock updates after an order | [docs/rabbitmq.md](docs/rabbitmq.md) |
 | Build the shop or admin UI | [docs/frontend.md](docs/frontend.md) |
@@ -20,7 +21,7 @@ The website talks to the five APIs. It keeps you logged in with **cookies** (not
 
 ## Simple picture
 
-Five APIs, two websites, one Mongo, one RabbitMQ. Full diagrams: [docs/architecture.md](docs/architecture.md).
+Five APIs, two websites, Mongo, Redis, and RabbitMQ. Full diagrams: [docs/architecture.md](docs/architecture.md).
 
 ```mermaid
 flowchart LR
@@ -32,11 +33,13 @@ flowchart LR
   C["cart :3003"]
   O["orders :3004"]
   Mongo[(Mongo)]
+  Redis[(Redis)]
   Rabbit[[RabbitMQ]]
 
   Shop --> U & P & I & C & O
   Admin --> U & P & I & O
   U & P & I & C & O --> Mongo
+  U & P & I & C & O --> Redis
   P -->|"product created"| Rabbit
   O -->|"order created / cancelled"| Rabbit
   Rabbit --> I
@@ -85,7 +88,7 @@ cp apps/cart-service/.env.example apps/cart-service/.env
 cp apps/order-service/.env.example apps/order-service/.env
 
 docker compose up -d
-# Starts the database (Mongo) and the message broker (RabbitMQ).
+# Starts Mongo (27017), Redis (6379), and RabbitMQ (5672).
 # Rabbit web UI: http://localhost:15672  user guest, password guest
 
 npx nx serve user-service
@@ -147,6 +150,7 @@ Copy `.env.example` to `.env` in each app. Do not commit real secrets.
 | `PORT` | Which port this program listens on |
 | `MONGO_URI` | Where this program’s data lives |
 | `RABBITMQ_URL` | Where messages go (`amqp://localhost:5672`) |
+| `REDIS_URL` | Shared cache and rate limits (`redis://localhost:6379`) |
 | `JWT_SECRET` | Secret for the short pass — **must be the same** in every app |
 | `JWT_REFRESH_SECRET` | Secret for the long pass |
 | `JWT_ACCESS_EXPIRES_IN` | Default `15m` |
@@ -179,7 +183,7 @@ apps/product-service     products, categories, storefront + uploads
 apps/inventory-service   stock
 apps/cart-service        carts
 apps/order-service       orders
-packages/common          shared start-up, login check, messages
+packages/common          shared start-up, login check, messages, Redis
 apps/web                 React shop (Vite, port 5173)
 apps/admin               React staff panel (Vite, port 5174)
 docs/                    guides (architecture, security, frontend, …)

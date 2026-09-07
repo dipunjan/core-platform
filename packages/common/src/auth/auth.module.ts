@@ -3,6 +3,10 @@ import { ConfigService } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { JwtModule } from '@nestjs/jwt';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import type Redis from 'ioredis';
+import { REDIS_CLIENT } from '../redis/redis.keys';
+import { RedisModule } from '../redis/redis.module';
+import { RedisThrottlerStorage } from '../redis/throttler-storage';
 import { AuthCookieService } from './auth-cookie.service';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { RolesGuard } from './roles.guard';
@@ -10,8 +14,14 @@ import { RolesGuard } from './roles.guard';
 @Global()
 @Module({
   imports: [
-    ThrottlerModule.forRoot({
-      throttlers: [{ name: 'default', ttl: 60_000, limit: 120 }],
+    RedisModule,
+    ThrottlerModule.forRootAsync({
+      imports: [RedisModule],
+      inject: [REDIS_CLIENT],
+      useFactory: (redis: Redis) => ({
+        throttlers: [{ name: 'default', ttl: 60_000, limit: 120 }],
+        storage: new RedisThrottlerStorage(redis),
+      }),
     }),
     JwtModule.registerAsync({
       inject: [ConfigService],
@@ -39,6 +49,6 @@ import { RolesGuard } from './roles.guard';
       useClass: RolesGuard,
     },
   ],
-  exports: [JwtModule, AuthCookieService],
+  exports: [JwtModule, AuthCookieService, RedisModule],
 })
 export class AuthModule {}

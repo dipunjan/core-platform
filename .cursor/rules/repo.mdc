@@ -21,4 +21,6 @@ Shared code: import `@core-platform/common` only (never `packages/common/src/...
 
 **Category** = taxonomy slug on the product. **Featured** = `featured: boolean`, not a category. **All** = `/shop`. Do not invent `all`/`featured` category rows.
 
+Redis: throttle, logout denylist, catalog cache — not carts/orders/stock. [docs/redis.md](docs/redis.md).
+
 Folder patterns: [docs/conventions.md](docs/conventions.md). Map of the system: [docs/architecture.md](docs/architecture.md).

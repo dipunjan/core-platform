@@ -18,6 +18,10 @@ class EnvironmentVariables {
   @IsString()
   RABBITMQ_URL?: string;
 
+  @IsOptional()
+  @IsString()
+  REDIS_URL?: string;
+
   @IsString()
   @MinLength(16)
   JWT_SECRET!: string;
@@ -60,6 +64,9 @@ export function validateEnv(
     }
     if (!validated.RABBITMQ_URL) {
       throw new Error('RABBITMQ_URL is required in production');
+    }
+    if (!validated.REDIS_URL) {
+      throw new Error('REDIS_URL is required in production');
     }
     if (validated.JWT_SECRET.length < 32) {
       throw new Error('JWT_SECRET must be at least 32 characters in production');

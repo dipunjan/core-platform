@@ -27,6 +27,10 @@ export {
   throwDuplicate,
 } from './database/duplicate-key';
 export { HealthModule } from './health/health.module';
+export { CatalogCache } from './redis/catalog-cache';
+export { REDIS_CLIENT } from './redis/redis.keys';
+export { RedisModule } from './redis/redis.module';
+export { TokenDenylist } from './redis/token-denylist';
 export { EventPublisher } from './messaging/event-publisher';
 export {
   Events,

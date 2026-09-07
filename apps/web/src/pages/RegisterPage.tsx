@@ -1,7 +1,15 @@
 import { useState, type FormEvent } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { safeNext } from '@/api';
-import { AddressFields, emptyDelivery, Button, Field, Flash } from '@/components';
+import {
+  AddressFields,
+  emptyDelivery,
+  AuthCard,
+  Button,
+  Field,
+  Flash,
+  TextLink,
+} from '@/components';
 import { useAuth } from '@/hooks';
 
 export function RegisterPage() {
@@ -34,14 +42,16 @@ export function RegisterPage() {
   const loginTo = next === '/' ? '/login' : `/login?next=${encodeURIComponent(next)}`;
 
   return (
-    <div className="mx-auto w-full max-w-lg rounded-xl border border-zinc-200 bg-white p-6 shadow-sm sm:p-8">
-      <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">
-        Create account
-      </h1>
-      <p className="mt-2 mb-6 text-sm text-zinc-500">
-        Name, email, password, mobile, and a shipping address. You will
-        confirm the address again at checkout.
-      </p>
+    <AuthCard
+      wide
+      title="Create account"
+      description="Name, email, password, mobile, and a shipping address. You will confirm the address again at checkout."
+      footer={
+        <>
+          Already have an account? <TextLink to={loginTo}>Log in</TextLink>
+        </>
+      }
+    >
       <Flash>{error}</Flash>
       <form onSubmit={(event) => void onSubmit(event)}>
         <Field
@@ -73,12 +83,6 @@ export function RegisterPage() {
           Create account
         </Button>
       </form>
-      <p className="mt-6 text-sm text-zinc-600">
-        Already have an account?{' '}
-        <Link className="font-medium text-emerald-800 hover:underline" to={loginTo}>
-          Log in
-        </Link>
-      </p>
-    </div>
+    </AuthCard>
   );
 }

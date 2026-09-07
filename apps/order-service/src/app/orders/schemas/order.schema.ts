@@ -70,6 +70,14 @@ export class Order {
     default: 'pending',
   })
   status!: OrderStatus;
+
+  @Prop({ sparse: true })
+  idempotencyKey?: string;
 }
 
 export const OrderSchema = SchemaFactory.createForClass(Order);
+OrderSchema.index({ userId: 1, createdAt: -1 });
+OrderSchema.index(
+  { userId: 1, idempotencyKey: 1 },
+  { unique: true, sparse: true },
+);

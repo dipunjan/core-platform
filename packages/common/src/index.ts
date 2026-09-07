@@ -3,13 +3,11 @@ export { AuthCookieService } from './auth/auth-cookie.service';
 export {
   ACCESS_COOKIE,
   CSRF_COOKIE,
-  CSRF_HEADER,
   REFRESH_COOKIE,
   readCookie,
   type CookieResponse,
 } from './auth/auth-cookies';
 export {
-  AUTH_TOKENS_HEADER,
   sessionForClient,
   wantsJsonTokens,
   type AuthSession,
@@ -17,7 +15,7 @@ export {
 export { CurrentUser } from './auth/current-user.decorator';
 export { Public } from './auth/public.decorator';
 export { Roles } from './auth/roles.decorator';
-export type { AuthUser, UserRole } from './auth/auth.types';
+export type { AuthUser } from './auth/auth.types';
 export { bootstrapNestApp } from './bootstrap/bootstrap';
 export { databaseImports } from './database/database';
 export {
@@ -28,8 +26,6 @@ export {
 } from './database/duplicate-key';
 export { HealthModule } from './health/health.module';
 export { CatalogCache } from './redis/catalog-cache';
-export { REDIS_CLIENT } from './redis/redis.keys';
-export { RedisModule } from './redis/redis.module';
 export { TokenDenylist } from './redis/token-denylist';
 export { EventPublisher } from './messaging/event-publisher';
 export {
@@ -37,10 +33,8 @@ export {
   type EventName,
   type OrderCancelledEvent,
   type OrderCreatedEvent,
-  type OrderItemEvent,
   type ProductCreatedEvent,
   type UserCreatedEvent,
-  type UserUpdatedEvent,
 } from './messaging/events';
 export { MessagingModule } from './messaging/messaging.module';
 export { eventSubscribe } from './messaging/subscribe';

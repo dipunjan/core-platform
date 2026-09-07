@@ -51,8 +51,17 @@ export class Storefront {
   @Prop({ required: true, unique: true, default: 'default' })
   key!: string;
 
+  @Prop({ default: 'My Shop', trim: true })
+  appName!: string;
+
+  @Prop({ default: 'Welcome', trim: true })
+  tagline!: string;
+
   @Prop({ default: '/swoop-logo.png', trim: true })
   logoUrl!: string;
+
+  @Prop({ default: '/swoop-logo.png', trim: true })
+  faviconUrl!: string;
 
   @Prop({ default: 'USD', uppercase: true, trim: true })
   currency!: string;

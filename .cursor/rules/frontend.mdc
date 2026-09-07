@@ -18,4 +18,5 @@ src/pages/  src/hooks/  src/features/  src/components/{layout,ui}  src/api/  src
 - Admin `ProtectedRoute` requires `user.role === 'admin'`. Admin `GuestRoute` redirects only if the session is already admin. Admin `Layout` may omit the sidebar on `/login`.
 - Auth is Redux (`features/auth`) + `useAuth`. `App.tsx` calls `loadMe()`. `main.tsx` wraps `<Provider>`. No React auth context.
 - Pages do not call axios. Hooks → slices → `api/`. Cross-folder imports use `@/` barrels; siblings use `./`.
+- **Pages stay lean** — reuse `components/ui/` (`Card`, `PageHeader`, `Section`, `TextLink`, …). Do not copy long Tailwind strings onto every screen.
 - Tokens stay in cookies. Guest shop cart may use `localStorage`; admin does not.

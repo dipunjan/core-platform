@@ -1,6 +1,6 @@
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useEffect } from 'react';
-import { useAuth, useCart, useCatalog } from '@/hooks';
+import { useAuth, useCart, useCatalog, siteName, useSiteBranding } from '@/hooks';
 import { Button } from '@/components/ui';
 
 const linkClass = ({ isActive }: { isActive: boolean }) =>
@@ -20,6 +20,9 @@ export function Layout() {
   const cartCount =
     cart?.items.reduce((sum, item) => sum + item.quantity, 0) ?? 0;
   const logo = storefront?.logoUrl || '/swoop-logo.png';
+  const name = siteName(storefront);
+
+  useSiteBranding(storefront);
 
   useEffect(() => {
     loadStorefront();
@@ -40,8 +43,8 @@ export function Layout() {
               height={36}
               className="h-9 w-9 rounded-lg object-contain"
             />
-            <span className="text-lg font-bold tracking-tight text-zinc-950 lowercase">
-              swoop
+            <span className="text-lg font-bold tracking-tight text-zinc-950">
+              {name}
             </span>
           </Link>
           <div className="flex items-center gap-0.5">
@@ -101,7 +104,7 @@ export function Layout() {
         <Outlet />
       </main>
       <footer className="border-t border-zinc-200 bg-white py-6 text-center text-sm text-zinc-500">
-        swoop
+        {name}
       </footer>
     </div>
   );

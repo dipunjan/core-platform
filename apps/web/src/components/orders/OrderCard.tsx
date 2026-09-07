@@ -1,5 +1,5 @@
 import { docId, type Order } from '@/api';
-import { Button } from '@/components/ui';
+import { Button, Card } from '@/components/ui';
 import { useMoney } from '@/hooks';
 
 type Props = {
@@ -12,7 +12,7 @@ export function OrderCard({ order, busy, onCancel }: Props) {
   const money = useMoney();
   const id = docId(order);
   return (
-    <div className="mb-4 rounded-xl border border-zinc-200 bg-white p-5 shadow-sm">
+    <Card className="mb-4" padding="sm">
       <p className="flex flex-wrap items-baseline gap-2">
         <strong className="capitalize text-zinc-900">{order.status}</strong>
         <span className="text-sm text-zinc-500">· {money(order.total)}</span>
@@ -41,6 +41,6 @@ export function OrderCard({ order, busy, onCancel }: Props) {
           Cancel
         </Button>
       ) : null}
-    </div>
+    </Card>
   );
 }

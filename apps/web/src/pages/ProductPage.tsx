@@ -1,5 +1,12 @@
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { Button, Flash, Spinner } from '@/components';
+import {
+  Badge,
+  Button,
+  Card,
+  Flash,
+  Spinner,
+  TextLink,
+} from '@/components';
 import { useCart, useMoney, useProduct } from '@/hooks';
 
 export function ProductPage() {
@@ -28,24 +35,17 @@ export function ProductPage() {
   const available = inventory
     ? Math.max(0, inventory.quantity - inventory.reserved)
     : null;
+  const category = categories.find((row) => row.slug === product.category);
 
   return (
     <div className="mx-auto max-w-2xl">
       <p className="mb-4">
-        <Link
-          className="text-sm font-medium text-emerald-800 hover:underline"
-          to="/shop"
-        >
-          ← Shop
-        </Link>
+        <TextLink to="/shop">← Shop</TextLink>
       </p>
-      <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm sm:p-8">
-        {categories.find((row) => row.slug === product.category) ? (
-          <Link
-            to={`/shop/${product.category}`}
-            className="text-xs font-semibold uppercase tracking-wide text-emerald-800 hover:underline"
-          >
-            {categories.find((row) => row.slug === product.category)?.name}
+      <Card padding="lg">
+        {category ? (
+          <Link to={`/shop/${product.category}`}>
+            <Badge>{category.name}</Badge>
           </Link>
         ) : null}
         <h1 className="mt-1 text-3xl font-semibold tracking-tight text-zinc-900">
@@ -69,7 +69,7 @@ export function ProductPage() {
             Add to cart
           </Button>
         </div>
-      </div>
+      </Card>
     </div>
   );
 }

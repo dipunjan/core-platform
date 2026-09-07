@@ -10,7 +10,6 @@ import {
   urls,
   type Address,
   type Cart,
-  type OrderItem,
   type Product,
   type User,
 } from '@/api';
@@ -125,20 +124,25 @@ export const checkout = createAsyncThunk(
     const byId = new Map(
       state.catalog.products.map((product) => [docId(product), product]),
     );
-    const orderItems: OrderItem[] = [];
     for (const item of items) {
-      const product = byId.get(item.productId);
-      if (!product) {
+      if (!byId.get(item.productId)) {
         return rejectWithValue('A product in your cart is missing. Refresh.');
       }
-      orderItems.push({
-        productId: item.productId,
-        quantity: item.quantity,
-        unitPrice: product.price,
-      });
     }
+    const orderItems = items.map((item) => ({
+      productId: item.productId,
+      quantity: item.quantity,
+    }));
+    const idempotencyKey =
+      typeof crypto !== 'undefined' && 'randomUUID' in crypto
+        ? crypto.randomUUID()
+        : `${Date.now()}`;
     try {
-      await http.post(urls.orders, { items: orderItems, shippingAddress });
+      await http.post(
+        urls.orders,
+        { items: orderItems, shippingAddress },
+        { headers: { 'Idempotency-Key': idempotencyKey } },
+      );
       await http.delete(urls.cart);
       const { data } = await http.get<Cart>(urls.cart);
       return data;

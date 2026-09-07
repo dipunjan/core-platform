@@ -13,6 +13,9 @@ import { useStorefront } from '@/hooks';
 
 export function BrandingPage() {
   const { storefront: store, remember } = useStorefront();
+  const [appName, setAppName] = useState('');
+  const [tagline, setTagline] = useState('');
+  const [faviconUrl, setFaviconUrl] = useState('');
   const [logoUrl, setLogoUrl] = useState('');
   const [currency, setCurrency] = useState('USD');
   const [headline, setHeadline] = useState('');
@@ -28,6 +31,9 @@ export function BrandingPage() {
 
   function apply(data: Storefront) {
     remember(data);
+    setAppName(data.appName ?? '');
+    setTagline(data.tagline ?? '');
+    setFaviconUrl(data.faviconUrl ?? data.logoUrl ?? '');
     setLogoUrl(data.logoUrl);
     setCurrency(data.currency ?? 'USD');
     setHeadline(data.hero?.headline ?? '');
@@ -43,6 +49,25 @@ export function BrandingPage() {
       .then(({ data }) => apply(data))
       .catch((err) => setError(apiMessage(err)));
   }, []);
+
+  async function saveSite(event: FormEvent) {
+    event.preventDefault();
+    setError('');
+    if (faviconUrl.startsWith('blob:')) {
+      setError('Wait for the favicon upload to finish.');
+      return;
+    }
+    try {
+      const { data } = await http.patch<Storefront>(urls.storefront, {
+        appName,
+        tagline,
+        faviconUrl: faviconUrl || logoUrl,
+      });
+      apply(data);
+    } catch (err) {
+      setError(apiMessage(err));
+    }
+  }
 
   async function saveLogo(url: string) {
     setLogoUrl(url);
@@ -127,10 +152,35 @@ export function BrandingPage() {
     <>
       <h1 className="mb-2 text-2xl font-semibold tracking-tight">Branding</h1>
       <p className="mb-6 text-sm text-zinc-500">
-        Pick images from your computer. Prices on the shop use the currency you
-        save here. Amounts in the catalog stay in minor units (cents, paise).
+        Site name, favicon, and logo show on the shop and in the browser tab.
+        Hero and promo tiles shape the home page. Prices use the currency you
+        save below.
       </p>
       <Flash>{error}</Flash>
+      <form
+        onSubmit={(event) => void saveSite(event)}
+        className="mb-10 max-w-xl rounded-xl border border-zinc-200 bg-white p-6"
+      >
+        <h2 className="mb-4 font-semibold">Site identity</h2>
+        <Field
+          label="App / shop name"
+          value={appName}
+          onChange={(e) => setAppName(e.target.value)}
+          required
+        />
+        <Field
+          label="Home tagline (small line above hero headline)"
+          value={tagline}
+          onChange={(e) => setTagline(e.target.value)}
+        />
+        <ImagePicker
+          label="Favicon"
+          value={faviconUrl}
+          onChange={setFaviconUrl}
+          onError={setError}
+        />
+        <Button type="submit">Save site identity</Button>
+      </form>
       <form
         onSubmit={(event) => void saveCurrency(event)}
         className="mb-10 max-w-xl rounded-xl border border-zinc-200 bg-white p-6"
@@ -153,7 +203,7 @@ export function BrandingPage() {
         <Button type="submit">Save currency</Button>
       </form>
       <section className="mb-10 max-w-xl rounded-xl border border-zinc-200 bg-white p-6">
-        <h2 className="mb-4 font-semibold">Logo</h2>
+        <h2 className="mb-4 font-semibold">Logo (header)</h2>
         <ImagePicker
           label="Logo file"
           value={logoUrl}

@@ -42,6 +42,23 @@ Admin does not call cart-service. Guests keep a cart in the **browser** until lo
 
 **Mongo** = durable records. **Redis** = rate limits, logged-out access tokens, short catalog cache. **RabbitMQ** = “order created” style notes. Details: [redis.md](redis.md), [rabbitmq.md](rabbitmq.md).
 
+Interview walkthrough: [interview.md](interview.md).
+
+## Resilience (what we handle today)
+
+| Concern | Approach |
+|---|---|
+| Brute-force login | Redis throttle — shared across all API instances |
+| Double checkout | `Idempotency-Key` + unique `{ userId, idempotencyKey }` index |
+| Price tampering | order-service reads price from product-service at checkout |
+| Duplicate events | Inventory handlers idempotent; DLQ for poison messages |
+| Order → Rabbit | **Transactional outbox** — order + outbox row in one Mongo transaction; relay polls and publishes |
+| Publish blip | EventPublisher retries 3 times per outbox row; row stays until `publishedAt` is set |
+| Redis outage | Throttle/denylist fail open; catalog reads Mongo |
+| Gateway IP | `trust proxy` when `TRUST_PROXY=true` or production |
+
+Local Docker runs Mongo as a **single-node replica set** (`rs0`) so transactions work. Use `?replicaSet=rs0` in every `MONGO_URI`.
+
 ## What each API owns
 
 | App | Port | Mongo | Redis | HTTP | Events |
@@ -50,7 +67,7 @@ Admin does not call cart-service. Guests keep a cart in the **browser** until lo
 | product-service | 3001 | products, categories, storefront | catalog cache | catalog, storefront, **image files** | PRODUCT_CREATED |
 | inventory-service | 3002 | stock | throttle only | get / set quantity | listens: product created, order created/cancelled |
 | cart-service | 3003 | carts | throttle only | cart for a logged-in user | — |
-| order-service | 3004 | orders | throttle only | checkout, my orders, admin sales | ORDER_CREATED / ORDER_CANCELLED |
+| order-service | 3004 | orders, **outbox** | throttle only | checkout (server prices), my orders, admin sales | ORDER_CREATED / ORDER_CANCELLED (via outbox relay) |
 
 `packages/common`: `bootstrapNestApp`, JWT guards, `@Public` / `@Roles('admin')`, CORS, health, Rabbit publisher, Redis client.
 
@@ -78,7 +95,10 @@ sequenceDiagram
   User->>Redis: rate-limit counter
   Shop->>CartAPI: merge guest cart
   Guest->>Shop: place order + address
-  Shop->>Order: POST /orders
+  Shop->>Order: POST /orders + Idempotency-Key
+  Order->>Product: GET price per productId
+  Order->>Order: save order + outbox row (Mongo transaction)
+  Note over Order: outbox relay (~2s)
   Order->>Rabbit: ORDER_CREATED
   Rabbit->>Stock: reserve quantity
   Guest->>Shop: log out
@@ -103,7 +123,7 @@ apps/user-service        accounts
 apps/product-service     products, categories, storefront + uploads
 apps/inventory-service   on-hand / reserved
 apps/cart-service        signed-in carts
-apps/order-service       orders
+apps/order-service       orders + outbox relay
 packages/common          bootstrap, auth, messaging, redis
 apps/web                 shop UI
 apps/admin               staff UI

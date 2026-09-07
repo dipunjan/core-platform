@@ -34,8 +34,8 @@ How the five APIs and two UIs fit together: [architecture.md](architecture.md).
 | `Public` | “No login needed” (catalog, login, health) |
 | `CurrentUser` | The logged-in user id and email |
 | `HealthModule` | “Am I up?” Mongo, Redis, Rabbit if used |
-| `RedisModule` / `CatalogCache` / `TokenDenylist` | Rate limits, logout denylist, catalog cache |
-| `MessagingModule` / `EventPublisher` | Send notes through RabbitMQ |
+| `RedisModule` (internal) / `CatalogCache` / `TokenDenylist` | Rate limits, logout denylist, catalog cache |
+| `MessagingModule` / `EventPublisher` | Send notes through RabbitMQ (3 retries on failure) |
 
 ## Folders
 

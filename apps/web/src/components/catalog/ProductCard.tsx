@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { docId, type Category, type Product } from '@/api';
-import { Button } from '@/components/ui';
+import { Badge, Button, Card } from '@/components/ui';
 import { useCart, useMoney } from '@/hooks';
 
 type Props = {
@@ -23,17 +23,11 @@ export function ProductCard({ product, categories }: Props) {
   }
 
   return (
-    <article className="group flex flex-col rounded-xl border border-zinc-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-700/30 hover:shadow-md">
+    <Card padding="md" variant="interactive" className="group flex flex-col">
       <Link to={`/products/${id}`} className="flex flex-1 flex-col">
-        {category ? (
-          <span className="text-xs font-semibold uppercase tracking-wide text-emerald-800">
-            {category.name}
-          </span>
-        ) : null}
+        {category ? <Badge>{category.name}</Badge> : null}
         {product.featured ? (
-          <span className="mt-1 text-xs font-semibold uppercase tracking-wide text-zinc-400">
-            Featured
-          </span>
+          <Badge tone="muted" className="mt-1">Featured</Badge>
         ) : null}
         <strong className="mt-1 text-base font-semibold text-zinc-900 group-hover:text-emerald-800">
           {product.name}
@@ -53,6 +47,6 @@ export function ProductCard({ product, categories }: Props) {
       >
         Add to cart
       </Button>
-    </article>
+    </Card>
   );
 }

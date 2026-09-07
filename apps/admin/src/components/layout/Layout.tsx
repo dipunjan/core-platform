@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
-import { useAuth } from '@/hooks';
+import { useAuth, useStorefront, siteName, useSiteBranding } from '@/hooks';
 import { Button } from '@/components/ui';
 
 const item = ({ isActive }: { isActive: boolean }) =>
@@ -9,16 +9,31 @@ const item = ({ isActive }: { isActive: boolean }) =>
 
 export function Layout() {
   const { user, signOut } = useAuth();
+  const { storefront } = useStorefront();
   const { pathname } = useLocation();
+  const name = siteName(storefront);
+  const logo = storefront?.logoUrl || '/swoop-logo.png';
+
+  useSiteBranding(storefront);
+
   if (pathname === '/login') {
     return <Outlet />;
   }
   return (
     <div className="flex min-h-screen bg-zinc-100">
       <aside className="flex w-56 shrink-0 flex-col border-r border-zinc-200 bg-white px-3 py-6">
-        <p className="px-3 text-lg font-bold tracking-tight text-zinc-950">
-          swoop admin
-        </p>
+        <div className="flex items-center gap-2 px-3">
+          <img
+            src={logo}
+            alt=""
+            width={28}
+            height={28}
+            className="h-7 w-7 rounded-md object-contain"
+          />
+          <p className="text-sm font-bold tracking-tight text-zinc-950">
+            {name} admin
+          </p>
+        </div>
         <nav className="mt-6 grid gap-1">
           <NavLink to="/" end className={item}>
             Sales

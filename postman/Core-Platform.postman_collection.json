@@ -379,7 +379,7 @@
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"items\": [\n    {\n      \"productId\": \"{{productId}}\",\n      \"quantity\": 1,\n      \"unitPrice\": 1299\n    }\n  ],\n  \"shippingAddress\": {\n    \"line1\": \"123 Market St\",\n    \"city\": \"San Francisco\",\n    \"region\": \"CA\",\n    \"postalCode\": \"94103\",\n    \"country\": \"US\"\n  }\n}"
+              "raw": "{\n  \"items\": [\n    {\n      \"productId\": \"{{productId}}\",\n      \"quantity\": 1\n    }\n  ],\n  \"shippingAddress\": {\n    \"line1\": \"123 Market St\",\n    \"city\": \"San Francisco\",\n    \"region\": \"CA\",\n    \"postalCode\": \"94103\",\n    \"country\": \"US\"\n  }\n}"
             },
             "url": "{{orderUrl}}/orders",
             "description": "No userId in the body — it comes from the access token. shippingAddress is required (snapshot on the order). Saves orderId. Set inventory quantity first if you want reserve to succeed."

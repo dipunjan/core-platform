@@ -64,7 +64,10 @@ export type HeroBanner = {
 };
 
 export type Storefront = {
+  appName?: string;
+  tagline?: string;
   logoUrl: string;
+  faviconUrl?: string;
   currency?: string;
   hero?: HeroBanner;
   banners: Banner[];

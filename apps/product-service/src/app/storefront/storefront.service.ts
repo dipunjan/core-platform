@@ -6,6 +6,7 @@ import { Model, Types } from 'mongoose';
 import { join } from 'path';
 import { CatalogCache } from '@core-platform/common';
 import { CreateBannerDto, UpdateStorefrontDto } from './dto/storefront.dto';
+import { DEFAULT_STOREFRONT } from './storefront.defaults';
 import { Storefront } from './schemas/storefront.schema';
 
 const MIME_EXT: Record<string, string> = {
@@ -38,8 +39,17 @@ export class StorefrontService {
 
   async update(input: UpdateStorefrontDto) {
     const row = await this.load();
+    if (input.appName !== undefined) {
+      row.appName = input.appName;
+    }
+    if (input.tagline !== undefined) {
+      row.tagline = input.tagline;
+    }
     if (input.logoUrl) {
       row.logoUrl = input.logoUrl;
+    }
+    if (input.faviconUrl) {
+      row.faviconUrl = input.faviconUrl;
     }
     if (input.currency) {
       row.currency = input.currency;
@@ -127,11 +137,31 @@ export class StorefrontService {
   }
 
   private async load() {
-    const existing = await this.model.findOne({ key: 'default' }).exec();
-    if (existing) {
-      return existing;
+    let row = await this.model.findOne({ key: 'default' }).exec();
+    if (!row) {
+      row = await this.model.create(DEFAULT_STOREFRONT);
+      return row;
     }
-    return this.model.create({ key: 'default' });
+    if (this.needsDemoContent(row)) {
+      row.appName = row.appName || DEFAULT_STOREFRONT.appName;
+      row.tagline = row.tagline || DEFAULT_STOREFRONT.tagline;
+      row.faviconUrl = row.faviconUrl || row.logoUrl || DEFAULT_STOREFRONT.faviconUrl;
+      row.set('hero', DEFAULT_STOREFRONT.hero);
+      row.set('banners', DEFAULT_STOREFRONT.banners);
+      await row.save();
+      await this.catalogCache.bump();
+    } else if (!row.appName) {
+      row.appName = DEFAULT_STOREFRONT.appName;
+      row.tagline = row.tagline || DEFAULT_STOREFRONT.tagline;
+      row.faviconUrl = row.faviconUrl || row.logoUrl || DEFAULT_STOREFRONT.faviconUrl;
+      await row.save();
+    }
+    return row;
+  }
+
+  private needsDemoContent(row: Storefront) {
+    const heroImage = row.hero?.imageUrl?.trim() ?? '';
+    return row.banners.length === 0 && !heroImage;
   }
 
   private uploadDir() {

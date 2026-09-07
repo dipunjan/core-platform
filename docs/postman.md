@@ -6,7 +6,7 @@ The shop (http://localhost:5173) uses **cookies**. Postman uses **Bearer tokens*
 
 ## Before you start
 
-1. Run Docker (Mongo + Rabbit) and all five programs. See the main [README](../README.md).
+1. Run Docker (Mongo + Redis + Rabbit) and all five programs. See the main [README](../README.md).
 2. Start **inventory** before you create products.
 
 ## Import
@@ -38,7 +38,7 @@ Register and Login send `X-Auth-Response: tokens` so the **body includes tokens*
 4. **Products → Create** — wait a second
 5. **Inventory → Get by product id** — amount 0, then set amount to 50
 6. **Cart → Add item**
-7. **Orders → Create** — include `shippingAddress`; stock “reserved” should go up
+7. **Orders → Create** — `productId` + `quantity` only (price comes from product-service). Optional header `Idempotency-Key` for safe retries. Include `shippingAddress`; stock “reserved” should go up
 8. **Orders → Cancel** — reserved goes down
 
 **Refresh** gives new tokens — keep both. **Logout** last, or the rest of the run has no pass.

@@ -45,6 +45,10 @@ class EnvironmentVariables {
   @IsOptional()
   @IsIn(['true', 'false'])
   COOKIE_SECURE?: string;
+
+  @IsOptional()
+  @IsIn(['true', 'false'])
+  TRUST_PROXY?: string;
 }
 
 export function validateEnv(

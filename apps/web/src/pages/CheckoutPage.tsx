@@ -1,6 +1,15 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { AddressFields, emptyDelivery, Button, Flash, Spinner } from '@/components';
+import { useNavigate } from 'react-router-dom';
+import {
+  AddressFields,
+  emptyDelivery,
+  Button,
+  Card,
+  Flash,
+  PageTitle,
+  Spinner,
+  TextLink,
+} from '@/components';
 import { updateMe } from '@/features/auth';
 import { useAuth, useCart, useMoney } from '@/hooks';
 import { useAppDispatch } from '@/store/hooks';
@@ -63,10 +72,7 @@ export function CheckoutPage() {
   if (!cart || items.length === 0) {
     return (
       <p className="text-sm text-zinc-600">
-        Cart is empty.{' '}
-        <Link className="font-medium text-emerald-800 hover:underline" to="/shop">
-          Shop
-        </Link>
+        Cart is empty. <TextLink to="/shop">Shop</TextLink>
       </p>
     );
   }
@@ -74,17 +80,14 @@ export function CheckoutPage() {
   return (
     <div className="grid gap-8 lg:grid-cols-[1fr_20rem]">
       <div>
-        <h1 className="mb-2 text-3xl font-semibold tracking-tight text-zinc-900">
-          Checkout
-        </h1>
-        <p className="mb-6 text-sm text-zinc-500">
-          Confirm where this order should ship. Payment is not in this demo.
-        </p>
-        <Flash>{error || authError}</Flash>
-        <form
-          onSubmit={(event) => void onSubmit(event)}
-          className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm"
+        <PageTitle
+          className="mb-6"
+          subtitle="Confirm where this order should ship. Payment is not in this demo."
         >
+          Checkout
+        </PageTitle>
+        <Flash>{error || authError}</Flash>
+        <Card as="form" onSubmit={(event) => void onSubmit(event)}>
           <h2 className="mb-4 text-lg font-semibold text-zinc-900">
             Shipping address
           </h2>
@@ -92,9 +95,9 @@ export function CheckoutPage() {
           <Button type="submit" className="w-full" disabled={busy || loading}>
             Place order
           </Button>
-        </form>
+        </Card>
       </div>
-      <aside className="h-fit rounded-xl border border-zinc-200 bg-white p-5 shadow-sm">
+      <Card as="aside" padding="sm" className="h-fit">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500">
           Order summary
         </h2>
@@ -117,13 +120,10 @@ export function CheckoutPage() {
           <span>Total</span>
           <span className="tabular-nums">{money(total)}</span>
         </p>
-        <Link
-          to="/cart"
-          className="mt-4 inline-block text-sm font-medium text-emerald-800 hover:underline"
-        >
+        <TextLink to="/cart" className="mt-4 inline-block text-sm">
           Back to cart
-        </Link>
-      </aside>
+        </TextLink>
+      </Card>
     </div>
   );
 }

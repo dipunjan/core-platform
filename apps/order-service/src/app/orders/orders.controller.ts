@@ -1,4 +1,5 @@
-import { Body, Controller, Get, Param, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Get, Headers, Param, Patch, Post } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { CurrentUser, Roles, type AuthUser } from '@core-platform/common';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
@@ -24,9 +25,14 @@ export class OrdersController {
     return this.ordersService.findOne(id, user.sub);
   }
 
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @Post()
-  create(@CurrentUser() user: AuthUser, @Body() body: CreateOrderDto) {
-    return this.ordersService.create(user.sub, body);
+  create(
+    @CurrentUser() user: AuthUser,
+    @Body() body: CreateOrderDto,
+    @Headers('idempotency-key') idempotencyKey?: string,
+  ) {
+    return this.ordersService.create(user.sub, body, idempotencyKey);
   }
 
   @Patch(':id/status')

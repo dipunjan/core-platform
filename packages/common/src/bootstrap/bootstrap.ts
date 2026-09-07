@@ -1,6 +1,7 @@
 import { Logger, Type, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import helmet from 'helmet';
 import { corsOrigins } from '../http/cors';
 
@@ -8,12 +9,18 @@ export async function bootstrapNestApp(
   AppModule: Type<unknown>,
   options: { defaultPort: number },
 ): Promise<void> {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
   app.enableShutdownHooks();
   app.setGlobalPrefix('api');
   app.use(helmet());
 
   const config = app.get(ConfigService);
+  if (
+    config.get<string>('TRUST_PROXY') === 'true' ||
+    config.get<string>('NODE_ENV') === 'production'
+  ) {
+    app.set('trust proxy', 1);
+  }
   app.enableCors({
     origin: corsOrigins(
       config.get<string>('CORS_ORIGIN'),

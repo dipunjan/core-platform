@@ -1,6 +1,5 @@
-import { Link } from 'react-router-dom';
 import { docId } from '@/api';
-import { EmptyState, Flash, OrderCard } from '@/components';
+import { EmptyState, Flash, OrderCard, PageTitle, TextLink } from '@/components';
 import { useOrders } from '@/hooks';
 
 export function OrdersPage() {
@@ -8,19 +7,11 @@ export function OrdersPage() {
 
   return (
     <>
-      <h1 className="mb-6 text-3xl font-semibold tracking-tight text-zinc-900">
-        Orders
-      </h1>
+      <PageTitle className="mb-6">Orders</PageTitle>
       <Flash>{error}</Flash>
       {error ? null : orders.length === 0 ? (
         <EmptyState>
-          None yet.{' '}
-          <Link
-            className="font-medium text-emerald-800 hover:underline"
-            to="/cart"
-          >
-            Go to cart
-          </Link>
+          None yet. <TextLink to="/cart">Go to cart</TextLink>
         </EmptyState>
       ) : (
         orders.map((order) => (

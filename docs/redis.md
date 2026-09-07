@@ -10,7 +10,7 @@ Local: `docker compose up -d` starts Redis on **6379**. Each API `.env` has `RED
 
 | Use | Where | Why Redis | What goes wrong without it |
 |---|---|---|---|
-| **Login / request rate limits** | All APIs (`ThrottlerGuard`) | Counters must be **one bucket** for every instance of every service | In-memory limits reset on restart. Five processes = five times the guesses. A brute-force login could rotate across ports. |
+| **Login / request rate limits** | All APIs (`ThrottlerGuard`) | Counters must be **one bucket** for every instance of every service | In-memory limits reset on restart. Five processes = five times the guesses. A brute-force login could rotate across ports. Uses Redis `MULTI` (incr + pttl) so counts stay consistent under concurrency. |
 | **Logout of the access JWT** | user-service writes; every API reads (`JwtAuthGuard`) | A JWT is valid until `exp`. Mongo can kill **refresh**, but cart/orders never see that row | After logout the short pass still worked for ~15 minutes. Redis stores a **denylist** key until that pass would have expired. |
 | **Catalog / storefront cache** | product-service public GETs | Home and shop hit the same lists constantly | Extra Mongo load. Cache TTL is ~45s. Writes **bump a generation** so old keys are ignored. |
 

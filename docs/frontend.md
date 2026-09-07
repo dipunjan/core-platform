@@ -99,7 +99,7 @@ apps/web/src/
     ErrorBoundary  React class boundary (main.tsx)
     RouteError     React Router errorElement
     ErrorPanel     shared error screen
-    ui/            Button, Field, Flash, EmptyState, Spinner, ImagePicker (admin)
+    ui/            Card, Button, Field, PageHeader, Section, HeroBanner, …
     layout/        Layout, ProtectedRoute (logged in), GuestRoute (logged out)
     catalog/       ProductCard, category chips
     account/       AddressFields (register + checkout)
@@ -117,6 +117,22 @@ import { Button, ProductCard } from '@/components';
 import { useCart } from '@/hooks';
 import { money } from '@/api';
 ```
+
+**Keep pages lean.** Repeated Tailwind lives in `components/ui/` — not copy-pasted on every screen:
+
+| Component | Use for |
+|---|---|
+| `Card` | White bordered panels (cart table, product detail, checkout) |
+| `PageTitle` / `PageHeader` | Page heading (+ optional eyebrow, subtitle, filters) |
+| `Section` | Home blocks with title, description, optional action link |
+| `HeroBanner` / `PromoGrid` | Storefront hero and promo tiles |
+| `ProductGrid` | Responsive product columns |
+| `AuthCard` | Login / register forms |
+| `TextLink` | Emerald in-text links |
+| `Badge` | Category / featured labels |
+| `Button`, `Field`, `Flash`, `EmptyState`, `Spinner` | Forms and feedback |
+
+Pages compose these; they should not repeat long `className` strings for the same pattern.
 
 Files inside a folder still import siblings with `./` (a Button file does not go through `@/components`). Layout imports `@/components/ui`, not `@/components`, so it does not loop back on itself.
 

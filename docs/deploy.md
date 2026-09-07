@@ -41,7 +41,7 @@ On the laptop the website would call five different ports. On the internet, put 
    Build it (`npx nx build …`) and run `node dist/main.js` in a container. Do not put Mongo inside the same image.
 
 2. **Use a real Mongo, Redis, and Rabbit**  
-   Not `guest/guest` from local Docker. Use hosted stores with backups. Redis is not a substitute for Mongo.
+   Not `guest/guest` from local Docker. Use hosted stores with backups. Redis is not a substitute for Mongo. Mongo must be a **replica set** if you use transactions (order outbox).
 
 3. **Secrets**  
    Long random `JWT_SECRET` (same in all five programs) and `JWT_REFRESH_SECRET`. Put them in the host’s secret store, not in GitHub. Set `NODE_ENV=production`.
@@ -65,7 +65,13 @@ On the laptop the website would call five different ports. On the internet, put 
 9. **More traffic later**  
    Run extra copies of a program behind the front door. They do not keep user session in memory (the pass is in the token).
 
-This repo includes a React shop in `apps/web` for local use. On the internet you still want **one HTTPS API host** (a gateway) plus HTTPS for the site. Local `docker-compose.yml` only starts Mongo and Rabbit.
+This repo includes a React shop in `apps/web` for local use. On the internet you still want **one HTTPS API host** (a gateway) plus HTTPS for the site. Local `docker-compose.yml` starts **Mongo, Redis, and RabbitMQ** — not the five APIs.
+
+10. **Behind a gateway**  
+    Set `TRUST_PROXY=true` (or `NODE_ENV=production`) so rate limits see the real client IP, not the proxy. Forward `X-Forwarded-For` from the gateway.
+
+11. **Order service**  
+    `PRODUCT_SERVICE_URL` must point at product-service so checkout reads **server-side prices** (the client cannot set `unitPrice`).
 
 ## What changes from laptop to internet
 

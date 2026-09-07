@@ -1,7 +1,6 @@
 import {
-  EventPublisher,
   Events,
-  mongoWrite,
+  isDuplicateKey,
   OrderCancelledEvent,
   OrderCreatedEvent,
 } from '@core-platform/common';
@@ -10,11 +9,13 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { isValidObjectId, Model } from 'mongoose';
+import { InjectConnection, InjectModel } from '@nestjs/mongoose';
+import { Connection, isValidObjectId, Model } from 'mongoose';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
-import { Order, type OrderStatus } from './schemas/order.schema';
+import { OutboxEvent } from '../outbox/schemas/outbox-event.schema';
+import { ProductCatalogService } from './product-catalog.service';
+import { Order, type OrderDocument, type OrderStatus } from './schemas/order.schema';
 
 const TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
   pending: ['paid', 'cancelled'],
@@ -27,11 +28,13 @@ const TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
 export class OrdersService {
   constructor(
     @InjectModel(Order.name) private readonly orderModel: Model<Order>,
-    private readonly events: EventPublisher,
+    @InjectModel(OutboxEvent.name) private readonly outboxModel: Model<OutboxEvent>,
+    @InjectConnection() private readonly connection: Connection,
+    private readonly catalog: ProductCatalogService,
   ) {}
 
   findByUser(userId: string) {
-    return this.orderModel.find({ userId }).exec();
+    return this.orderModel.find({ userId }).sort({ createdAt: -1 }).exec();
   }
 
   findAll() {
@@ -49,30 +52,82 @@ export class OrdersService {
     return order;
   }
 
-  async create(userId: string, input: CreateOrderDto) {
-    const total = input.items.reduce(
+  async create(userId: string, input: CreateOrderDto, idempotencyKey?: string) {
+    const key = idempotencyKey?.trim();
+    if (key) {
+      const existing = await this.orderModel
+        .findOne({ userId, idempotencyKey: key })
+        .exec();
+      if (existing) {
+        return existing;
+      }
+    }
+
+    const items = await Promise.all(
+      input.items.map(async (item) => ({
+        productId: item.productId,
+        quantity: item.quantity,
+        unitPrice: await this.catalog.priceFor(item.productId),
+      })),
+    );
+    const total = items.reduce(
       (sum, item) => sum + item.unitPrice * item.quantity,
       0,
     );
-    const order = await mongoWrite(
-      this.orderModel.create({
-        userId,
-        items: input.items,
-        shippingAddress: input.shippingAddress,
-        total,
-        status: 'pending',
-      }),
-      'Could not create order',
-    );
-    await this.events.publish<OrderCreatedEvent>(Events.ORDER_CREATED, {
-      id: String(order._id),
-      userId: order.userId,
-      items: order.items.map((item) => ({
-        productId: item.productId,
-        quantity: item.quantity,
-      })),
-    });
-    return order;
+
+    const session = await this.connection.startSession();
+    try {
+      let order!: OrderDocument;
+      await session.withTransaction(async () => {
+        const [created] = await this.orderModel.create(
+          [
+            {
+              userId,
+              items,
+              shippingAddress: input.shippingAddress,
+              total,
+              status: 'pending',
+              ...(key ? { idempotencyKey: key } : {}),
+            },
+          ],
+          { session },
+        );
+        order = created;
+        const payload: OrderCreatedEvent = {
+          id: String(order._id),
+          userId: order.userId,
+          items: order.items.map((item) => ({
+            productId: item.productId,
+            quantity: item.quantity,
+          })),
+        };
+        await this.outboxModel.create(
+          [
+            {
+              routingKey: Events.ORDER_CREATED,
+              payload: payload as unknown as Record<string, unknown>,
+              aggregateId: String(order._id),
+              publishedAt: null,
+              attempts: 0,
+            },
+          ],
+          { session },
+        );
+      });
+      return order;
+    } catch (err) {
+      if (key && isDuplicateKey(err)) {
+        const existing = await this.orderModel
+          .findOne({ userId, idempotencyKey: key })
+          .exec();
+        if (existing) {
+          return existing;
+        }
+      }
+      throw err;
+    } finally {
+      await session.endSession();
+    }
   }
 
   async updateStatus(id: string, userId: string, input: UpdateOrderStatusDto) {
@@ -85,18 +140,38 @@ export class OrdersService {
         `Cannot change order from ${order.status} to ${input.status}`,
       );
     }
-    order.status = input.status;
-    await mongoWrite(order.save(), 'Could not update order');
-    if (input.status === 'cancelled') {
-      await this.events.publish<OrderCancelledEvent>(Events.ORDER_CANCELLED, {
-        id: String(order._id),
-        userId: order.userId,
-        items: order.items.map((item) => ({
-          productId: item.productId,
-          quantity: item.quantity,
-        })),
+
+    const session = await this.connection.startSession();
+    try {
+      await session.withTransaction(async () => {
+        order.status = input.status;
+        await order.save({ session });
+        if (input.status === 'cancelled') {
+          const payload: OrderCancelledEvent = {
+            id: String(order._id),
+            userId: order.userId,
+            items: order.items.map((item) => ({
+              productId: item.productId,
+              quantity: item.quantity,
+            })),
+          };
+          await this.outboxModel.create(
+            [
+              {
+                routingKey: Events.ORDER_CANCELLED,
+                payload: payload as unknown as Record<string, unknown>,
+                aggregateId: String(order._id),
+                publishedAt: null,
+                attempts: 0,
+              },
+            ],
+            { session },
+          );
+        }
       });
+      return order;
+    } finally {
+      await session.endSession();
     }
-    return order;
   }
 }

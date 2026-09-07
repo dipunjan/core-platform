@@ -1,5 +1,5 @@
-import { Link, useNavigate } from 'react-router-dom';
-import { Button, CartLine, EmptyState, Flash } from '@/components';
+import { useNavigate } from 'react-router-dom';
+import { Button, Card, CartLine, EmptyState, Flash, PageTitle, TextLink } from '@/components';
 import { useAuth, useCart } from '@/hooks';
 
 export function CartPage() {
@@ -11,19 +11,14 @@ export function CartPage() {
 
   return (
     <>
-      <h1 className="mb-6 text-3xl font-semibold tracking-tight text-zinc-900">
-        Cart
-      </h1>
+      <PageTitle className="mb-6">Cart</PageTitle>
       <Flash>{error}</Flash>
       {error ? null : !cart || cart.items.length === 0 ? (
         <EmptyState>
-          Empty.{' '}
-          <Link className="font-medium text-emerald-800 hover:underline" to="/shop">
-            Browse products
-          </Link>
+          Empty. <TextLink to="/shop">Browse products</TextLink>
         </EmptyState>
       ) : (
-        <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">
+        <Card padding="none">
           <div className="overflow-x-auto px-4 sm:px-6">
             <table className="w-full text-left text-sm">
               <thead>
@@ -67,7 +62,7 @@ export function CartPage() {
               </p>
             ) : null}
           </div>
-        </div>
+        </Card>
       )}
     </>
   );

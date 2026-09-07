@@ -3,7 +3,6 @@ import {
   ArrayMinSize,
   IsArray,
   IsInt,
-  IsNumber,
   IsString,
   Min,
   MinLength,
@@ -20,11 +19,6 @@ export class CreateOrderItemDto {
   @IsInt()
   @Min(1)
   quantity!: number;
-
-  @Type(() => Number)
-  @IsNumber()
-  @Min(0)
-  unitPrice!: number;
 }
 
 export class CreateOrderDto {

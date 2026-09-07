@@ -1,4 +1,10 @@
 export * from './http';
 export * from './types';
 export * from './urls';
-export * from './guestCart';
+export {
+  addGuestItem,
+  clearGuestCart,
+  readGuestCart,
+  safeNext,
+  setGuestQty,
+} from './guestCart';

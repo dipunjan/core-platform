@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { safeNext } from '@/api';
-import { Button, Field, Flash } from '@/components';
+import { AuthCard, Button, Field, Flash, TextLink } from '@/components';
 import { useAuth } from '@/hooks';
 
 export function LoginPage() {
@@ -27,15 +27,19 @@ export function LoginPage() {
     next === '/' ? '/register' : `/register?next=${encodeURIComponent(next)}`;
 
   return (
-    <div className="mx-auto w-full max-w-md rounded-xl border border-zinc-200 bg-white p-6 shadow-sm sm:p-8">
-      <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">
-        {next === '/checkout' ? 'Sign in to check out' : 'Log in'}
-      </h1>
-      <p className="mt-2 mb-6 text-sm text-zinc-500">
-        {next === '/checkout'
+    <AuthCard
+      title={next === '/checkout' ? 'Sign in to check out' : 'Log in'}
+      description={
+        next === '/checkout'
           ? 'Your cart stays with you. Sign in or create an account to place the order.'
-          : 'Welcome back. Use the email and password for your account.'}
-      </p>
+          : 'Welcome back. Use the email and password for your account.'
+      }
+      footer={
+        <>
+          No account? <TextLink to={registerTo}>Register</TextLink>
+        </>
+      }
+    >
       <Flash>{error}</Flash>
       <form onSubmit={(event) => void onSubmit(event)}>
         <Field
@@ -57,15 +61,6 @@ export function LoginPage() {
           Log in
         </Button>
       </form>
-      <p className="mt-6 text-sm text-zinc-600">
-        No account?{' '}
-        <Link
-          className="font-medium text-emerald-800 hover:underline"
-          to={registerTo}
-        >
-          Register
-        </Link>
-      </p>
-    </div>
+    </AuthCard>
   );
 }

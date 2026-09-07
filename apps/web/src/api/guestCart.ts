@@ -1,8 +1,8 @@
 import type { Cart, CartItem } from './types';
 
-export const GUEST_CART_KEY = 'swoop.guest-cart';
+const GUEST_CART_KEY = 'swoop.guest-cart';
 
-export function emptyGuestCart(): Cart {
+function emptyGuestCart(): Cart {
   return { userId: 'guest', items: [] };
 }
 
@@ -36,7 +36,7 @@ export function readGuestCart(): Cart {
   }
 }
 
-export function writeGuestCart(items: CartItem[]): Cart {
+function writeGuestCart(items: CartItem[]): Cart {
   localStorage.setItem(GUEST_CART_KEY, JSON.stringify(items));
   return { userId: 'guest', items };
 }

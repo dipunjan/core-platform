@@ -17,7 +17,7 @@ The pass contains your user id (`sub`). Cart and orders use that. **Do not send 
 
 Logout throws away the stored refresh, clears cookies, and puts the **access** pass on a Redis denylist until it would have expired. Cart and orders then reject that pass immediately. If Redis is down, you are back to “the short pass may still work for a few minutes.” [redis.md](redis.md).
 
-Login/register: 5 tries per minute. Refresh: 10 per minute.
+Login/register: 5 tries per minute. Refresh: 10 per minute. Checkout (`POST /orders`): 10 per minute. Counters live in Redis so every API instance shares one bucket. Behind a gateway, set `TRUST_PROXY=true` so limits use the shopper’s IP, not the proxy.
 
 ## Two envelopes (same pass)
 

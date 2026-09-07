@@ -90,7 +90,6 @@
     "@nestjs/mongoose": "^11.0.3",
     "@nestjs/platform-express": "^11.0.0",
     "@nestjs/terminus": "^11.0.0",
-    "@nestjs/throttler": "^6.5.0",
     "@golevelup/nestjs-rabbitmq": "^9.0.2",
     "bcrypt": "^6.0.0",
     "class-transformer": "^0.5.1",
@@ -101,7 +100,6 @@
     "tslib": "^2.3.0"
   },
   "devDependencies": {
-    "@nestjs/testing": "^11.0.0",
     "@types/bcrypt": "^6.0.0"
   }
 }

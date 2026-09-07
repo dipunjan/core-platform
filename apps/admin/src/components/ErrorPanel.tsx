@@ -25,7 +25,7 @@ export function ErrorPanel({ error, homeHref, homeLabel }: Props) {
   return (
     <div className="mx-auto max-w-lg px-4 py-12">
       <p className="text-sm font-semibold uppercase tracking-wide text-emerald-800">
-        swoop admin
+        Admin
       </p>
       <h1 className="mt-2 text-2xl font-semibold tracking-tight text-zinc-950">
         {offline ? 'Cannot reach the API' : 'This page hit a snag'}

@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { Navigate, useParams, useSearchParams } from 'react-router-dom';
 import { docId } from '@/api';
 import { CategoryFilter, ProductCard } from '@/components';
-import { EmptyState, Flash } from '@/components/ui';
+import { EmptyState, Flash, PageHeader, ProductGrid } from '@/components/ui';
 import { useCatalog } from '@/hooks';
 
 export function ShopPage() {
@@ -44,27 +44,18 @@ export function ShopPage() {
 
   return (
     <>
-      <div className="mb-8">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-800">
-          Shop
-        </p>
-        <h1 className="mt-1 text-3xl font-semibold tracking-tight text-zinc-900">
-          {title}
-        </h1>
-        <p className="mt-2 text-sm text-zinc-500">{blurb}</p>
-        <div className="mt-6">
-          <CategoryFilter
-            categories={categories}
-            active={slug}
-            featured={featuredOnly}
-          />
-        </div>
-      </div>
+      <PageHeader eyebrow="Shop" title={title} description={blurb}>
+        <CategoryFilter
+          categories={categories}
+          active={slug}
+          featured={featuredOnly}
+        />
+      </PageHeader>
       <Flash>{error}</Flash>
       {!error && list.length === 0 ? (
         <EmptyState>Nothing in this view yet.</EmptyState>
       ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <ProductGrid>
           {list.map((product) => (
             <ProductCard
               key={docId(product)}
@@ -72,7 +63,7 @@ export function ShopPage() {
               categories={categories}
             />
           ))}
-        </div>
+        </ProductGrid>
       )}
     </>
   );

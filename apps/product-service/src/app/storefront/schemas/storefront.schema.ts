@@ -57,10 +57,10 @@ export class Storefront {
   @Prop({ default: 'Welcome', trim: true })
   tagline!: string;
 
-  @Prop({ default: '/swoop-logo.png', trim: true })
+  @Prop({ default: '', trim: true })
   logoUrl!: string;
 
-  @Prop({ default: '/swoop-logo.png', trim: true })
+  @Prop({ default: '', trim: true })
   faviconUrl!: string;
 
   @Prop({ default: 'USD', uppercase: true, trim: true })

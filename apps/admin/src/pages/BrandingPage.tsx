@@ -9,6 +9,7 @@ import {
   type Storefront,
 } from '@/api';
 import { Button, Field, Flash, ImagePicker } from '@/components/ui';
+import { brandImage, hasBrandImage } from '@/lib/brandImage';
 import { useStorefront } from '@/hooks';
 
 export function BrandingPage() {
@@ -29,12 +30,11 @@ export function BrandingPage() {
   const [promoHref, setPromoHref] = useState('/shop');
   const [error, setError] = useState('');
 
-  function apply(data: Storefront) {
-    remember(data);
+  function syncForm(data: Storefront) {
     setAppName(data.appName ?? '');
     setTagline(data.tagline ?? '');
-    setFaviconUrl(data.faviconUrl ?? data.logoUrl ?? '');
-    setLogoUrl(data.logoUrl);
+    setFaviconUrl(data.faviconUrl ?? '');
+    setLogoUrl(data.logoUrl ?? '');
     setCurrency(data.currency ?? 'USD');
     setHeadline(data.hero?.headline ?? '');
     setSub(data.hero?.sub ?? '');
@@ -43,12 +43,16 @@ export function BrandingPage() {
     setCta(data.hero?.cta ?? 'Shop all');
   }
 
+  function apply(data: Storefront) {
+    remember(data);
+    syncForm(data);
+  }
+
   useEffect(() => {
-    void http
-      .get<Storefront>(urls.storefront)
-      .then(({ data }) => apply(data))
-      .catch((err) => setError(apiMessage(err)));
-  }, []);
+    if (store) {
+      syncForm(store);
+    }
+  }, [store]);
 
   async function saveSite(event: FormEvent) {
     event.preventDefault();
@@ -61,7 +65,7 @@ export function BrandingPage() {
       const { data } = await http.patch<Storefront>(urls.storefront, {
         appName,
         tagline,
-        faviconUrl: faviconUrl || logoUrl,
+        faviconUrl,
       });
       apply(data);
     } catch (err) {
@@ -78,6 +82,36 @@ export function BrandingPage() {
     try {
       const { data } = await http.patch<Storefront>(urls.storefront, {
         logoUrl: url,
+      });
+      apply(data);
+    } catch (err) {
+      setError(apiMessage(err));
+    }
+  }
+
+  async function removeLogo() {
+    await saveLogo('');
+  }
+
+  async function removeFavicon() {
+    setFaviconUrl('');
+    setError('');
+    try {
+      const { data } = await http.patch<Storefront>(urls.storefront, {
+        faviconUrl: '',
+      });
+      apply(data);
+    } catch (err) {
+      setError(apiMessage(err));
+    }
+  }
+
+  async function removeHeroImage() {
+    setImageUrl('');
+    setError('');
+    try {
+      const { data } = await http.patch<Storefront>(urls.storefront, {
+        hero: { headline, sub, imageUrl: '', href, cta },
       });
       apply(data);
     } catch (err) {
@@ -152,9 +186,8 @@ export function BrandingPage() {
     <>
       <h1 className="mb-2 text-2xl font-semibold tracking-tight">Branding</h1>
       <p className="mb-6 text-sm text-zinc-500">
-        Site name, favicon, and logo show on the shop and in the browser tab.
-        Hero and promo tiles shape the home page. Prices use the currency you
-        save below.
+        Uploaded images are live on the shop. Empty slots show a placeholder on
+        the website until you upload something.
       </p>
       <Flash>{error}</Flash>
       <form
@@ -175,9 +208,11 @@ export function BrandingPage() {
         />
         <ImagePicker
           label="Favicon"
+          kind="favicon"
           value={faviconUrl}
           onChange={setFaviconUrl}
           onError={setError}
+          onRemove={() => void removeFavicon()}
         />
         <Button type="submit">Save site identity</Button>
       </form>
@@ -206,9 +241,11 @@ export function BrandingPage() {
         <h2 className="mb-4 font-semibold">Logo (header)</h2>
         <ImagePicker
           label="Logo file"
+          kind="logo"
           value={logoUrl}
           onChange={(url) => void saveLogo(url)}
           onError={setError}
+          onRemove={() => void removeLogo()}
         />
       </section>
       <form
@@ -225,9 +262,11 @@ export function BrandingPage() {
         <Field label="Sub" value={sub} onChange={(e) => setSub(e.target.value)} />
         <ImagePicker
           label="Background image"
+          kind="hero"
           value={imageUrl}
           onChange={setImageUrl}
           onError={setError}
+          onRemove={() => void removeHeroImage()}
         />
         <Field
           label="Button label"
@@ -250,13 +289,22 @@ export function BrandingPage() {
               className="flex items-start justify-between gap-3 rounded-lg border border-zinc-100 p-3"
             >
               <div className="flex min-w-0 gap-3">
-                {banner.imageUrl ? (
+                <div>
                   <img
-                    src={banner.imageUrl}
+                    src={brandImage(banner.imageUrl, 'promo')}
                     alt=""
-                    className="h-14 w-14 shrink-0 rounded-md object-cover"
+                    className="h-14 w-24 shrink-0 rounded-md border border-zinc-200 object-cover"
                   />
-                ) : null}
+                  <span
+                    className={`mt-1 inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                      hasBrandImage(banner.imageUrl)
+                        ? 'bg-emerald-100 text-emerald-800'
+                        : 'bg-zinc-100 text-zinc-600'
+                    }`}
+                  >
+                    {hasBrandImage(banner.imageUrl) ? 'Live' : 'Placeholder'}
+                  </span>
+                </div>
                 <div>
                   <p className="font-semibold">{banner.headline}</p>
                   <p className="text-sm text-zinc-500">{banner.sub}</p>
@@ -286,6 +334,7 @@ export function BrandingPage() {
           />
           <ImagePicker
             label="Tile image"
+            kind="promo"
             value={promoImage}
             onChange={setPromoImage}
             onError={setError}

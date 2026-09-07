@@ -1,6 +1,6 @@
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
-import { useEffect } from 'react';
 import { useAuth, useCart, useCatalog, siteName, useSiteBranding } from '@/hooks';
+import { brandImage } from '@/lib/brandImage';
 import { Button } from '@/components/ui';
 import { SearchBar } from './SearchBar';
 
@@ -15,28 +15,21 @@ const linkClass = ({ isActive }: { isActive: boolean }) =>
 export function Layout() {
   const { user, loading, signOut } = useAuth();
   const { cart } = useCart();
-  const { storefront, loadStorefront } = useCatalog();
+  const { storefront } = useCatalog();
   const { pathname } = useLocation();
   const shopOn = pathname === '/shop' || pathname.startsWith('/shop/');
   const cartCount =
     cart?.items.reduce((sum, item) => sum + item.quantity, 0) ?? 0;
-  const logo = storefront?.logoUrl || '/swoop-logo.png';
+  const logo = brandImage(storefront?.logoUrl, 'logo');
   const name = siteName(storefront);
 
   useSiteBranding(storefront);
 
-  useEffect(() => {
-    loadStorefront();
-  }, [loadStorefront]);
-
   return (
     <div className="flex min-h-screen flex-col bg-zinc-50">
-      <header className="sticky top-0 z-10 border-b border-zinc-200 bg-white/90 shadow-sm backdrop-blur-md">
-        <nav className="mx-auto flex h-16 max-w-6xl items-center gap-1 px-4 sm:px-6">
-          <Link
-            className="mr-4 flex items-center gap-2 sm:mr-8"
-            to="/"
-          >
+      <header className="sticky top-0 z-10 border-b border-zinc-200 bg-white shadow-sm">
+        <nav className="mx-auto flex h-14 max-w-6xl items-center gap-1 px-4 sm:h-16 sm:px-6">
+          <Link className="mr-4 flex items-center gap-2 sm:mr-8" to="/">
             <img
               src={logo}
               alt=""
@@ -52,10 +45,7 @@ export function Layout() {
             <NavLink to="/" className={linkClass} end>
               Home
             </NavLink>
-            <NavLink
-              to="/shop"
-              className={linkClass({ isActive: shopOn })}
-            >
+            <NavLink to="/shop" className={linkClass({ isActive: shopOn })}>
               Shop
             </NavLink>
             <NavLink to="/cart" className={linkClass}>
@@ -64,9 +54,6 @@ export function Layout() {
             <NavLink to="/orders" className={linkClass}>
               Orders
             </NavLink>
-          </div>
-          <div className="flex min-w-0 flex-1 px-2 sm:px-4">
-            <SearchBar />
           </div>
           <div className="ml-auto flex items-center gap-2">
             {loading ? (
@@ -103,6 +90,11 @@ export function Layout() {
             )}
           </div>
         </nav>
+        <div className="border-t border-zinc-100 bg-zinc-50 px-4 py-3 sm:px-6">
+          <div className="mx-auto max-w-6xl">
+            <SearchBar />
+          </div>
+        </div>
       </header>
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6">
         <Outlet />

@@ -1,151 +1,138 @@
-# Security
+# Security — login, cookies, and checkout safety
 
-How login works, how Postman and the website send it, and what that means for attackers. How to click through APIs: [postman.md](postman.md). How the shop UI is built: [frontend.md](frontend.md). Going live: [deploy.md](deploy.md).
+**For newcomers:** Security here means proving *who you are* (login), stopping *other websites* from acting as you (CSRF + CORS), slowing *password guessing* (rate limits), and stopping *fake prices* at checkout (server-side pricing). Postman tests the same APIs with Bearer tokens instead of cookies — that is normal, not a back door.
 
-## Two passes (JWTs)
+Related: [redis.md](redis.md) (denylist, throttle) · [postman.md](postman.md) · [deploy.md](deploy.md) · gaps [roadmap.md](roadmap.md).
 
-After login you get two strings. That *is* the login.
+---
 
-| Pass | Lasts | Used for |
-|---|---|---|
-| **Access** | about 15 minutes | Cart, orders, profile, anything that needs “it’s you” |
-| **Refresh** | about 7 days | Only to get a **new** access pass when the old one expires |
+## Two passes after login (JWT)
 
-Every program checks the access pass with the same secret (`JWT_SECRET`). Refresh is only handled by **user-service**. The database stores a **hash** of the refresh pass (like a password), not the raw string.
+Think of two tickets:
 
-The pass contains your user id (`sub`). Cart and orders use that. **Do not send `userId` in the body** — the server ignores a fake one.
+| Pass | Lifetime | Purpose |
+|------|----------|---------|
+| **Access** | ~15 minutes | Every API call — cart, orders, profile |
+| **Refresh** | ~7 days | Only to get a **new** access pass when the old one expires |
 
-Logout throws away the stored refresh, clears cookies, and puts the **access** pass on a Redis denylist until it would have expired. Cart and orders then reject that pass immediately. If Redis is down, you are back to “the short pass may still work for a few minutes.” [redis.md](redis.md).
+- Every service checks access with the same `JWT_SECRET`.
+- Only **user-service** handles refresh.
+- Refresh is **hashed in Mongo** (like a password) — stealing the DB does not give usable refresh strings.
+- The JWT contains your user id (`sub`). **Never trust `userId` in the request body.**
 
-Login/register: 5 tries per minute. Refresh: 10 per minute. Checkout (`POST /orders`): 10 per minute. Counters live in Redis so every API instance shares one bucket. Behind a gateway, set `TRUST_PROXY=true` so limits use the shopper’s IP, not the proxy.
+**Logout:** refresh deleted, cookies cleared, access token **denylisted in Redis** until it would have expired. If Redis is down, access may still work until `exp` (~15 min).
 
-## Two envelopes (same pass)
+**Rate limits (Redis):** login/register 5/min, refresh 10/min, checkout 10/min. Behind a gateway set `TRUST_PROXY=true` so limits use the real client IP.
 
-The API accepts **either** cookies **or** `Authorization: Bearer …`. One request uses one of them.
+---
 
-**Website (browser)** — cookies  
-The server sets cookies. The browser sends them to *this* API by itself. Shoppers never copy a token. Access and refresh cookies are **HttpOnly**: JavaScript on the page cannot read them. Do **not** put tokens in `localStorage` (a hostile script on the page could steal them).
+## Website cookies vs Postman Bearer
 
-**Postman (and curl)** — Bearer  
-Not a shopper’s browser, so Register/Login with header `X-Auth-Response: tokens` put the strings in JSON. You paste `Authorization: Bearer <access>`. That is a normal way to test.
+| | Shop (browser) | Postman |
+|--|----------------|---------|
+| How login is sent | HttpOnly cookies (auto) | `Authorization: Bearer <access>` |
+| Can page JavaScript read token? | **No** (HttpOnly) | N/A |
+| CSRF header needed? | Yes on POST/PATCH/DELETE | No |
 
-## “If Postman can do it, can a hacker too?”
+Register/Login with header `X-Auth-Response: tokens` returns tokens in JSON for Postman.
 
-**Yes — if they have the same token (or your password).** The server does not know Postman from a script. Whoever sends a valid access pass *is* you.
+### Why not `localStorage`?
 
-What they **cannot** do: sit on another laptop with no password and no token and “just use Postman” on your account. They would need to:
+Any script on your page can read `localStorage` and send tokens like Postman. Tutorials use it because it is easy — not because it is safe for a real shop.
 
-- guess your password (slowed by the per-minute limit), or
-- steal the token (malware, a leaked Postman export, a screenshot, XSS if you stored it in `localStorage`, …)
+### Session vs JWT (textbook)
 
-So Postman is not a hole. **Leaking the token** is the hole. Treat Bearer tokens like a password: don’t commit them, don’t paste them in Slack, don’t put them in the website’s `localStorage`.
+| Approach | Good for | Our choice |
+|----------|----------|------------|
+| Classic session cookie | One server; server remembers you in Redis every request | We use Redis only for denylist + throttle |
+| JWT in HttpOnly cookie | Several APIs; each verifies signature locally | **This project** |
 
-The shop uses cookies so the page never holds the access/refresh strings in JavaScript.
+We did **not** put the whole login in Redis sessions — that would mean every cart/order call hits Redis just to know who you are.
 
-## Why not `localStorage` or a classic session? (textbook)
+---
 
-You always need **some** proof after login. The question is only **where it lives**.
+## CSRF — why the extra header?
 
-| Where | Textbook? | Why |
-|---|---|---|
-| **`localStorage` / `sessionStorage`** | No for a real shop | Any script that runs on your page can read it and send it like Postman. Tutorials do this because it is easy, not because it is safe. |
-| **Classic session cookie** | Yes for **one** server | Browser gets a random id (`abc123`). The **server** remembers “abc123 = Ada” in Redis/memory. Logout is instant (delete the row). All five of our programs would need that **same** session store on every request. We did **not** switch the whole login to sessions; we only use Redis for logout denylist + rate limits. |
-| **JWT in an HttpOnly cookie** (this project) | Yes for **several APIs** | Each program checks the short pass with `JWT_SECRET`. No shared “who is logged in” database on cart/orders/products. Refresh is still stored (hashed) so you can kill the long pass. |
+Cookies ride along automatically. A malicious site could try to POST an order using your cookies.
 
-Textbook for **this** shape (five APIs + a React shop):
+**Fix:** mutating requests from the shop also send `X-CSRF-Token` matching the readable `csrf_token` cookie. Evil sites should not have that value.
 
-1. **Do not** put access/refresh in `localStorage`.
-2. Put them in **HttpOnly + Secure + SameSite** cookies (we use `lax`; `Secure` on HTTPS).
-3. Keep the **access** pass short (~15 minutes) so a stolen one dies quickly.
-4. Keep **refresh** hashed on the user service and **rotate** it.
-5. Add **CSRF** (or a BFF) because cookies are sent automatically.
-6. Use **Bearer** only for Postman, mobile apps, or other servers — not for the shop page.
+| Cookie | JS can read? | Sent to |
+|--------|--------------|---------|
+| `access_token` | No | All API paths |
+| `refresh_token` | No | `/api/auth` only |
+| `csrf_token` | Yes | So our JS can copy it into the header |
 
-A bigger production shop sometimes adds a **BFF** (one backend-for-frontend): the browser only has a session cookie; that one program talks to the five APIs with tokens. Same idea (browser never holds JWTs). We skipped the extra program and put the JWTs in cookies instead.
+`COOKIE_SECURE=false` on localhost; `true` on HTTPS in production.
 
-**Session vs JWT** is not “secure vs insecure.” Session = server remembers you (easy revoke, extra Redis on every request). JWT cookie = each API can check the pass itself (fits microservices). Redis here is a **helper** (denylist + throttle), not the session store. Details: [redis.md](redis.md).
+---
 
-## Extra check for the browser (CSRF)
+## CORS
 
-The browser **always attaches cookies** to requests to your API. A *different* website could try to make **your** browser place an order.
+Only URLs in `CORS_ORIGIN` may call the API **from a browser with cookies**. Production forbids `*`.
 
-So cookie logins that **change** data (POST, PATCH, PUT, DELETE) also need header `X-CSRF-Token` matching the readable `csrf_token` cookie. That cookie **is** readable by JavaScript on purpose (so *your* site can copy it). A random other site should not have it.
+CORS does **not** block Postman or curl — only browser cross-origin rules.
 
-Bearer requests skip CSRF (Postman does not need this header).
+---
 
-## Cookies (names)
+## Checkout and order security
 
-| Cookie | Can JS read it? | Where it is sent |
-|---|---|---|
-| `access_token` | no | whole site |
-| `refresh_token` | no | only `/api/auth` (refresh and logout) |
-| `csrf_token` | **yes** | whole site (so the site can copy it into a header) |
+| Attack | Defense |
+|--------|---------|
+| Fake `unitPrice` in browser | Client sends `productId` + `quantity` only; order-service reads live price from product-service |
+| Double-click place order | `Idempotency-Key` header + unique index `{ userId, idempotencyKey }` |
+| Fake `userId` in body | Ignored — identity from JWT `sub` only |
+| Non-admin edits catalog | `@Roles('admin')` on write routes |
 
-On your laptop, `COOKIE_SECURE=false` (HTTP). On HTTPS, set it `true`.
+Also: `helmet()`, `ValidationPipe` (whitelist + forbid extra fields), bcrypt passwords, env validation stricter in production.
 
-## Who may call you (CORS)
+---
 
-Only listed website URLs (`CORS_ORIGIN`). In production you cannot use “allow everyone” (`*`). That stops a random page in the browser from calling your API with the shopper’s cookies. It does **not** stop Postman or a script that already has a Bearer token — those are not browser CORS.
+## What needs login?
 
-## What needs a login?
+| Area | Public | Needs login |
+|------|--------|-------------|
+| Products, categories, storefront GET | Yes | Admin writes |
+| Cart API | — | Always (keyed by user id) |
+| Cart on website | Guest view in browser | Merge on sign-in |
+| Orders | — | Own orders; admin sees all |
+| Health | `/api/health/live`, `/ready` | — |
 
-| | No login | Login needed |
-|---|---|---|
-| Users | register, login, refresh | my profile, logout |
-| Products | list, get one, storefront get | create / edit / delete **admin** |
-| Categories | list, get one | create / edit / delete **admin** |
-| Storefront | get, files | patch, upload, banners **admin** |
-| Stock | list, get one | set amount **admin** |
-| Cart (API) | — | everything (the cart row is keyed by user id) |
-| Cart (shop site) | add / view as a guest | sign-in copies the guest bag onto the API cart |
-| Orders | — | shopper: own orders. **admin**: `GET /orders/admin` |
-| Health | `/api/health/live` and `/ready` | — |
+---
 
-Looking at products does **not** need a pass. To test logout, use “my profile” or “refresh”, not “get product”.
-
-## Step by step
-
-1. Register or login. Cookies are set. JSON shows tokens only if you asked with `X-Auth-Response: tokens`.
-2. Call APIs with the access pass (header or cookie).
-3. When access expires, `POST /api/auth/refresh`. You get a **new access and a new refresh**. The old refresh stops working.
-4. Logout clears the stored refresh and cookies.
-
-## Try it (curl — need Mongo + user-service)
+## Try it (curl)
 
 ```bash
+# Register (needs phone + address)
 curl -X POST http://localhost:3000/api/users \
   -H 'Content-Type: application/json' \
   -H 'X-Auth-Response: tokens' \
   -d '{"email":"ada@example.com","name":"Ada","password":"secret12","phone":"5550100","address":{"line1":"123 Market St","city":"San Francisco","region":"CA","postalCode":"94103","country":"US"}}'
-```
 
-Password at least 8 characters. New accounts also need **phone** and **address**. Same email twice → **409**. An older test user may still log in without those fields; checkout will ask for them.
-
-```bash
+# Login
 curl -X POST http://localhost:3000/api/auth/login \
   -H 'Content-Type: application/json' \
   -H 'X-Auth-Response: tokens' \
   -d '{"email":"ada@example.com","password":"secret12"}'
 ```
 
-```bash
-ACCESS=...
-REFRESH=...
+Use `$ACCESS` as `Authorization: Bearer $ACCESS` for cart/orders. Refresh with `POST /api/auth/refresh` and body `{ "refreshToken": "$REFRESH" }`.
 
-curl -i http://localhost:3000/api/users/me
-curl http://localhost:3000/api/users/me -H "Authorization: Bearer $ACCESS"
+---
 
-curl -X POST http://localhost:3000/api/auth/refresh \
-  -H 'Content-Type: application/json' \
-  -H 'X-Auth-Response: tokens' \
-  -d "{\"refreshToken\":\"$REFRESH\"}"
+## How to explain this in an interview
 
-curl -X POST http://localhost:3000/api/auth/logout \
-  -H "Authorization: Bearer $ACCESS"
-```
+**Can Postman hack the API?**  
+“Only with a valid token or password — same as any HTTP client. Postman is not special access; leaking the token is the risk. The shop uses HttpOnly cookies so JavaScript never holds tokens.”
 
-Same `$ACCESS` on profile can still work until it expires. Old `$REFRESH` should fail.
+**How do you stop price tampering?**  
+“order-service calls product-service at checkout. The browser never sends `unitPrice`.”
 
-```bash
-curl http://localhost:3003/api/carts -H "Authorization: Bearer $ACCESS"
-```
+**How do you stop double orders?**  
+“Optional `Idempotency-Key` header plus a unique Mongo index per user. Retries return the same order.”
+
+**Session or JWT?**  
+“JWT in HttpOnly cookies so all five services can verify locally. Redis only for logout denylist and rate limits — not a full session store.”
+
+**Is it bank-grade secure?**  
+“Solid MVP patterns. Gaps: no payments/PCI, no WAF, Redis fail-open on outage. See roadmap.”

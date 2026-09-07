@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { shopPath, type Category, type HeroBanner as HeroData } from '@/api';
+import { brandImage } from '@/lib/brandImage';
 import { Button } from './Button';
 
 type HeroBannerProps = {
@@ -12,15 +13,11 @@ export function HeroBanner({ hero, eyebrow, homeCategory }: HeroBannerProps) {
   return (
     <section
       className="overflow-hidden rounded-2xl bg-zinc-950 px-6 py-14 text-white sm:px-10 sm:py-20"
-      style={
-        hero?.imageUrl
-          ? {
-              backgroundImage: `linear-gradient(rgba(9,9,11,.72), rgba(9,9,11,.72)), url(${hero.imageUrl})`,
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
-            }
-          : undefined
-      }
+      style={{
+        backgroundImage: `linear-gradient(rgba(9,9,11,.72), rgba(9,9,11,.72)), url(${brandImage(hero?.imageUrl, 'hero')})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+      }}
     >
       <p className="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-400">
         {eyebrow}

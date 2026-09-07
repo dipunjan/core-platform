@@ -26,8 +26,8 @@ export function ShopPage() {
   const list = filterProducts(products, filters);
   const title = category?.name ?? (filters.q ? 'Search results' : 'All products');
   const blurb = filters.q
-    ? `Showing matches for “${filters.q}”.`
-    : (category?.blurb ?? 'Search, filter by category or price, and sort below.');
+    ? `${list.length} result${list.length === 1 ? '' : 's'} for “${filters.q}”.`
+    : (category?.blurb ?? 'Refine with category, price, or sort.');
 
   return (
     <>

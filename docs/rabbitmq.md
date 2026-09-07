@@ -1,101 +1,100 @@
-# Messages (RabbitMQ)
+# RabbitMQ — messages and the transactional outbox
 
-The website talks to our programs with normal web requests.
+**For newcomers:** When you place an order, we must (1) save the order in Mongo and (2) tell the stock service to reserve items. If we call Rabbit directly inside the HTTP handler and Rabbit fails, the order exists but stock never moves. The **outbox pattern** fixes that: save order + “please publish this message” row in **one Mongo transaction**; a background worker publishes later.
 
-The programs also talk to **each other**, but not with those same web requests. They leave **notes** in a mailbox called RabbitMQ. The stock program reads those notes and updates how many items are left.
+Redis: [redis.md](redis.md). Full journey: [architecture.md](architecture.md).
 
-On your machine: `docker compose up -d` (Mongo replica set, Redis, Rabbit). Rabbit web UI: http://localhost:15672 (user `guest`, password `guest`). Redis: [redis.md](redis.md). How this sits next to the websites: [architecture.md](architecture.md).
+Local Rabbit UI: http://localhost:15672 (`guest` / `guest`).
 
-## Why a mailbox?
+---
 
-If the **order** program called the **stock** program directly:
+## Why a message broker?
 
-- placing an order would fail whenever stock is restarting
-- the customer would wait for stock on the same click
+**Bad:** order-service HTTP-calls inventory-service during checkout.
 
-With a mailbox:
+- Checkout fails if stock service is down.
+- Customer waits on the same click.
 
-- the order is saved first (totals priced on the server)
-- a note “order created” reaches the box reliably (see **outbox** below)
-- stock reads it when it can (usually within a couple of seconds)
+**Good:** order-service saves the order, drops a note in RabbitMQ, returns. inventory-service reads the note when ready (~2 seconds).
 
-The order exists a tiny moment before stock is held. That is OK for this shop.
+There is a small window: order exists before stock is reserved. Acceptable for this demo; tighter systems use reserve-before-commit (saga) — [roadmap.md](roadmap.md).
 
-## Transactional outbox (orders)
+---
 
-**Problem:** if we saved the order in Mongo and then called Rabbit in the same HTTP handler, Rabbit could fail after the order was already committed — stock would never move.
-
-**Fix:** order-service writes the order **and** an `outbox` row in **one Mongo transaction**. A background **relay** (every ~2s, `OUTBOX_POLL_MS`) reads unpublished rows, publishes to Rabbit (with 3 retries per attempt), then sets `publishedAt`.
+## Transactional outbox (orders only)
 
 ```
-  POST /orders
-       │
-       ▼
-  Mongo transaction
-    ├── insert order
-    └── insert outbox row (routing key + payload)
-       │
-       ▼  (HTTP returns — customer sees order)
-  Outbox relay (background)
-       │
-       ▼
-  RabbitMQ → inventory reserves stock
+POST /orders
+     │
+     ▼
+Mongo transaction (atomic)
+  ├── insert order document
+  └── insert outbox row (event payload + routing key)
+     │
+     ▼  HTTP returns — shopper sees "order placed"
+Outbox relay (every ~2s, OUTBOX_POLL_MS)
+     │
+     ▼
+RabbitMQ publish (3 retries per attempt)
+     │
+     ▼
+inventory-service reserves stock
+     │
+     ▼
+outbox row marked publishedAt
 ```
 
-If Rabbit is down, outbox rows stay in Mongo and the relay keeps trying. If the API restarts, nothing is lost.
+- Rabbit down? Rows stay in Mongo; relay retries.
+- API restarts? Nothing lost.
+- Product/user events still publish **directly** (lower risk). Only orders use outbox today.
 
-Product and user events still publish directly (lower risk). Only **order created / cancelled** use the outbox today.
+---
 
-## What notes we send
+## Events
 
-| Note | Who writes it | Who reads it | What happens |
-|---|---|---|---|
-| product created | product program | stock | creates a stock row, amount 0 |
-| order created | order program (outbox relay) | stock | holds (reserves) the items |
-| order cancelled | order program (outbox relay) | stock | puts the items back |
-| user created / updated | user program | nobody yet | later you could send a welcome email |
+| Event | Publisher | Consumer | Effect |
+|-------|-----------|----------|--------|
+| `PRODUCT_CREATED` | product-service | inventory | Create stock row (qty 0) |
+| `ORDER_CREATED` | order-service (relay) | inventory | Increase `reserved` |
+| `ORDER_CANCELLED` | order-service (relay) | inventory | Decrease `reserved` |
+| `USER_CREATED` | user-service | none yet | Future: welcome email |
 
-The cart program does not listen. It does not need these notes.
+cart-service does not listen to Rabbit.
 
-## Important: start stock first
+---
 
-If you create a product **before** the stock program has ever started, the note has nowhere to sit and is **thrown away**. So in a demo, start inventory-service first. After it has started once, the mailbox (queue) exists and notes wait.
+## Idempotency and DLQ
 
-If handling a note **crashes**, the note goes to a “failed” box: `core-platform.dlq` in the Rabbit web UI. We do not retry forever.
+- **Duplicate delivery:** inventory handler checks “already reserved?” — safe to run twice.
+- **Poison message:** goes to dead-letter queue `core-platform.dlq` — not infinite retry.
+- **Start inventory first:** if product is created before inventory ever ran, `PRODUCT_CREATED` may be lost (queue did not exist). Demo tip: start inventory-service before creating products.
 
-If the program dies **before** it says “I got it”, the note is given again. Stock updates are written so doing them twice is safe.
-
-## Picture
-
-```
-  You place an order
-        │
-        ▼
-  order + outbox saved together (Mongo)
-        │
-        ▼
-  relay publishes “order created”
-        │
-        ▼
-  RabbitMQ (the mailbox)
-        │
-        ▼
-  stock program reads the note
-        │
-        ▼
-  stock numbers go up in “reserved”
-```
+---
 
 ## Try it
 
-Need a login pass ([security](security.md)). Start Mongo (`docker compose up -d` — wait for replica set), Rabbit, **inventory**, then product and orders.
+1. Rabbit UI → Queues → names like `inventory.*` and `core-platform.dlq`.
+2. Create product → set stock to 50.
+3. Place order for 2 → `reserved` becomes 2 (~2s delay).
+4. Cancel order → `reserved` drops.
 
-1. Open http://localhost:15672 → Queues. You should see names starting with `inventory.` and `core-platform.dlq`.
+---
 
-2. Create a product (need access pass). Then get stock for that product id. Amount should be 0. Then set amount to 50.
+## How to explain this in an interview
 
-3. Place an order for 2 of that product. Stock “reserved” should become 2 (may take ~2s for the outbox relay).
+**Why RabbitMQ?**  
+“Decouple checkout from stock. Order HTTP stays fast; inventory catches up async.”
 
-4. Cancel the order. Reserved should go back down.
+**Why transactional outbox?**  
+“Order commit and ‘publish event’ must not split. If Rabbit fails after Mongo commit without outbox, stock never updates. Outbox + relay fixes that.”
 
-If you stop inventory, create a product, then start inventory — that product may have **no** stock row. The note was lost. Start inventory first next time.
+**How prevent overselling?**  
+“Reserve on ORDER_CREATED. Small race before reserve — mention saga as upgrade.”
+
+**What if the same message arrives twice?**  
+“Idempotent inventory handler — check before incrementing reserved.”
+
+**What if handling crashes?**  
+“Message goes to DLQ after failures; we don’t loop forever.”
+
+Future: outbox on all publishers, dedicated relay worker — [roadmap.md](roadmap.md).

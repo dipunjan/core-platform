@@ -1,5 +1,6 @@
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useAuth, useStorefront, siteName, useSiteBranding } from '@/hooks';
+import { brandImage } from '@/lib/brandImage';
 import { Button } from '@/components/ui';
 
 const item = ({ isActive }: { isActive: boolean }) =>
@@ -12,7 +13,7 @@ export function Layout() {
   const { storefront } = useStorefront();
   const { pathname } = useLocation();
   const name = siteName(storefront);
-  const logo = storefront?.logoUrl || '/swoop-logo.png';
+  const logo = brandImage(storefront?.logoUrl, 'logo');
 
   useSiteBranding(storefront);
 

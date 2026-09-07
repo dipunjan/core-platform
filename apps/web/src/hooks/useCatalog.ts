@@ -16,7 +16,6 @@ export function useCatalog() {
   const loadCatalog = useCallback(() => {
     void dispatch(fetchProducts());
     void dispatch(fetchCategories());
-    void dispatch(fetchStorefront());
   }, [dispatch]);
 
   const loadStorefront = useCallback(() => {

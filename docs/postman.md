@@ -4,6 +4,8 @@ Postman is a clickable tool to call the APIs **without the shop website**. Use i
 
 The shop (http://localhost:5173) uses **cookies**. Postman uses **Bearer tokens** (same login, different envelope). Why that is not a free pass for strangers: [security.md](security.md). How the website is built: [frontend.md](frontend.md).
 
+**HTTP codes and 304:** [performance.md](performance.md).
+
 ## Before you start
 
 1. Run Docker (Mongo + Redis + Rabbit) and all five programs. See the main [README](../README.md).
@@ -52,3 +54,15 @@ Treat saved tokens like a password. Don’t commit the environment file if it ha
 - Access pass older than ~15 minutes → run **Refresh**
 - You put the refresh pass in Authorization — that always fails. Refresh goes in the **JSON body**
 - Login without `X-Auth-Response: tokens` — body has no tokens, so nothing was saved
+
+## Status codes in Postman
+
+| Code | Meaning |
+|------|---------|
+| 200 | Success — you got JSON (or empty body for DELETE). |
+| 304 | **Not an error.** “Nothing changed since last time.” Postman may show this if you repeat a GET with caching on. Ignore it or disable cache in Postman. The shop browser uses 304 more often. |
+| 401 | Not logged in or token expired → Login or Refresh. |
+| 403 | CSRF (browser only) or not admin. Postman Bearer calls usually skip CSRF. |
+| 429 | Too many requests — wait a minute (login/checkout limits). |
+
+Full list and why APIs feel slow after restart: [performance.md](performance.md).

@@ -91,3 +91,5 @@ This repo includes a React shop in `apps/web` for local use. On the internet you
 - Place an order → reserved count goes up
 
 If login cookies fail, check: http mixed with https, wrong website in `CORS_ORIGIN`, front door dropping `Set-Cookie`, or the website not sending `credentials: 'include'`. Why cookies vs Bearer: [security.md](security.md).
+
+What is **not** in this deploy guide (payments, observability): [roadmap.md](roadmap.md).

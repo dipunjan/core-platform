@@ -37,35 +37,22 @@ export function ShopFilters({ categories, filters, resultCount }: Props) {
   const navigate = useNavigate();
   const [minDraft, setMinDraft] = useState(() => majorUnits(filters.minPrice));
   const [maxDraft, setMaxDraft] = useState(() => majorUnits(filters.maxPrice));
-  const [searchDraft, setSearchDraft] = useState(() => filters.q ?? '');
 
   useEffect(() => {
     setMinDraft(majorUnits(filters.minPrice));
     setMaxDraft(majorUnits(filters.maxPrice));
-    setSearchDraft(filters.q ?? '');
-  }, [filters.minPrice, filters.maxPrice, filters.q]);
+  }, [filters.minPrice, filters.maxPrice]);
 
   function apply(next: ShopFilterState) {
     navigate(buildShopUrl(next));
   }
 
   return (
-    <Card padding="sm" className="h-fit lg:sticky lg:top-24">
+    <Card padding="sm" className="h-fit lg:sticky lg:top-36">
       <div className="mb-4 flex items-baseline justify-between gap-2">
-        <h2 className="text-sm font-semibold text-zinc-900">Filter & sort</h2>
+        <h2 className="text-sm font-semibold text-zinc-900">Filters</h2>
         <span className="text-xs text-zinc-500">{resultCount} items</span>
       </div>
-
-      <Field
-        label="Search"
-        type="search"
-        placeholder="Name, description, SKU…"
-        value={searchDraft}
-        onChange={(event) => setSearchDraft(event.target.value)}
-        onBlur={() => {
-          apply({ ...filters, q: searchDraft.trim() || undefined });
-        }}
-      />
 
       <SelectField
         label="Category"

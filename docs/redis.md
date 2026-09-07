@@ -1,40 +1,91 @@
-# Redis
+# Redis — shared memory (not the database)
 
-Redis is a **fast shared memory** the five APIs all talk to. It is **not** the shop database.
+**For newcomers:** Redis is like a very fast sticky note board all five APIs share. It remembers things for **seconds or minutes** — rate limit counters, “this logged-out token is dead,” and copies of the product catalog. If Redis restarts, you lose those notes. You do **not** lose orders, carts, or users — those live in **MongoDB**.
 
-Mongo still owns users, products, carts, orders, and stock. RabbitMQ still carries “something happened” notes. Redis holds things that are **short-lived**, **shared across processes**, and **OK to lose** (they rebuild).
+Local: `docker compose up -d` → port **6379**. Each API `.env`: `REDIS_URL=redis://localhost:6379`. Health: `/api/health/ready` pings Redis.
 
-Local: `docker compose up -d` starts Redis on **6379**. Each API `.env` has `REDIS_URL=redis://localhost:6379`. `/api/health/ready` pings Redis.
+Browser HTTP cache (**304**) is a different thing — [performance.md](performance.md).
 
-## When we use it (and why)
+---
 
-| Use | Where | Why Redis | What goes wrong without it |
-|---|---|---|---|
-| **Login / request rate limits** | All APIs (`ThrottlerGuard`) | Counters must be **one bucket** for every instance of every service | In-memory limits reset on restart. Five processes = five times the guesses. A brute-force login could rotate across ports. Uses Redis `MULTI` (incr + pttl) so counts stay consistent under concurrency. |
-| **Logout of the access JWT** | user-service writes; every API reads (`JwtAuthGuard`) | A JWT is valid until `exp`. Mongo can kill **refresh**, but cart/orders never see that row | After logout the short pass still worked for ~15 minutes. Redis stores a **denylist** key until that pass would have expired. |
-| **Catalog / storefront cache** | product-service public GETs | Home and shop hit the same lists constantly | Extra Mongo load. Cache TTL is ~45s. Writes **bump a generation** so old keys are ignored. |
+## Three jobs Redis does in swoop
 
-## When we do **not** use it
+### 1. Rate limits (all five APIs)
+
+Every request hits `ThrottlerGuard` → Redis `MULTI` (increment + check TTL).
+
+| Endpoint | Limit |
+|----------|-------|
+| Login / register | 5 per minute |
+| Refresh | 10 per minute |
+| Checkout | 10 per minute |
+| Other requests | 120 per minute (default) |
+
+**Why Redis?** If each API kept its own counter in memory, five processes = five times the allowed guesses. Redis = **one bucket** for all instances.
+
+**If Redis is down:** limits **fail open** (requests allowed). Shop stays up; login is easier to hammer.
+
+### 2. Logout denylist (all APIs read; user-service writes)
+
+A JWT access token is valid until `exp` (~15 min) even after logout — unless we remember it is dead.
+
+On logout: hash the access token → Redis key until `exp`.
+
+**If Redis is down:** denylist **fail open** — logged-out token may work until natural expiry.
+
+### 3. Catalog cache (product-service only)
+
+Public GETs for products, categories, storefront:
+
+- Check Redis first (~**45 second** TTL).
+- Admin writes **bump a generation number** — old cache keys ignored instantly.
+- Keys look like `swoop:catalog:<gen>:products:all:0`.
+
+**If Redis is down:** reads go straight to Mongo (slower, still correct).
+
+---
+
+## What we deliberately do NOT put in Redis
 
 | Tempting idea | Why not |
-|---|---|
-| **Source of truth for carts or orders** | Flush Redis (or a restart without AOF) would empty someone’s bag or lose a purchase. Those stay in Mongo. Guest cart stays in the **browser** until login. |
-| **Stock / reserved quantity** | A missed key looks like “infinite stock” or “none left.” Inventory stays in Mongo; RabbitMQ updates it. Redis is a cache, not a ledger. |
-| **Classic server session as the only login** | That would force **every** API to call Redis on every request just to know who you are. JWTs let each API check `JWT_SECRET` itself. Redis only stores “this access pass was logged out.” |
-| **Permanent product records** | Same as carts: Mongo is the catalog. Redis is a **copy** that expires. |
+|---------------|---------|
+| Carts | Losing Redis would empty bags — Mongo is truth |
+| Orders | Same — money data must survive Redis restart |
+| Stock counts | Wrong count = oversell or false “out of stock” — Mongo + Rabbit |
+| Full session store | JWT lets each API verify without Redis on every auth check |
 
-## Issues Redis does **not** fix
+Guest cart lives in the **browser** until login — [architecture.md](architecture.md).
 
-- **Wrong CORS / CSRF** — still a browser/cookie problem.
-- **RabbitMQ down** — orders still save; stock still will not reserve until the note is read. Redis does not replace the mailbox.
-- **Stale shop UI for ~45 seconds** after an admin edits a product — that is the cache TTL. Bump on write avoids *long* staleness; it does not make Mongo+Redis a single atomic view.
-- **If Redis is down** — health/ready shows Redis `down`. Rate limits **fail open** (requests pass). Denylist **fail open** (a logged-out access pass may work until it expires, like before). Catalog reads go straight to Mongo. The shop still runs; logout is less sharp and login is easier to hammer.
+---
 
-## Keys (prefix `swoop:`)
+## Key names (prefix `swoop:`)
 
-- `swoop:throttle:…` — hit counters
-- `swoop:deny:<sha256 of access token>` — logged-out access pass
-- `swoop:catalog:<generation>:<name>` — product/category/storefront JSON
-- `swoop:catalog:gen` — incremented on catalog writes
+| Key pattern | Purpose |
+|-------------|---------|
+| `swoop:throttle:…` | Rate limit counters |
+| `swoop:deny:<sha256>` | Revoked access JWT |
+| `swoop:catalog:gen` | Generation counter |
+| `swoop:catalog:<gen>:<name>` | Cached JSON blob |
 
-Do not store passwords or raw refresh tokens in Redis. Refresh stays **hashed in Mongo**.
+Never store plain passwords or raw refresh tokens in Redis.
+
+---
+
+## How to explain this in an interview
+
+**Why Redis?**  
+“Three shared concerns across five processes: rate limits, logout denylist, and short catalog cache. Not a second database.”
+
+**Is Redis the source of truth?**  
+“No. Mongo is. Redis is OK to lose — it rebuilds from Mongo or counters reset.”
+
+**Why not cache carts in Redis?**  
+“If Redis flushed, we would not want empty carts or lost orders. Catalog cache is safe to lose for 45 seconds; money data is not.”
+
+**Redis down — what happens?**  
+“Health may report down. Throttle and denylist fail open for availability. Catalog hits Mongo. Documented tradeoff.”
+
+**Session vs Redis here?**  
+“We use JWT cookies for identity. Redis is a helper for throttle and logout — not ‘who is logged in’ on every request.”
+
+Future improvements: [roadmap.md](roadmap.md).

@@ -77,12 +77,10 @@ export class UpdateStorefrontDto {
 
   @IsOptional()
   @IsString()
-  @MinLength(1)
   logoUrl?: string;
 
   @IsOptional()
   @IsString()
-  @MinLength(1)
   faviconUrl?: string;
 
   @IsOptional()

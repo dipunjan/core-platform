@@ -4,10 +4,10 @@
 
 :root {
   --bs-body-font-family: 'DM Sans', system-ui, sans-serif;
-  --bs-primary: #10b981;
-  --bs-primary-rgb: 16, 185, 129;
-  --bs-link-color: #059669;
-  --bs-link-hover-color: #047857;
+  --bs-primary: #2563eb;
+  --bs-primary-rgb: 37, 99, 235;
+  --bs-link-color: #2563eb;
+  --bs-link-hover-color: #1d4ed8;
   --bs-border-radius: 0;
   --bs-border-radius-sm: 0;
   --bs-border-radius-lg: 0;
@@ -20,7 +20,7 @@
   --admin-sidebar-hover: #27272a;
   --admin-canvas: #f4f4f5;
   --admin-surface: #ffffff;
-  --admin-accent: #34d399;
+  --admin-accent: #60a5fa;
   --admin-shadow: none;
 }
 
@@ -46,8 +46,8 @@ body {
 .btn-primary:hover,
 .btn-primary:focus,
 .btn-primary:active {
-  background: #059669;
-  border-color: #059669;
+  background: #1d4ed8;
+  border-color: #1d4ed8;
 }
 
 .btn-outline-secondary {
@@ -77,8 +77,8 @@ body {
 }
 
 .admin-panel-edit {
-  background: #f0fdf4;
-  border-color: rgb(16 185 129 / 0.35) !important;
+  background: #eff6ff;
+  border-color: rgb(37 99 235 / 0.35) !important;
 }
 
 .admin-table-card {
@@ -121,7 +121,7 @@ body {
 }
 
 .admin-sidebar-badge {
-  background: rgb(16 185 129 / 0.15);
+  background: rgb(37 99 235 / 0.15);
   border-radius: 0;
   color: var(--admin-accent);
   display: inline-block;
@@ -161,7 +161,7 @@ body {
 }
 
 .admin-sidebar .nav-link.active {
-  background: rgb(16 185 129 / 0.18);
+  background: rgb(37 99 235 / 0.18);
   box-shadow: inset 3px 0 0 var(--admin-accent);
   color: #fff;
 }
@@ -254,7 +254,7 @@ body {
 }
 
 .stat-card--active {
-  background: #059669;
+  background: #2563eb;
 }
 
 .stat-card--revenue {
@@ -307,7 +307,7 @@ body {
 }
 
 .card-hover:hover {
-  border-color: rgb(16 185 129 / 0.35) !important;
+  border-color: rgb(37 99 235 / 0.35) !important;
   box-shadow: none;
   transform: none;
 }
@@ -327,7 +327,7 @@ body {
 .form-control:focus,
 .form-select:focus {
   box-shadow: none;
-  outline: 2px solid rgb(16 185 129 / 0.35);
+  outline: 2px solid rgb(37 99 235 / 0.35);
   outline-offset: 0;
 }
 

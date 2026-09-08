@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { docId } from '@/api';
-import { CategoryGrid, ProductCard } from '@/components';
+import { CategoryRail, ProductCard } from '@/components';
 import {
   EmptyState,
   Flash,
@@ -42,7 +42,7 @@ export function HomePage() {
       ) : null}
       <PromoGrid banners={extras} />
       <Section title="Shop by category">
-        <CategoryGrid categories={categories} loading={loading} />
+        <CategoryRail categories={categories} />
       </Section>
       <Section
         title="Featured"

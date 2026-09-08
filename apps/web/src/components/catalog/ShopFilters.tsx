@@ -1,131 +1,32 @@
-import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { Category } from '@/api';
-import {
-  buildShopUrl,
-  SHOP_SORT_OPTIONS,
-  type ShopFilters as ShopFilterState,
-} from '@/lib/shopFilters';
-import { Button, Card, Field, SelectField } from '@/components/ui';
+import { buildShopUrl, type ShopFilters as ShopFilterState } from '@/lib/shopFilters';
+import { Card } from '@/components/ui';
+import { ShopFiltersPanel } from './ShopFiltersPanel';
 
 type Props = {
   categories: Category[];
   filters: ShopFilterState;
-  resultCount: number;
+  className?: string;
 };
 
-function majorUnits(cents: number | undefined) {
-  if (cents == null) {
-    return '';
-  }
-  return String(cents / 100);
-}
-
-function toCents(raw: string): number | undefined {
-  const trimmed = raw.trim();
-  if (!trimmed) {
-    return undefined;
-  }
-  const value = Number(trimmed);
-  if (!Number.isFinite(value) || value < 0) {
-    return undefined;
-  }
-  return Math.round(value * 100);
-}
-
-export function ShopFilters({ categories, filters, resultCount }: Props) {
+export function ShopFilters({ categories, filters, className = '' }: Props) {
   const navigate = useNavigate();
-  const [minDraft, setMinDraft] = useState(() => majorUnits(filters.minPrice));
-  const [maxDraft, setMaxDraft] = useState(() => majorUnits(filters.maxPrice));
-
-  useEffect(() => {
-    setMinDraft(majorUnits(filters.minPrice));
-    setMaxDraft(majorUnits(filters.maxPrice));
-  }, [filters.minPrice, filters.maxPrice]);
 
   function apply(next: ShopFilterState) {
     navigate(buildShopUrl(next));
   }
 
   return (
-    <Card
-      padding="sm"
-      className="shop-filters-sidebar"
-    >
-      <div className="d-flex align-items-baseline justify-content-between gap-2 mb-3">
-        <h2 className="small fw-semibold mb-0">Filters</h2>
-        <span className="text-muted" style={{ fontSize: '0.75rem' }}>
-          {resultCount} items
-        </span>
-      </div>
-
-      <SelectField
-        label="Category"
-        value={filters.category ?? ''}
-        onChange={(event) => {
-          const category = event.target.value || undefined;
-          apply({ ...filters, category });
-        }}
-      >
-        <option value="">All categories</option>
-        {categories.map((category) => (
-          <option key={category.slug} value={category.slug}>
-            {category.name}
-          </option>
-        ))}
-      </SelectField>
-
-      <Field
-        label="Min price"
-        type="number"
-        min={0}
-        step={0.01}
-        placeholder="0"
-        value={minDraft}
-        onChange={(event) => setMinDraft(event.target.value)}
-        onBlur={() => {
-          apply({ ...filters, minPrice: toCents(minDraft) });
-        }}
+    <Card padding="sm" className={`shop-filters-sidebar ${className}`.trim()}>
+      <h2 className="shop-filters-heading mb-3">Filters</h2>
+      <ShopFiltersPanel
+        categories={categories}
+        filters={filters}
+        onApply={apply}
+        onClear={() => navigate('/shop')}
+        showSort={false}
       />
-
-      <Field
-        label="Max price"
-        type="number"
-        min={0}
-        step={0.01}
-        placeholder="Any"
-        value={maxDraft}
-        onChange={(event) => setMaxDraft(event.target.value)}
-        onBlur={() => {
-          apply({ ...filters, maxPrice: toCents(maxDraft) });
-        }}
-      />
-
-      <SelectField
-        label="Sort by"
-        value={filters.sort}
-        onChange={(event) => {
-          apply({
-            ...filters,
-            sort: event.target.value as ShopFilterState['sort'],
-          });
-        }}
-      >
-        {SHOP_SORT_OPTIONS.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </SelectField>
-
-      <Button
-        type="button"
-        variant="secondary"
-        className="w-100"
-        onClick={() => navigate('/shop')}
-      >
-        Clear filters
-      </Button>
     </Card>
   );
 }

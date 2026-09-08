@@ -1,12 +1,11 @@
 const ACCENTS = [
-  '#047857',
-  '#0f766e',
-  '#0e7490',
-  '#6d28d9',
-  '#be185d',
-  '#c2410c',
-  '#a16207',
-  '#4338ca',
+  '#2563eb',
+  '#7c3aed',
+  '#db2777',
+  '#ea580c',
+  '#ca8a04',
+  '#0891b2',
+  '#4f46e5',
 ];
 
 export function categoryAccent(slug: string) {

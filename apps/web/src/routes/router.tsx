@@ -1,11 +1,11 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { GuestRoute, Layout, ProtectedRoute, RouteError } from '@/components';
 import {
+  AccountPage,
   CartPage,
   CheckoutPage,
   HomePage,
   LoginPage,
-  OrdersPage,
   ProductPage,
   RegisterPage,
   ShopPage,
@@ -37,7 +37,8 @@ export const router = createBrowserRouter([
                 element: <ProtectedRoute />,
                 children: [
                   { path: '/checkout', element: <CheckoutPage /> },
-                  { path: '/orders', element: <OrdersPage /> },
+                  { path: '/account', element: <AccountPage /> },
+                  { path: '/orders', element: <Navigate to="/account?tab=orders" replace /> },
                 ],
               },
               { path: '*', element: <Navigate to="/" replace /> },

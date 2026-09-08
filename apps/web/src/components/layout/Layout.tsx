@@ -14,6 +14,7 @@ export function Layout() {
   const { storefront } = useCatalog();
   const { pathname } = useLocation();
   const shopOn = pathname === '/shop' || pathname.startsWith('/shop/');
+  const accountOn = pathname === '/account' || pathname.startsWith('/account/');
   const cartCount =
     cart?.items.reduce((sum, item) => sum + item.quantity, 0) ?? 0;
   const logo = brandImage(storefront?.logoUrl, 'logo');
@@ -48,8 +49,8 @@ export function Layout() {
                 Cart{cartCount ? ` (${cartCount})` : ''}
               </NavLink>
               {user ? (
-                <NavLink to="/orders" className={navLinkClass}>
-                  Orders
+                <NavLink to="/account" className={navLinkClass({ isActive: accountOn })}>
+                  Account
                 </NavLink>
               ) : null}
             </div>
@@ -114,7 +115,7 @@ export function Layout() {
               <div className="d-flex flex-column gap-1 small">
                 <Link to="/shop">All products</Link>
                 <Link to="/cart">Your cart</Link>
-                {user ? <Link to="/orders">Orders</Link> : null}
+                {user ? <Link to="/account">Account</Link> : null}
               </div>
             </div>
             <div className="col-md-3">

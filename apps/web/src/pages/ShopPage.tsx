@@ -1,19 +1,27 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Navigate, useParams, useSearchParams } from 'react-router-dom';
+import { Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { docId } from '@/api';
-import { ProductCard, ShopFilters } from '@/components';
+import { ProductCard, ShopFilterChips, ShopFilters, ShopFiltersPanel } from '@/components';
 import {
+  Button,
   EmptyState,
   Flash,
   PageHeader,
   PageLoader,
   ProductGrid,
+  SelectField,
 } from '@/components/ui';
-import { activeFilterCount, parseShopFilters } from '@/lib/shopFilters';
+import {
+  activeFilterCount,
+  buildShopUrl,
+  parseShopFilters,
+  SHOP_SORT_OPTIONS,
+} from '@/lib/shopFilters';
 import { SEARCH_MIN_CHARS } from '@/lib/search';
 import { useShop } from '@/hooks/useShop';
 
 export function ShopPage() {
+  const navigate = useNavigate();
   const { category: slug } = useParams<{ category?: string }>();
   const [searchParams] = useSearchParams();
   const filters = useMemo(
@@ -57,19 +65,60 @@ export function ShopPage() {
 
   const showEmpty =
     !error && !loading && !qTooShort && products.length === 0;
+  const filterCount = activeFilterCount(filters);
+
+  function applyFilters(next: typeof filters) {
+    navigate(buildShopUrl(next));
+  }
 
   return (
     <>
       <PageHeader eyebrow="Shop" title={title} description={blurb} />
-      <div className="row g-4">
-        <div className="col-lg-auto">
-          <ShopFilters
-            categories={categories}
-            filters={filters}
-            resultCount={products.length}
-          />
+
+      <div className="shop-toolbar d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
+        <p className="shop-result-count mb-0">
+          {qTooShort ? '—' : `${products.length} items`}
+        </p>
+        <div className="d-flex flex-wrap align-items-center gap-2">
+          <Button
+            type="button"
+            variant="secondary"
+            className="d-lg-none"
+            data-bs-toggle="offcanvas"
+            data-bs-target="#shop-filters-drawer"
+          >
+            Filters{filterCount > 0 ? ` (${filterCount})` : ''}
+          </Button>
+          <div className="shop-toolbar-sort">
+            <SelectField
+              label="Sort"
+              labelClassName="shop-toolbar-sort-label"
+              className="mb-0 shop-toolbar-sort-field"
+              value={filters.sort}
+              onChange={(event) => {
+                applyFilters({
+                  ...filters,
+                  sort: event.target.value as typeof filters.sort,
+                });
+              }}
+            >
+              {SHOP_SORT_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </SelectField>
+          </div>
         </div>
-        <div className="col">
+      </div>
+
+      <ShopFilterChips filters={filters} categories={categories} />
+
+      <div className="row g-4">
+        <div className="col-lg-3 d-none d-lg-block">
+          <ShopFilters categories={categories} filters={filters} />
+        </div>
+        <div className="col-lg-9">
           <Flash>{error}</Flash>
           <div
             className={loading && !qTooShort ? 'shop-results-loading' : undefined}
@@ -77,7 +126,7 @@ export function ShopPage() {
           >
             {showEmpty ? (
               <EmptyState>
-                {activeFilterCount(filters) > 0
+                {filterCount > 0
                   ? 'No products match these filters.'
                   : 'Nothing in the catalog yet.'}
               </EmptyState>
@@ -93,6 +142,33 @@ export function ShopPage() {
               </ProductGrid>
             )}
           </div>
+        </div>
+      </div>
+
+      <div
+        className="offcanvas offcanvas-start shop-filters-drawer"
+        tabIndex={-1}
+        id="shop-filters-drawer"
+        aria-labelledby="shop-filters-drawer-label"
+      >
+        <div className="offcanvas-header border-bottom">
+          <h2 className="offcanvas-title h6 mb-0" id="shop-filters-drawer-label">
+            Filters
+          </h2>
+          <button
+            type="button"
+            className="btn-close"
+            data-bs-dismiss="offcanvas"
+            aria-label="Close"
+          />
+        </div>
+        <div className="offcanvas-body">
+          <ShopFiltersPanel
+            categories={categories}
+            filters={filters}
+            onApply={applyFilters}
+            onClear={() => navigate('/shop')}
+          />
         </div>
       </div>
     </>

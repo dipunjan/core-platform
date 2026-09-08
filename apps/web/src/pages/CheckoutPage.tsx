@@ -62,7 +62,7 @@ export function CheckoutPage() {
     const ok = await placeOrder(delivery.address);
     setBusy(false);
     if (ok) {
-      navigate('/orders', { state: { orderPlaced: true } });
+      navigate('/account?tab=orders', { state: { orderPlaced: true } });
     }
   }
 

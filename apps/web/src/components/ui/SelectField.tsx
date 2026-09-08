@@ -3,12 +3,14 @@ import { cn } from '@/lib/cn';
 
 export type SelectFieldProps = SelectHTMLAttributes<HTMLSelectElement> & {
   label: string;
+  labelClassName?: string;
   hint?: string;
   error?: string;
 };
 
 export function SelectField({
   label,
+  labelClassName = '',
   id,
   className = '',
   hint,
@@ -22,7 +24,10 @@ export function SelectField({
   const errorId = error ? `${fieldId}-error` : undefined;
   return (
     <div className={cn('mb-3', className)}>
-      <label htmlFor={fieldId} className="form-label fw-semibold">
+      <label
+        htmlFor={fieldId}
+        className={cn('form-label fw-semibold', labelClassName)}
+      >
         {label}
         {required ? (
           <span className="text-danger" aria-hidden="true"> *</span>

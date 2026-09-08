@@ -6,7 +6,7 @@ export function CartPage() {
   const navigate = useNavigate();
   const money = useMoney();
   const { user } = useAuth();
-  const { cart, error, loading, productsById, setQty } = useCart({
+  const { cart, error, loading, mutating, productsById, setQty } = useCart({
     load: true,
   });
 
@@ -50,7 +50,7 @@ export function CartPage() {
                     key={item.productId}
                     item={item}
                     product={productsById.get(item.productId)}
-                    busy={loading}
+                    busy={mutating}
                     onQty={(quantity) => void setQty(item.productId, quantity)}
                   />
                 ))}
@@ -64,7 +64,6 @@ export function CartPage() {
             </p>
             <Button
               type="button"
-              loading={loading}
               onClick={() => {
                 if (user) {
                   navigate('/checkout');

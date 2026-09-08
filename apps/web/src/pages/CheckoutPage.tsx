@@ -14,13 +14,14 @@ import {
 } from '@/components';
 import { useUpdateMeMutation } from '@/query';
 import { useAuth, useCart, useMoney } from '@/hooks';
+import { queryError } from '@/api';
 import { deliverySchema, emptyDeliveryValues, type DeliveryFormValues } from '@/lib/schemas';
 
 export function CheckoutPage() {
   const navigate = useNavigate();
   const updateMe = useUpdateMeMutation();
   const { user, error: authError } = useAuth();
-  const { cart, error, loading, productsById, placeOrder } = useCart({
+  const { cart, error, loading, mutating, productsById, placeOrder } = useCart({
     load: true,
   });
   const money = useMoney();
@@ -67,9 +68,9 @@ export function CheckoutPage() {
     } catch {
       return;
     }
-    const ok = await placeOrder(values.address);
-    if (ok) {
-      navigate('/account?tab=orders', { state: { orderPlaced: true } });
+    const orderId = await placeOrder(values.address);
+    if (orderId) {
+      navigate(`/checkout/pay/${orderId}`);
     }
   }
 
@@ -92,14 +93,14 @@ export function CheckoutPage() {
     <div className="row g-4">
       <div className="col-lg">
         <PageTitle className="mb-4">Checkout</PageTitle>
-        <Flash>{error || authError || updateMe.error?.message}</Flash>
+        <Flash>{error || authError || queryError(updateMe.error)}</Flash>
         <Card as="form" onSubmit={(event) => void handleSubmit(onSubmit)(event)}>
           <h2 className="h5 fw-semibold mb-3">Shipping address</h2>
           <AddressFields register={register} errors={errors} />
           <Button
             type="submit"
             className="w-100"
-            loading={isSubmitting || loading}
+            loading={isSubmitting || mutating}
             loadingLabel="Placing order…"
           >
             Place order

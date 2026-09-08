@@ -18,6 +18,13 @@ export const STORE_CURRENCIES = [
   'AUD',
 ] as const;
 
+export const PAYMENT_PROVIDERS = [
+  'auto',
+  'stripe',
+  'razorpay',
+  'simulate',
+] as const;
+
 export class HeroBannerDto {
   @IsOptional()
   @IsString()
@@ -86,6 +93,18 @@ export class UpdateStorefrontDto {
   @IsOptional()
   @IsIn(STORE_CURRENCIES)
   currency?: (typeof STORE_CURRENCIES)[number];
+
+  @IsOptional()
+  @IsIn(PAYMENT_PROVIDERS)
+  paymentProvider?: (typeof PAYMENT_PROVIDERS)[number];
+
+  @IsOptional()
+  @IsString()
+  stripePublishableKey?: string;
+
+  @IsOptional()
+  @IsString()
+  razorpayKeyId?: string;
 
   @IsOptional()
   @ValidateNested()

@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { apiMessage, docId, http, urls, type Order } from '@/api';
+import { docId, http, urls, type Order } from '@/api';
 import { orderKeys } from './keys';
 
 async function fetchOrders(): Promise<Order[]> {
@@ -30,9 +30,6 @@ export function useCancelOrderMutation() {
       queryClient.setQueryData<Order[]>(orderKeys.list(), (prev) =>
         (prev ?? []).map((order) => (docId(order) === id ? updated : order)),
       );
-    },
-    meta: {
-      errorMessage: (err: unknown) => apiMessage(err, 'Could not cancel'),
     },
   });
 }

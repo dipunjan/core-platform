@@ -1,31 +1,21 @@
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import {
   Badge,
-  Button,
   EmptyState,
   Flash,
   PageLoader,
   PageTitle,
   TextLink,
 } from '@/components';
+import { AddToCart } from '@/components/catalog';
 import { categoryAccent, categoryInitial } from '@/lib/categoryAccent';
 import { useCart, useMoney, useProduct } from '@/hooks';
 
 export function ProductPage() {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
   const { product, inventory, categories, error, loading } = useProduct(id);
-  const { addItem, loading: cartBusy, error: cartError } = useCart();
+  const { error: cartError } = useCart();
   const money = useMoney();
-
-  async function onAdd() {
-    if (!id || outOfStock) {
-      return;
-    }
-    if (await addItem(id, 1)) {
-      navigate('/cart');
-    }
-  }
 
   if (error && !product) {
     return (
@@ -95,15 +85,9 @@ export function ProductPage() {
             </p>
             <div className="product-detail-actions mt-4">
               <Flash>{cartError}</Flash>
-              <Button
-                type="button"
-                loading={cartBusy}
-                loadingLabel="Adding…"
-                disabled={outOfStock}
-                onClick={() => void onAdd()}
-              >
-                {outOfStock ? 'Out of stock' : 'Add to cart'}
-              </Button>
+              {id ? (
+                <AddToCart productId={id} disabled={outOfStock} />
+              ) : null}
             </div>
           </div>
         </div>

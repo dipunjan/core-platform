@@ -2,7 +2,9 @@
 
 Postman is a clickable tool to call the APIs **without the shop website**. Use it to check login, products, cart, and orders.
 
-The shop (http://localhost:5173) uses **cookies**. Postman uses **Bearer tokens** (same login, different envelope). Why that is not a free pass for strangers: [security.md](security.md). How the website is built: [frontend.md](frontend.md).
+The shop (http://localhost:5173) uses **cookies**. Postman uses **Bearer tokens** (same login, different envelope). Why that is not a free pass for strangers: [security.md](security.md). How the website is built (TanStack Query, zod forms): [frontend.md](frontend.md).
+
+Each API also documents routes at **`/api/docs`** (Swagger UI). Use **Authorize → Bearer** with `accessToken` from Login.
 
 **HTTP codes and 304:** [performance.md](performance.md).
 
@@ -41,7 +43,8 @@ Register and Login send `X-Auth-Response: tokens` so the **body includes tokens*
 5. **Inventory → Get by product id** — amount 0, then set amount to 50
 6. **Cart → Add item**
 7. **Orders → Create** — `productId` + `quantity` only (price comes from product-service). Optional header `Idempotency-Key` for safe retries. Include `shippingAddress`; stock “reserved” should go up
-8. **Orders → Cancel** — reserved goes down
+8. **Payments → Checkout** then **Simulate pay** (or use Stripe/Razorpay test keys + webhooks) — order status becomes `paid`
+9. **Orders → Cancel** — reserved goes down (pending orders only)
 
 **Refresh** gives new tokens — keep both. **Logout** last, or the rest of the run has no pass.
 

@@ -17,4 +17,5 @@ export { Section } from './Section';
 export { SelectField } from './SelectField';
 export type { SelectFieldProps } from './SelectField';
 export { Spinner, SpinnerIcon, PageLoader } from './Spinner';
+export { QtyStepper } from './QtyStepper';
 export { TextLink } from './TextLink';

@@ -135,4 +135,4 @@ Use `$ACCESS` as `Authorization: Bearer $ACCESS` for cart/orders. Refresh with `
 “JWT in HttpOnly cookies so all five services can verify locally. Redis only for logout denylist and rate limits — not a full session store.”
 
 **Is it bank-grade secure?**  
-“Solid MVP patterns. Gaps: no payments/PCI, no WAF, Redis fail-open on outage. See roadmap.”
+“Solid MVP patterns: Stripe/Razorpay use hosted fields and webhook signature verification; secrets stay server-side. Gaps: no full PCI audit, no WAF, Redis fail-open on outage. See roadmap.”

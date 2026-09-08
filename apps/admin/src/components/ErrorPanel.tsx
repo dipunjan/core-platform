@@ -1,4 +1,5 @@
 import { isRouteErrorResponse } from 'react-router-dom';
+import { queryError } from '@/api';
 
 type Props = {
   error: unknown;
@@ -10,15 +11,12 @@ export function errorMessage(error: unknown): string {
   if (isRouteErrorResponse(error)) {
     return error.statusText || `Request failed (${error.status})`;
   }
-  if (error instanceof Error) {
-    return error.message;
-  }
-  return 'Something broke.';
+  return queryError(error, 'Something broke.');
 }
 
 export function ErrorPanel({ error, homeHref, homeLabel }: Props) {
   const message = errorMessage(error);
-  const offline = /failed to fetch|network error|err_connection|econnrefused/i.test(
+  const offline = /can't connect|can't load|failed to fetch|network error|err_connection|econnrefused/i.test(
     String(message),
   );
 
@@ -31,8 +29,8 @@ export function ErrorPanel({ error, homeHref, homeLabel }: Props) {
         {offline ? 'Cannot reach the API' : 'This page hit a snag'}
       </h1>
       <p className="mt-3 text-muted">
-        {offline
-          ? 'Start the APIs (user-service on 3000, product-service on 3001, …), then try again.'
+        {offline && !/can't (connect|load)/i.test(message)
+          ? "Can't connect to the shop right now. Make sure everything is running, then try again."
           : message}
       </p>
       <div className="mt-4 d-flex flex-wrap gap-2">

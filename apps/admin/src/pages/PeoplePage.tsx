@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import {
   docId,
+  queryError,
   type Address,
   type User,
 } from '@/api';
@@ -8,7 +9,7 @@ import { AddressFields, emptyAddress } from '@/components/account';
 import { Button, Field, Flash, PageHeader, PageLoader, SelectField } from '@/components/ui';
 import { confirmAction } from '@/lib/confirm';
 import { useAuth } from '@/hooks';
-import { userError, useUserMutations, useUsersQuery } from '@/query';
+import { useUserMutations, useUsersQuery } from '@/query';
 
 function formatAddress(address?: Address) {
   if (!address?.line1) {
@@ -72,7 +73,7 @@ export function PeoplePage() {
       setAddress(emptyAddress());
       setNotice('Account created.');
     } catch (err) {
-      setError(userError(err, 'Could not create account'));
+      setError(queryError(err, 'Could not create account'));
     } finally {
       setSaving(false);
     }
@@ -130,7 +131,7 @@ export function PeoplePage() {
       cancelEdit();
       setNotice('Account updated.');
     } catch (err) {
-      setError(userError(err, 'Could not update account'));
+      setError(queryError(err, 'Could not update account'));
     } finally {
       setEditSaving(false);
     }
@@ -151,7 +152,7 @@ export function PeoplePage() {
       await setUserRole.mutateAsync({ id: docId(person), role: next });
       setNotice(`${person.name} is now a ${label}.`);
     } catch (err) {
-      setError(userError(err, 'Could not change role'));
+      setError(queryError(err, 'Could not change role'));
     }
   }
 
@@ -169,7 +170,7 @@ export function PeoplePage() {
       await removeUser.mutateAsync(docId(person));
       setNotice('Account removed.');
     } catch (err) {
-      setError(userError(err, 'Could not delete account'));
+      setError(queryError(err, 'Could not delete account'));
     }
   }
 

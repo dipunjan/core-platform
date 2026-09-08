@@ -22,22 +22,42 @@ export function clearCsrfCookie(): void {
   document.cookie = 'csrf_token=; Path=/; Max-Age=0; SameSite=Lax';
 }
 
-function unreachableHost(err: AxiosError): string {
+const AREA_BY_HOST: Record<string, string> = {
+  'localhost:3000': 'sign-in',
+  'localhost:3001': 'product catalog',
+  'localhost:3002': 'stock levels',
+  'localhost:3003': 'shopping carts',
+  'localhost:3004': 'orders and payments',
+};
+
+function offlineMessage(err: AxiosError): string {
   const url = err.config?.url ?? '';
   try {
-    return new URL(url, window.location.origin).host;
+    const host = new URL(url, window.location.origin).host;
+    const area = AREA_BY_HOST[host];
+    if (area) {
+      return `Can't load ${area} right now. Refresh the page, or try again in a moment.`;
+    }
   } catch {
-    return 'the API';
+    /* fall through */
   }
+  return "Can't connect to the shop right now. Refresh the page, or try again in a moment.";
 }
 
+function isOfflineError(err: AxiosError): boolean {
+  return (
+    !err.response &&
+    (err.code === 'ERR_NETWORK' ||
+      err.code === 'ECONNREFUSED' ||
+      err.message === 'Network Error')
+  );
+}
+
+/** User-facing message for any failed API call (axios, wrapped Error, or unknown). */
 export function apiMessage(err: unknown, fallback = 'Request failed'): string {
   if (axios.isAxiosError(err)) {
-    if (
-      !err.response &&
-      (err.code === 'ERR_NETWORK' || err.message === 'Network Error')
-    ) {
-      return `Cannot reach ${unreachableHost(err)}. Start that service, then refresh.`;
+    if (isOfflineError(err)) {
+      return offlineMessage(err);
     }
     const body = err.response?.data as NestBody | undefined;
     const msg = body?.message;
@@ -53,6 +73,24 @@ export function apiMessage(err: unknown, fallback = 'Request failed'): string {
     return err.message;
   }
   return fallback;
+}
+
+/** Display message for any query/mutation error. */
+export function queryError(error: unknown, fallback = ''): string {
+  if (!error) {
+    return fallback;
+  }
+  return apiMessage(error, fallback);
+}
+
+function rejectApiError(error: unknown, fallback = 'Request failed'): Promise<never> {
+  if (axios.isCancel(error)) {
+    return Promise.reject(error);
+  }
+  if (error instanceof Error && !axios.isAxiosError(error)) {
+    return Promise.reject(error);
+  }
+  return Promise.reject(new Error(apiMessage(error, fallback), { cause: error }));
 }
 
 export const http = axios.create({
@@ -98,7 +136,7 @@ http.interceptors.response.use(
       !hasCsrfCookie() ||
       shouldSkipRefresh(original.url)
     ) {
-      return Promise.reject(error);
+      return rejectApiError(error);
     }
 
     original._retried = true;
@@ -113,7 +151,7 @@ http.interceptors.response.use(
     const refreshed = await refreshWait;
     if (!refreshed) {
       clearCsrfCookie();
-      return Promise.reject(error);
+      return rejectApiError(error);
     }
     return http.request(original);
   },

@@ -1,5 +1,5 @@
 import { type CartItem, type Product } from '@/api';
-import { Button } from '@/components/ui';
+import { QtyStepper } from '@/components/ui';
 import { useMoney } from '@/hooks';
 
 type Props = {
@@ -17,36 +17,12 @@ export function CartLine({ item, product, busy, onQty }: Props) {
         {product?.name ?? item.productId}
       </td>
       <td className="align-middle">
-        <div className="d-flex align-items-center gap-2">
-          <Button
-            variant="secondary"
-            type="button"
-            className="px-2"
-            style={{ width: '2rem', height: '2rem' }}
-            disabled={busy}
-            title={busy ? 'Updating cart…' : 'Decrease quantity'}
-            onClick={() => onQty(item.quantity - 1)}
-          >
-            −
-          </Button>
-          <span
-            className="text-center small font-monospace"
-            style={{ width: '1.5rem' }}
-          >
-            {item.quantity}
-          </span>
-          <Button
-            variant="secondary"
-            type="button"
-            className="px-2"
-            style={{ width: '2rem', height: '2rem' }}
-            disabled={busy}
-            title={busy ? 'Updating cart…' : 'Increase quantity'}
-            onClick={() => onQty(item.quantity + 1)}
-          >
-            +
-          </Button>
-        </div>
+        <QtyStepper
+          value={item.quantity}
+          busy={busy}
+          onDecrease={() => onQty(item.quantity - 1)}
+          onIncrease={() => onQty(item.quantity + 1)}
+        />
       </td>
       <td className="align-middle text-end font-monospace text-muted">
         {product ? money(product.price * item.quantity) : '—'}

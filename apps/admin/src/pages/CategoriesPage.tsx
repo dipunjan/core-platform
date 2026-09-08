@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
-import { docId, type Category } from '@/api';
+import { docId, queryError, type Category } from '@/api';
 import { Button, Field, Flash, PageHeader, PageLoader } from '@/components/ui';
 import { confirmAction } from '@/lib/confirm';
 import {
@@ -10,7 +10,7 @@ import {
   type CategoryCreateValues,
   type CategoryEditValues,
 } from '@/lib/schemas';
-import { productError, useCategoriesQuery, useCategoryMutations } from '@/query';
+import { useCategoriesQuery, useCategoryMutations } from '@/query';
 
 const emptyForm = (): CategoryCreateValues => ({
   slug: '',
@@ -75,7 +75,7 @@ export function CategoriesPage() {
       createForm.reset(emptyForm());
       setNotice('Category added.');
     } catch (err) {
-      setError(productError(err, 'Could not add category'));
+      setError(queryError(err, 'Could not add category'));
     }
   }
 
@@ -105,7 +105,7 @@ export function CategoriesPage() {
       setNotice('Category updated.');
       cancelEdit();
     } catch (err) {
-      setError(productError(err, 'Could not update category'));
+      setError(queryError(err, 'Could not update category'));
     }
   }
 
@@ -126,7 +126,7 @@ export function CategoriesPage() {
       await remove.mutateAsync(docId(row));
       setNotice('Category removed.');
     } catch (err) {
-      setError(productError(err, 'Could not delete category'));
+      setError(queryError(err, 'Could not delete category'));
     }
   }
 

@@ -9,6 +9,9 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
+  optimizeDeps: {
+    include: ['@stripe/stripe-js', '@stripe/react-stripe-js'],
+  },
   server: {
     port: 5173,
     strictPort: true,

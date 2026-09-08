@@ -1,14 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import axios from 'axios';
-import {
-  apiMessage,
-  http,
-  type Category,
-  type Inventory,
-  type Product,
-  type Storefront,
-  urls,
-} from '@/api';
+import { http, type Category, type Inventory, type Product, type Storefront, urls } from '@/api';
 import type { ShopFilters } from '@/lib/shopFilters';
 import { productsListUrl } from '@/lib/shopFilters';
 import { SEARCH_MIN_CHARS } from '@/lib/search';
@@ -77,15 +68,7 @@ export function useShopProductsQuery(filters: ShopFilters) {
   return useQuery({
     queryKey: catalogKeys.shop(filters),
     queryFn: ({ signal }) =>
-      http
-        .get<Product[]>(productsListUrl(filters), { signal })
-        .then((res) => res.data)
-        .catch((err) => {
-          if (axios.isCancel(err)) {
-            throw err;
-          }
-          throw new Error(apiMessage(err));
-        }),
+      http.get<Product[]>(productsListUrl(filters), { signal }).then((res) => res.data),
     enabled: !qTooShort,
   });
 }

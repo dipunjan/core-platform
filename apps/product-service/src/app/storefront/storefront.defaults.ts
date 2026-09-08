@@ -6,6 +6,9 @@ export const DEFAULT_STOREFRONT = {
   logoUrl: '',
   faviconUrl: '',
   currency: 'USD',
+  paymentProvider: 'auto' as const,
+  stripePublishableKey: '',
+  razorpayKeyId: '',
   hero: {
     headline: 'Gear up. Move fast.',
     sub: 'Curated apparel, shoes, and bags — simple checkout, no fuss.',

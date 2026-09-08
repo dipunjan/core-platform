@@ -66,6 +66,20 @@ export class Storefront {
   @Prop({ default: 'USD', uppercase: true, trim: true })
   currency!: string;
 
+  /** auto = INR → Razorpay, otherwise Stripe when keys are configured. */
+  @Prop({
+    type: String,
+    enum: ['auto', 'stripe', 'razorpay', 'simulate'],
+    default: 'auto',
+  })
+  paymentProvider!: 'auto' | 'stripe' | 'razorpay' | 'simulate';
+
+  @Prop({ default: '', trim: true })
+  stripePublishableKey!: string;
+
+  @Prop({ default: '', trim: true })
+  razorpayKeyId!: string;
+
   @Prop({ type: HeroBannerSchema, default: () => ({}) })
   hero!: HeroBanner;
 

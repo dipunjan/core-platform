@@ -1,10 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import {
-  apiMessage,
   clearCsrfCookie,
   hasCsrfCookie,
   http,
+  queryError,
   urls,
   type Address,
   type User,
@@ -105,8 +105,5 @@ export function useLogoutMutation() {
 }
 
 export function authErrorMessage(err: unknown, fallback: string): string {
-  if (err instanceof Error) {
-    return err.message;
-  }
-  return apiMessage(err, fallback);
+  return queryError(err, fallback);
 }

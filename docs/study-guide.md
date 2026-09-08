@@ -4,7 +4,7 @@ Read the docs below **in order**. Each file is **complete on its own** — you s
 
 ## 30-second pitch (practice out loud)
 
-> swoop is a small e-commerce platform: five NestJS microservices, two React frontends, MongoDB as source of truth, Redis for shared rate limits and short catalog cache, and RabbitMQ for async stock. Shoppers browse as guests, sign in at checkout, and place orders. Checkout uses **server-side pricing** and optional **Idempotency-Key**. Orders use a **transactional outbox** — order and event row commit together; a relay publishes to Rabbit so stock updates are not lost if the broker blips.
+> swoop is a small e-commerce platform: five NestJS microservices, two React frontends (TanStack Query + react-hook-form/zod), MongoDB as source of truth, Redis for shared rate limits and short catalog cache, and RabbitMQ for async stock. Shoppers browse as guests, sign in at checkout, place a **pending** order, then pay via **Stripe**, **Razorpay** (India), or **demo mode**. Checkout uses **server-side pricing** and optional **Idempotency-Key**. Orders use a **transactional outbox** — order and event row commit together; a relay publishes to Rabbit so stock updates are not lost if the broker blips. Each API exposes **OpenAPI/Swagger** at `/api/docs`.
 
 ## System map (draw or say this)
 
@@ -26,7 +26,7 @@ Browser (:5173 shop or :5174 admin)
 | 4 | [redis.md](redis.md) | What Redis does and does **not** do |
 | 5 | [performance.md](performance.md) | HTTP codes, 304, slowness, caching |
 | 6 | [rabbitmq.md](rabbitmq.md) | Outbox, stock messages |
-| 7 | [roadmap.md](roadmap.md) | Honest gaps: payments, tracing, etc. |
+| 7 | [roadmap.md](roadmap.md) | What’s built vs what’s next (refunds, tracing, …) |
 
 Optional when you need them: [frontend.md](frontend.md) · [postman.md](postman.md) · [deploy.md](deploy.md) · [common.md](common.md) · [conventions.md](conventions.md).
 
@@ -35,11 +35,11 @@ Optional when you need them: [frontend.md](frontend.md) · [postman.md](postman.
 1. `docker compose up -d`
 2. Start all five APIs + `nx serve web`
 3. Browse `/shop` without login; add to cart
-4. Checkout → register → place order
+4. Checkout → register → place order → **Pay now (demo)** on payment page
 5. Rabbit UI (http://localhost:15672): message consumed; inventory `reserved` goes up
-6. Admin `:5174` — edit a product; shop may lag ~45s (catalog cache)
+6. Admin `:5174` — **Payments** (provider + keys), edit a product; shop may lag ~45s (catalog cache)
 7. Logout → cart API rejects old cookie (if Redis is up)
 
 ## Golden rule
 
-**Say what we built, then what we would add next.** Never claim payments or full observability exist — that is all in [roadmap.md](roadmap.md).
+**Say what we built, then what you would add next** (automated refunds, reserve-after-pay, tracing). Payment basics are in — see [roadmap.md](roadmap.md) for remaining gaps.

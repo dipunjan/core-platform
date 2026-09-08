@@ -1,4 +1,5 @@
 import { useCallback } from 'react';
+import { queryError } from '@/api';
 import { useStorefrontQuery } from '@/query';
 
 export function useStorefront() {
@@ -11,7 +12,7 @@ export function useStorefront() {
   return {
     storefront: query.data ?? null,
     loading: query.isLoading,
-    error: query.error?.message ?? '',
+    error: queryError(query.error),
     loadStorefront,
   };
 }

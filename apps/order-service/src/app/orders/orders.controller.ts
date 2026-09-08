@@ -35,6 +35,15 @@ export class OrdersController {
     return this.ordersService.create(user.sub, body, idempotencyKey);
   }
 
+  @Roles('admin')
+  @Patch('admin/:id/status')
+  adminUpdateStatus(
+    @Param('id') id: string,
+    @Body() body: UpdateOrderStatusDto,
+  ) {
+    return this.ordersService.adminUpdateStatus(id, body);
+  }
+
   @Patch(':id/status')
   updateStatus(
     @CurrentUser() user: AuthUser,

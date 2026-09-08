@@ -5,6 +5,7 @@ import {
   CategoriesPage,
   InventoryPage,
   LoginPage,
+  PaymentsPage,
   PeoplePage,
   ProductsPage,
   SalesPage,
@@ -28,6 +29,7 @@ export const router = createBrowserRouter([
                 element: <ProtectedRoute />,
                 children: [
                   { path: '/', element: <SalesPage /> },
+                  { path: '/payments', element: <PaymentsPage /> },
                   { path: '/branding', element: <BrandingPage /> },
                   { path: '/people', element: <PeoplePage /> },
                   { path: '/products', element: <ProductsPage /> },

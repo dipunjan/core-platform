@@ -23,4 +23,5 @@ export const urls = {
   inventory: `${INVENTORY_API}/inventory`,
   inventoryItem: (productId: string) => `${INVENTORY_API}/inventory/${productId}`,
   ordersAdmin: `${ORDER_API}/orders/admin`,
+  orderAdminStatus: (id: string) => `${ORDER_API}/orders/admin/${id}/status`,
 };

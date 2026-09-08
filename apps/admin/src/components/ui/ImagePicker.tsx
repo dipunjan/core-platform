@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { apiMessage, http, urls } from '@/api';
+import { queryError, http, urls } from '@/api';
 import {
   brandImage,
   hasBrandImage,
@@ -64,7 +64,7 @@ export function ImagePicker({
       onChange(data.url);
     } catch (err) {
       onChange('');
-      onError?.(apiMessage(err, 'Could not upload that image'));
+      onError?.(queryError(err, 'Could not upload that image'));
     } finally {
       setBusy(false);
       onBusyChange?.(false);

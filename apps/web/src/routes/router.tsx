@@ -1,5 +1,6 @@
+import { lazy, Suspense } from 'react';
 import { createBrowserRouter, Navigate } from 'react-router-dom';
-import { GuestRoute, Layout, ProtectedRoute, RouteError } from '@/components';
+import { GuestRoute, Layout, PageLoader, ProtectedRoute, RouteError } from '@/components';
 import {
   AccountPage,
   CartPage,
@@ -10,6 +11,10 @@ import {
   RegisterPage,
   ShopPage,
 } from '@/pages';
+
+const CheckoutPayPage = lazy(() =>
+  import('@/pages/CheckoutPayPage').then((m) => ({ default: m.CheckoutPayPage })),
+);
 
 export const router = createBrowserRouter([
   {
@@ -37,6 +42,11 @@ export const router = createBrowserRouter([
                 element: <ProtectedRoute />,
                 children: [
                   { path: '/checkout', element: <CheckoutPage /> },
+                  { path: '/checkout/pay/:orderId', element: (
+                    <Suspense fallback={<PageLoader label="Loading payment…" />}>
+                      <CheckoutPayPage />
+                    </Suspense>
+                  ) },
                   { path: '/account', element: <AccountPage /> },
                   { path: '/orders', element: <Navigate to="/account?tab=orders" replace /> },
                 ],

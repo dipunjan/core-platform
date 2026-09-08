@@ -88,8 +88,10 @@ This repo includes a React shop in `apps/web` for local use. On the internet you
 - Health ready through the public URL
 - Register/login from the real website (cookies + https)
 - Create a product → stock row appears
-- Place an order → reserved count goes up
+- Place an order → pay (demo or Stripe/Razorpay) → reserved count goes up
+
+Configure payment webhooks to your public order-service URL (`/api/payments/webhooks/stripe` and `/api/payments/webhooks/razorpay`). See [roadmap.md](roadmap.md) and admin **Payments**.
 
 If login cookies fail, check: http mixed with https, wrong website in `CORS_ORIGIN`, front door dropping `Set-Cookie`, or the website not sending `credentials: 'include'`. Why cookies vs Bearer: [security.md](security.md).
 
-What is **not** in this deploy guide (payments, observability): [roadmap.md](roadmap.md).
+What is **not** in this deploy guide (full PCI, observability): [roadmap.md](roadmap.md).

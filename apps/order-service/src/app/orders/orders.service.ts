@@ -15,7 +15,7 @@ import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { OutboxEvent } from '../outbox/schemas/outbox-event.schema';
 import { ProductCatalogService } from './product-catalog.service';
-import { Order, type OrderDocument, type OrderStatus } from './schemas/order.schema';
+import { Order, type OrderDocument, type OrderStatus, type PaymentProvider } from './schemas/order.schema';
 
 const TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
   pending: ['paid', 'cancelled'],
@@ -50,6 +50,12 @@ export class OrdersService {
       throw new NotFoundException(`Order ${id} not found`);
     }
     return order;
+  }
+
+  findByProviderPaymentId(provider: PaymentProvider, providerPaymentId: string) {
+    return this.orderModel
+      .findOne({ paymentProvider: provider, providerPaymentId })
+      .exec();
   }
 
   async create(userId: string, input: CreateOrderDto, idempotencyKey?: string) {
@@ -132,21 +138,66 @@ export class OrdersService {
 
   async updateStatus(id: string, userId: string, input: UpdateOrderStatusDto) {
     const order = await this.findOne(id, userId);
-    if (order.status === input.status) {
+    return this.applyStatusChange(order, input.status);
+  }
+
+  async adminUpdateStatus(id: string, input: UpdateOrderStatusDto) {
+    if (!isValidObjectId(id)) {
+      throw new NotFoundException(`Order ${id} not found`);
+    }
+    const order = await this.orderModel.findById(id).exec();
+    if (!order) {
+      throw new NotFoundException(`Order ${id} not found`);
+    }
+    return this.applyStatusChange(order, input.status);
+  }
+
+  async markPaid(
+    orderId: string,
+    details: { provider: PaymentProvider; providerPaymentId: string },
+  ) {
+    if (!isValidObjectId(orderId)) {
+      throw new NotFoundException(`Order ${orderId} not found`);
+    }
+    const order = await this.orderModel.findById(orderId).exec();
+    if (!order) {
+      throw new NotFoundException(`Order ${orderId} not found`);
+    }
+    if (order.status === 'paid') {
       return order;
     }
-    if (!TRANSITIONS[order.status].includes(input.status)) {
+    if (order.status !== 'pending') {
+      throw new BadRequestException('Only pending orders can be paid');
+    }
+
+    order.status = 'paid';
+    order.paymentStatus = 'paid';
+    order.paymentProvider = details.provider;
+    order.providerPaymentId = details.providerPaymentId;
+    order.paidAt = new Date();
+    await order.save();
+    return order;
+  }
+
+  private async applyStatusChange(order: OrderDocument, status: OrderStatus) {
+    if (order.status === status) {
+      return order;
+    }
+    if (!TRANSITIONS[order.status].includes(status)) {
       throw new BadRequestException(
-        `Cannot change order from ${order.status} to ${input.status}`,
+        `Cannot change order from ${order.status} to ${status}`,
       );
     }
 
     const session = await this.connection.startSession();
     try {
       await session.withTransaction(async () => {
-        order.status = input.status;
+        order.status = status;
+        if (status === 'cancelled' && order.paymentStatus === 'paid') {
+          order.paymentStatus = 'refunded';
+        }
         await order.save({ session });
-        if (input.status === 'cancelled') {
+        if (status === 'cancelled') {
           const payload: OrderCancelledEvent = {
             id: String(order._id),
             userId: order.userId,

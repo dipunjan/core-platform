@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { queryError } from '@/api';
 import { useCancelOrderMutation, useOrdersQuery } from '@/query';
 
 export function useOrders(options?: { load?: boolean }) {
@@ -15,7 +16,10 @@ export function useOrders(options?: { load?: boolean }) {
   return {
     orders: ordersQuery.data ?? [],
     loading: ordersQuery.isLoading || cancelMutation.isPending,
-    error: ordersQuery.error?.message ?? cancelMutation.error?.message ?? '',
+    error: queryError(
+      ordersQuery.error ?? cancelMutation.error,
+      'Could not load orders',
+    ),
     cancel: (id: string) => {
       void cancelMutation.mutate(id);
     },

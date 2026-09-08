@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import {
+  queryError,
   STORE_CURRENCIES,
-  apiMessage,
   docId,
   urls,
   type Banner,
@@ -113,7 +113,7 @@ export function BrandingPage() {
       apply(data);
       setNotice('Site identity saved.');
     } catch (err) {
-      setError(apiMessage(err));
+      setError(queryError(err));
     } finally {
       setBusy('');
     }
@@ -131,7 +131,7 @@ export function BrandingPage() {
       apply(data);
       setNotice(url ? 'Logo updated.' : 'Logo removed.');
     } catch (err) {
-      setError(apiMessage(err));
+      setError(queryError(err));
     } finally {
       setBusy('');
     }
@@ -150,7 +150,7 @@ export function BrandingPage() {
       apply(data);
       setNotice('Favicon removed.');
     } catch (err) {
-      setError(apiMessage(err));
+      setError(queryError(err));
     } finally {
       setBusy('');
     }
@@ -167,7 +167,7 @@ export function BrandingPage() {
       apply(data);
       setNotice('Hero image removed.');
     } catch (err) {
-      setError(apiMessage(err));
+      setError(queryError(err));
     } finally {
       setBusy('');
     }
@@ -182,7 +182,7 @@ export function BrandingPage() {
       apply(data);
       setNotice('Currency saved.');
     } catch (err) {
-      setError(apiMessage(err));
+      setError(queryError(err));
     } finally {
       setBusy('');
     }
@@ -221,7 +221,7 @@ export function BrandingPage() {
       apply(data);
       setNotice('Hero saved.');
     } catch (err) {
-      setError(apiMessage(err));
+      setError(queryError(err));
     } finally {
       setBusy('');
     }
@@ -306,7 +306,7 @@ export function BrandingPage() {
       cancelEditBanner();
       setNotice('Promo tile updated.');
     } catch (err) {
-      setError(apiMessage(err));
+      setError(queryError(err));
     } finally {
       setBusy('');
     }
@@ -343,7 +343,7 @@ export function BrandingPage() {
       setPromoErrors({});
       setNotice('Promo tile added.');
     } catch (err) {
-      setError(apiMessage(err));
+      setError(queryError(err));
     } finally {
       setBusy('');
     }
@@ -370,7 +370,7 @@ export function BrandingPage() {
       apply(data);
       setNotice('Promo tile removed.');
     } catch (err) {
-      setError(apiMessage(err));
+      setError(queryError(err));
     } finally {
       setBusy('');
     }

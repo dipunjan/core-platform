@@ -60,6 +60,15 @@ export class StorefrontService {
     if (input.currency) {
       row.currency = input.currency;
     }
+    if (input.paymentProvider !== undefined) {
+      row.paymentProvider = input.paymentProvider;
+    }
+    if (input.stripePublishableKey !== undefined) {
+      row.stripePublishableKey = input.stripePublishableKey;
+    }
+    if (input.razorpayKeyId !== undefined) {
+      row.razorpayKeyId = input.razorpayKeyId;
+    }
     if (input.hero) {
       row.set('hero', {
         headline: input.hero.headline ?? row.hero?.headline,

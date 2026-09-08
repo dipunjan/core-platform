@@ -1,4 +1,5 @@
 import { useCallback } from 'react';
+import { queryError } from '@/api';
 import {
   useCategoriesQuery,
   useInventoryQuery,
@@ -44,8 +45,7 @@ export function useCatalog(options?: { load?: boolean }) {
     inventory: null,
     loading: productsQuery.isLoading || categoriesQuery.isLoading,
     shopLoading: false,
-    error:
-      productsQuery.error?.message ?? categoriesQuery.error?.message ?? '',
+    error: queryError(productsQuery.error ?? categoriesQuery.error),
     loadCatalog,
     loadStorefront,
   };
@@ -56,18 +56,11 @@ export function useProduct(id: string | undefined) {
   const productQuery = useProductQuery(id);
   const inventoryQuery = useInventoryQuery(id);
 
-  const error =
-    productQuery.error instanceof Error
-      ? productQuery.error.message
-      : productQuery.isError
-        ? 'Product not found'
-        : '';
-
   return {
     product: productQuery.data ?? null,
     inventory: inventoryQuery.data ?? null,
     categories: categoriesQuery.data ?? [],
-    error,
+    error: queryError(productQuery.error, 'Product not found'),
     loading: productQuery.isLoading,
   };
 }

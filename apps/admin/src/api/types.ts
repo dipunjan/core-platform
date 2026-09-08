@@ -69,6 +69,9 @@ export type Storefront = {
   logoUrl: string;
   faviconUrl?: string;
   currency?: string;
+  paymentProvider?: 'auto' | 'stripe' | 'razorpay' | 'simulate';
+  stripePublishableKey?: string;
+  razorpayKeyId?: string;
   hero?: HeroBanner;
   banners: Banner[];
   updatedAt?: string;
@@ -99,6 +102,9 @@ export type Order = {
   items: OrderItem[];
   total: number;
   status: string;
+  paymentStatus?: string;
+  paymentProvider?: string;
+  paidAt?: string;
   shippingAddress?: {
     line1: string;
     city: string;

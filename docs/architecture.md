@@ -54,7 +54,7 @@ flowchart TB
 | product-service | 3001 | products, categories, storefront | catalog cache | Catalog, branding images |
 | inventory-service | 3002 | stock rows | throttle only | On-hand + reserved quantity |
 | cart-service | 3003 | carts | throttle only | Signed-in user’s cart |
-| order-service | 3004 | orders, **outbox** | throttle only | Checkout, order history, outbox relay |
+| order-service | 3004 | orders, **outbox**, payment webhooks | throttle only | Checkout, payments (Stripe/Razorpay), order history, outbox relay |
 
 Shared code: `@core-platform/common` — bootstrap, JWT guards, Redis, Rabbit, health.
 
@@ -70,9 +70,10 @@ This is the story you tell in an interview.
 2. **Add to cart** — Lines saved in **browser** `localStorage` (guest has no user id yet).
 3. **Open cart** — Still no login required.
 4. **Checkout** — Register or login. Guest cart **merges** into cart-service.
-5. **Place order** — Browser sends only `productId` + `quantity`. order-service **fetches prices** from product-service, saves order + **outbox row** in one Mongo transaction.
-6. **Stock** — Background relay (~2s) publishes `ORDER_CREATED` to Rabbit → inventory **reserves** stock.
-7. **Logout** — Refresh revoked in Mongo; access JWT **denylisted** in Redis.
+5. **Place order** — Browser sends only `productId` + `quantity`. order-service **fetches prices** from product-service, saves **pending** order + **outbox row** in one Mongo transaction.
+6. **Pay** — Shop opens `/checkout/pay/:orderId`. Provider is chosen from admin **Payments** (auto: INR → Razorpay, else Stripe). Secrets live in order-service env; publishable keys on storefront. Demo mode works without keys when `PAYMENT_SIMULATE=true`.
+7. **Stock** — Background relay (~2s) publishes `ORDER_CREATED` to Rabbit → inventory **reserves** stock (still on order create, not on pay — see [roadmap.md](roadmap.md)).
+8. **Logout** — Refresh revoked in Mongo; access JWT **denylisted** in Redis.
 
 ```mermaid
 sequenceDiagram
@@ -95,6 +96,9 @@ sequenceDiagram
   Shop->>Order: POST /orders + Idempotency-Key
   Order->>Product: GET price per productId
   Order->>Order: save order + outbox (transaction)
+  Guest->>Shop: pay (Stripe / Razorpay / demo)
+  Shop->>Order: POST /payments/orders/:id/checkout
+  Order->>Order: webhook or simulate → status paid
   Note over Order: relay ~2s
   Order->>Rabbit: ORDER_CREATED
   Rabbit->>Stock: reserve quantity
@@ -148,7 +152,7 @@ What we have **not** built: [roadmap.md](roadmap.md).
 URL → routes → pages → hooks → TanStack Query → api/http.ts → ports 3000–3004
 ```
 
-Chrome: `Layout`. Auth gates: `ProtectedRoute`, `GuestRoute`. Errors: `ErrorBoundary` + `RouteError`.
+Chrome: `Layout`. Auth gates: `ProtectedRoute`, `GuestRoute`. Errors: `ErrorBoundary` + `RouteError`. Forms: **react-hook-form + zod**. APIs: **Swagger** at `/api/docs` per service.
 
 ---
 
@@ -161,7 +165,7 @@ Chrome: `Layout`. Auth gates: `ProtectedRoute`, `GuestRoute`. Errors: `ErrorBoun
 “cart-service keys carts by `userId`. Guests have no id until login. localStorage matches common retail UX — browse and cart before account.”
 
 **Walk me through checkout.**  
-Use the shopper journey above. Emphasize: server pricing, idempotency key, outbox + async reserve.
+Use the shopper journey above. Emphasize: server pricing, idempotency key, pending → paid via Stripe/Razorpay webhook (or demo), outbox + async reserve.
 
 **Monolith vs microservices tradeoff?**  
 “More moving parts locally (five ports). Win: independent deploy, smaller blast radius, read-heavy catalog can scale separately.”

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui';
 
 const NAV = [
   { to: '/', end: true, label: 'Sales', icon: '◆' },
+  { to: '/payments', label: 'Payments', icon: '₹' },
   { to: '/branding', label: 'Branding', icon: '◇' },
   { to: '/people', label: 'People', icon: '◎' },
   { to: '/products', label: 'Products', icon: '▣' },

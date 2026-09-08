@@ -1,12 +1,12 @@
 # Roadmap — what we built vs what comes next
 
-**For newcomers:** This project is **interview-ready patterns** on **demo scope**. You can demo a real shopper flow, but you cannot take card payments yet. In interviews, say what works, then point here for honest gaps.
+**For newcomers:** This project is **interview-ready patterns** on **demo scope**. You can demo checkout end-to-end including **demo payment** without gateway keys; use Stripe/Razorpay test keys for real provider UIs.
 
 ---
 
 ## One sentence
 
-**Production-ready patterns, MVP scope** — auth, outbox, server pricing, idempotency, event-driven stock are real. Payments, tracing, and HA uploads are not.
+**Production-ready patterns, MVP scope** — auth, outbox, server pricing, idempotency, event-driven stock, and **Stripe + Razorpay checkout** (demo mode without keys). Tracing and HA uploads are not.
 
 ---
 
@@ -17,7 +17,7 @@
 | Auth | HttpOnly cookies, CSRF, JWT, bcrypt, refresh rotation | MFA, OAuth, full IAM |
 | Frontends | TanStack Query (server state + session), react-hook-form + zod, OpenAPI `/api/docs` on each API | Redux (removed — not needed), E2E tests, CI |
 | Abuse | Redis rate limits | WAF, CAPTCHA |
-| Checkout | Server pricing, idempotency, price snapshot | **Stripe / PCI / refunds** |
+| Checkout | Server pricing, idempotency, price snapshot, **Stripe / Razorpay / demo pay** | PCI audit, automated refunds |
 | Orders → stock | Outbox, Rabbit, idempotent consumer, DLQ | Saga / reserve-before-commit |
 | Cache | Redis catalog ~45s; browser 304 | CDN, read replicas |
 | Files | Local disk branding uploads | S3 + CDN, virus scan |
@@ -41,19 +41,19 @@ Details live in topic docs — do not duplicate: [security.md](security.md) · [
 
 ---
 
-## Payments (the big missing piece)
+## Payments
 
-Today: order status = **placed**, not **paid**.
+| Built | Not built |
+|-------|-----------|
+| Admin **Payments** page — provider (`auto` / Stripe / Razorpay / demo), publishable keys | Automated Stripe/Razorpay refunds |
+| `order-service` — PaymentIntent (Stripe), Razorpay orders, webhooks with idempotency | Reserve stock only after `paid` (still reserves on create) |
+| Shop `/checkout/pay/:orderId` — Stripe Elements, Razorpay Checkout, demo button | Payment retry from account orders |
 
-| To add | Why |
-|--------|-----|
-| Stripe (or similar) payment intent | Capture real money |
-| Webhook + idempotency | Provider retries notifications |
-| `pending_payment` → `paid` states | Correct UX |
-| Refunds | Admin/support |
-| Hosted card fields | Keep PCI scope small |
+Secrets: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET` on **order-service**. `PAYMENT_SIMULATE=true` enables demo checkout when keys are missing (default in dev).
 
-**Say in interview:** “Checkout creates an order with server-validated price. Payment would be a provider webhook updating order status — not in this repo.”
+**India:** set storefront currency to **INR** and provider to **Razorpay** (or **auto**). **Global:** Stripe.
+
+**Say in interview:** “Checkout creates a pending order with server-validated price; payment is confirmed via provider webhook (or demo mode locally). Admin configures the gateway and can ship or cancel orders.”
 
 ---
 
@@ -124,18 +124,19 @@ Failure matrix: [architecture.md](architecture.md).
 4. One public API URL + `TRUST_PROXY=true`
 5. Explicit `CORS_ORIGIN`
 6. `PRODUCT_SERVICE_URL` on order-service
+7. Payment gateway secrets on order-service (`STRIPE_*`, `RAZORPAY_*`) and webhook URLs in provider dashboards
 
-Full deploy guide: [deploy.md](deploy.md). Still no payments until you integrate a provider.
+Full deploy guide: [deploy.md](deploy.md). Configure payments in admin **Payments** + order-service env before taking real money.
 
 ---
 
 ## How to explain this in an interview
 
 **Is it production-ready?**  
-“Patterns are solid for a small shop MVP — I would not claim PCI or full observability. I know exactly what I would add next: payments, gateway, tracing.”
+“Patterns are solid for a small shop MVP — Stripe/Razorpay checkout and webhooks are wired, but I would not claim full PCI audit or observability. I know what’s left: refunds, reserve-after-pay, gateway, tracing.”
 
 **What would you build first after MVP?**  
-“Payment webhooks, API gateway for one HTTPS host, OpenTelemetry, S3 for uploads, then CI + E2E tests.”
+“Automated refunds, reserve stock only after `paid`, API gateway for one HTTPS host, OpenTelemetry, S3 for uploads, then CI + E2E tests.”
 
-**Why ship without payments?**  
-“Focused on order integrity — outbox, pricing, idempotency — before integrating Stripe.”
+**Why demo payment mode?**  
+“So you can run the full checkout locally without gateway keys; production uses Stripe or Razorpay with webhook secrets.”

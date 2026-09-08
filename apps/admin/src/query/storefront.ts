@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { apiMessage, http, urls, type Storefront } from '@/api';
+import { http, urls, type Storefront } from '@/api';
 import { storefrontKeys } from './keys';
 
 export function useStorefrontQuery() {
@@ -22,9 +22,6 @@ export function usePatchStorefrontMutation() {
     },
     onSuccess: (storefront) => {
       queryClient.setQueryData(storefrontKeys.detail, storefront);
-    },
-    meta: {
-      errorMessage: (err: unknown) => apiMessage(err),
     },
   });
 }

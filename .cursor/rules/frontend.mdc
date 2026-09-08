@@ -16,7 +16,9 @@ src/pages/  src/hooks/  src/query/  src/components/{layout,ui}  src/api/  src/ro
 - Errors: `ErrorBoundary` in `main.tsx`; `errorElement: <RouteError />` on the router (nested under `Layout`). Files in `src/components/`, not `routes/`.
 - `router.tsx` wraps pages in `Layout`. Import pages from `@/pages`, hooks from `@/hooks`.
 - Admin `ProtectedRoute` requires `user.role === 'admin'`. Admin `GuestRoute` redirects only if the session is already admin. Admin `Layout` may omit the sidebar on `/login`.
-- **Both frontends**: server state + auth session in **TanStack Query** (`src/query/`). Forms use **react-hook-form** + **zod**. `main.tsx` wraps `<QueryClientProvider>` only — **no Redux**.
+- **Both frontends**: server state + auth session in **TanStack Query** (`src/query/`). Forms use **react-hook-form** + **zod** (`lib/schemas.ts`). `main.tsx` wraps `<QueryClientProvider>` only — **no Redux**.
+- Shop checkout: order → `/checkout/pay/:orderId` (Stripe Elements, Razorpay, or demo). Admin: `/payments` for provider settings.
+- Shop catalog: **`AddToCart`** in `components/catalog/` (product surfaces); **`QtyStepper`** in `components/ui/` (shared − / + control); **`CartLine`** in `components/cart/` (cart page table only).
 - Pages do not call axios. Hooks → query → `api/`. Cross-folder imports use `@/` barrels; siblings use `./`.
 - **Pages stay lean** — reuse `components/ui/` (`Card`, `PageHeader`, `Section`, `TextLink`, …). Do not copy long Bootstrap class strings onto every screen; use shared UI components.
 - Tokens stay in cookies. Guest shop cart may use `localStorage`; admin does not.

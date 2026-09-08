@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
-import { docId, type Category, type Product } from '@/api';
+import { docId, queryError, type Category, type Product } from '@/api';
 import {
   Button,
   Field,
@@ -15,7 +15,6 @@ import { confirmAction } from '@/lib/confirm';
 import { productSchema, type ProductFormValues } from '@/lib/schemas';
 import { useMoney } from '@/hooks';
 import {
-  productError,
   useCategoriesQuery,
   useProductMutations,
   useProductsQuery,
@@ -115,7 +114,7 @@ export function ProductsPage() {
       });
       setNotice('Product added.');
     } catch (err) {
-      setError(productError(err, 'Could not add product'));
+      setError(queryError(err, 'Could not add product'));
     }
   }
 
@@ -154,7 +153,7 @@ export function ProductsPage() {
       setNotice('Product updated.');
       cancelEdit();
     } catch (err) {
-      setError(productError(err, 'Could not update product'));
+      setError(queryError(err, 'Could not update product'));
     }
   }
 
@@ -171,7 +170,7 @@ export function ProductsPage() {
       await remove.mutateAsync(docId(product));
       setNotice('Product removed.');
     } catch (err) {
-      setError(productError(err, 'Could not delete product'));
+      setError(queryError(err, 'Could not delete product'));
     }
   }
 

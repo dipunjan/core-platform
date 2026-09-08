@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { apiMessage, docId, http, urls, type Category, type Product } from '@/api';
+import { docId, http, urls, type Category, type Product } from '@/api';
 import { catalogKeys } from './keys';
 
 export function useProductsQuery() {
@@ -78,10 +78,6 @@ export function useCategoryMutations() {
   });
 
   return { create, update, remove };
-}
-
-export function productError(err: unknown, fallback: string) {
-  return apiMessage(err, fallback);
 }
 
 export { docId };

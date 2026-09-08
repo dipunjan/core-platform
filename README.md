@@ -14,7 +14,7 @@ Five APIs, two React sites, MongoDB, Redis, RabbitMQ — a small e-commerce plat
 | Redis | [docs/redis.md](docs/redis.md) |
 | HTTP codes, 304, slowness | [docs/performance.md](docs/performance.md) |
 | Outbox & RabbitMQ | [docs/rabbitmq.md](docs/rabbitmq.md) |
-| Gaps: payments, tracing, etc. | [docs/roadmap.md](docs/roadmap.md) |
+| Roadmap (what’s next) | [docs/roadmap.md](docs/roadmap.md) |
 | Deploy | [docs/deploy.md](docs/deploy.md) |
 | Shop/admin UI | [docs/frontend.md](docs/frontend.md) |
 | Postman | [docs/postman.md](docs/postman.md) |
@@ -49,8 +49,9 @@ Start **inventory** before creating products. Admin: `ADMIN_EMAIL` (default `ada
 
 | URL | Purpose |
 |-----|---------|
-| http://localhost:5174 | Admin (sales, products, people, inventory) |
+| http://localhost:5174 | Admin (sales, products, people, inventory, payments) |
 | http://localhost:5174/branding | Logo, hero, currency, promo tiles |
+| http://localhost:5174/payments | Stripe / Razorpay / demo payment settings |
 
 Upload images on **Branding** — they go live on the shop immediately. Empty slots show placeholders until you upload something.
 
@@ -66,10 +67,11 @@ Admin forms use inline hints, loading spinners, green success banners, and confi
 |------|----------------|
 | Browse | Home and shop show loaders while the catalog loads |
 | Search | Live AJAX in the header — **no Search button**. Debounced 300ms, min 2 chars, results on `/shop?q=` (server-side query) |
-| Add to cart | Product grid shows “Added to cart” with a link; product page blocks out-of-stock items |
+| Add to cart | **Add to cart** or quantity stepper on the card when the item is already in the bag |
 | Cart | Subtotal before checkout; cart count in the header loads on first visit |
-| Checkout | Order summary sidebar; empty cart uses the same empty state as the cart page |
-| After order | Green confirmation on Orders; line items show product names, not database ids |
+| Checkout | Order summary sidebar; after place order → payment step |
+| Payment | `/checkout/pay/:orderId` — Stripe, Razorpay (India), or demo pay without keys |
+| After order | Green confirmation on Orders once payment succeeds; line items show product names |
 | Guest vs signed in | Orders link appears only when logged in; cart works for guests until checkout |
 
 Full UI notes: [docs/frontend.md](docs/frontend.md).
@@ -78,18 +80,20 @@ Full UI notes: [docs/frontend.md](docs/frontend.md).
 curl http://localhost:3000/api/health/live
 ```
 
-Each API also serves **OpenAPI docs** at `/api/docs` (e.g. http://localhost:3000/api/docs for user-service). Use **Authorize → Bearer** in Swagger UI when testing with a JWT from Postman.
+Each API also serves **OpenAPI (Swagger) docs** at `/api/docs` (e.g. http://localhost:3004/api/docs for order-service, including payments). Use **Authorize → Bearer** in Swagger UI when testing with a JWT from Postman. Docs are generated from Nest controllers via `@nestjs/swagger` in the shared `bootstrapNestApp` helper.
 
 ## Shop & admin stack (frontends)
 
 Both `apps/web` and `apps/admin` use **TanStack Query** for server state and **react-hook-form + zod** for forms. **Redux is not used** — auth session lives in the React Query cache (`query/auth.ts`).
 
-| Layer | Library |
-|-------|---------|
-| Auth session | TanStack Query (`useMeQuery`, login/logout mutations) |
-| Catalog, cart, orders, admin CRUD | TanStack Query (`src/query/`) |
-| Forms | react-hook-form + zod (`src/lib/schemas.ts`) |
-| HTTP | axios (`api/http.ts`) |
+| Layer | Library | Where |
+|-------|---------|--------|
+| Auth session | TanStack Query | `useMeQuery`, login/logout mutations in `query/auth.ts` |
+| Catalog, cart, orders, payments, admin CRUD | TanStack Query | `src/query/` (`catalog.ts`, `cart.ts`, `orders.ts`, `payments.ts`, …) |
+| Forms | react-hook-form + **zod** | Schemas in `src/lib/schemas.ts`; pages use `Field` + `register()` |
+| HTTP | axios | `api/http.ts` (cookies + CSRF on mutating requests) |
+
+Details and folder map: [docs/frontend.md](docs/frontend.md). Naming: [docs/conventions.md](docs/conventions.md).
 
 ## Environment variables
 
@@ -101,8 +105,11 @@ Both `apps/web` and `apps/admin` use **TanStack Query** for server state and **r
 | `JWT_SECRET` / `JWT_REFRESH_SECRET` | Same in all five APIs |
 | `CORS_ORIGIN` | Shop + admin origins |
 | `ADMIN_EMAIL` | user-service — admin on login |
-| `PRODUCT_SERVICE_URL` | order-service — live prices |
+| `PRODUCT_SERVICE_URL` | order-service — live prices + storefront payment config |
 | `OUTBOX_POLL_MS` | order-service — relay interval (default `2000`) |
+| `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` | order-service — Stripe payments |
+| `RAZORPAY_KEY_ID` / `RAZORPAY_KEY_SECRET` / `RAZORPAY_WEBHOOK_SECRET` | order-service — Razorpay (India) |
+| `PAYMENT_SIMULATE` | order-service — `true` allows demo checkout without gateway keys (dev default) |
 | `TRUST_PROXY` | `true` behind gateway |
 | `COOKIE_SECURE` | `false` localhost; `true` HTTPS |
 | `NODE_ENV=production` | Stricter validation |
@@ -114,7 +121,7 @@ apps/user-service        accounts, auth
 apps/product-service     catalog, storefront, uploads
 apps/inventory-service   stock
 apps/cart-service        carts
-apps/order-service       orders + outbox relay
+apps/order-service       orders, payments (Stripe/Razorpay), outbox relay
 packages/common          shared bootstrap, auth, redis, messaging
 apps/web                 shop UI (TanStack Query + RHF/zod)
 apps/admin               staff UI (TanStack Query + RHF/zod)

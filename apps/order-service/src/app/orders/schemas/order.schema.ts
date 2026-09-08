@@ -12,6 +12,20 @@ export const ORDER_STATUSES = [
 
 export type OrderStatus = (typeof ORDER_STATUSES)[number];
 
+export const PAYMENT_STATUSES = [
+  'unpaid',
+  'processing',
+  'paid',
+  'failed',
+  'refunded',
+] as const;
+
+export type PaymentStatus = (typeof PAYMENT_STATUSES)[number];
+
+export const PAYMENT_PROVIDERS = ['stripe', 'razorpay', 'simulate'] as const;
+
+export type PaymentProvider = (typeof PAYMENT_PROVIDERS)[number];
+
 @Schema({ _id: false })
 export class OrderItem {
   @Prop({ required: true })
@@ -70,6 +84,22 @@ export class Order {
     default: 'pending',
   })
   status!: OrderStatus;
+
+  @Prop({
+    type: String,
+    enum: PAYMENT_STATUSES,
+    default: 'unpaid',
+  })
+  paymentStatus!: PaymentStatus;
+
+  @Prop({ type: String, enum: PAYMENT_PROVIDERS })
+  paymentProvider?: PaymentProvider;
+
+  @Prop()
+  providerPaymentId?: string;
+
+  @Prop()
+  paidAt?: Date;
 
   @Prop({ sparse: true })
   idempotencyKey?: string;

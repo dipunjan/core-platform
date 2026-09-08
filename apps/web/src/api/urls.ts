@@ -19,5 +19,10 @@ export const urls = {
   cartItems: `${CART_API}/carts/items`,
   cartItem: (productId: string) => `${CART_API}/carts/items/${productId}`,
   orders: `${ORDER_API}/orders`,
+  order: (id: string) => `${ORDER_API}/orders/${id}`,
   orderStatus: (id: string) => `${ORDER_API}/orders/${id}/status`,
+  paymentCheckout: (orderId: string) =>
+    `${ORDER_API}/payments/orders/${orderId}/checkout`,
+  paymentSimulate: (orderId: string) =>
+    `${ORDER_API}/payments/orders/${orderId}/simulate`,
 };

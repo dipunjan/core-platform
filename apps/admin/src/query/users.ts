@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { apiMessage, http, urls, type Address, type User } from '@/api';
+import { queryError, http, urls, type Address, type User } from '@/api';
 import { userKeys } from './keys';
 
 export function useUsersQuery() {
@@ -56,8 +56,4 @@ export function useUserMutations() {
   });
 
   return { create, update, setRole, remove };
-}
-
-export function userError(err: unknown, fallback: string) {
-  return apiMessage(err, fallback);
 }

@@ -11,39 +11,39 @@ Short map so shop, admin, and APIs stay the same shape. Cursor also loads `.curs
 | Logged-in gate | `ProtectedRoute` (any user) | `ProtectedRoute` (`role === 'admin'`) |
 | Guest gate | `GuestRoute` (any session → leave login) | `GuestRoute` (admin session → leave login) |
 | Auth | TanStack Query + `useAuth` | same |
+| Forms | react-hook-form + zod (`lib/schemas.ts`) | same |
 | Router | `Layout` → public / `GuestRoute` / `ProtectedRoute` | same |
 
 Do **not** name chrome `Shell` or gates `StaffRoute`.
 
 ```
 src/
-  main.tsx          Redux Provider, then App
+  main.tsx          QueryClientProvider, then App
   App.tsx           loadMe(), RouterProvider
   routes/router.tsx URL → page
   pages/            one screen per file + index.ts barrel
   hooks/            pages call these
-  query/            TanStack Query (catalog, cart, orders, auth)
-  features/         (empty — legacy folder; logic is in query/)
+  query/            TanStack Query (catalog, cart, orders, payments, auth)
   components/layout Layout, ProtectedRoute, GuestRoute
   components/       ErrorBoundary, RouteError, ErrorPanel
   components/ui     Button, Field, Flash, Spinner
   api/              http, urls, types
-  store/            (removed — no Redux)
+  lib/schemas.ts    zod schemas for forms (shop + admin each have their own)
 ```
 
-Imports: `@/pages`, `@/hooks`, `@/components`. Pages do not import axios.
+Imports: `@/pages`, `@/hooks`, `@/query`, `@/components`. Pages do not import axios.
 
 ## Five backends, one pattern
 
 ```
 apps/<name>-service/src/
-  main.ts                 bootstrapNestApp(AppModule, { defaultPort })
+  main.ts                 bootstrapNestApp(AppModule, { defaultPort, serviceName, rawBody? })
   app/app.module.ts       Auth, Health, DB, feature modules
   app/database.module.ts
   app/<feature>/          module, controller(s), service, dto/, schemas/
 ```
 
-Example: products + categories share `products/`. Auth HTTP lives in `users/` beside `UsersController`.
+Example: products + categories share `products/`. Auth HTTP lives in `users/` beside `UsersController`. **Payments** live in `order-service` under `app/payments/` (Stripe/Razorpay webhooks use `rawBody: true` in `main.ts`).
 
 - `@Public()` = no login. `@Roles('admin')` = staff. JWT still required unless public.
 - OpenAPI docs at `/api/docs` on every API (via shared `bootstrapNestApp`).

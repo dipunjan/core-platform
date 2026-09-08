@@ -10,13 +10,17 @@ export type BootstrapOptions = {
   defaultPort: number;
   /** Shown in OpenAPI title, e.g. "user-service". */
   serviceName?: string;
+  /** Keep raw body on `req.rawBody` for payment webhook signature verification. */
+  rawBody?: boolean;
 };
 
 export async function bootstrapNestApp(
   AppModule: Type<unknown>,
   options: BootstrapOptions,
 ): Promise<void> {
-  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+    rawBody: options.rawBody ?? false,
+  });
   app.enableShutdownHooks();
   app.setGlobalPrefix('api');
   app.use(helmet());

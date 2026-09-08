@@ -27,7 +27,7 @@ How the five APIs and two UIs fit together: [architecture.md](architecture.md).
 
 | Name | What it does |
 |---|---|
-| `bootstrapNestApp` | Starts HTTP, security headers, `/api` prefix, OpenAPI at `/api/docs` |
+| `bootstrapNestApp` | Starts HTTP, security headers, `/api` prefix, **Swagger/OpenAPI** at `/api/docs` |
 | `databaseImports` | Connects Mongo using `MONGO_URI` |
 | `mongoWrite` | Duplicate email/sku becomes **409**, not a crash |
 | `AuthModule` | Checks the access pass on every route unless marked public |
@@ -41,7 +41,7 @@ How the five APIs and two UIs fit together: [architecture.md](architecture.md).
 
 ```
 packages/common/src/
-  bootstrap/    start the server
+  bootstrap/    start the server (+ optional rawBody for payment webhooks)
   auth/         login check and cookies
   database/     Mongo helpers
   health/       live / ready

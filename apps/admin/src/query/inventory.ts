@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { apiMessage, http, urls, type Inventory } from '@/api';
+import { http, urls, type Inventory } from '@/api';
 import { inventoryKeys } from './keys';
 
 export function useInventoryQuery() {
@@ -22,9 +22,6 @@ export function useUpdateInventoryMutation() {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: inventoryKeys.list });
-    },
-    meta: {
-      errorMessage: (err: unknown) => apiMessage(err),
     },
   });
 }

@@ -15,7 +15,7 @@ It talks to the five APIs. Login is stored in **cookies**, not in `localStorage`
 
 Each API `.env` must allow both sites in `CORS_ORIGIN` (`http://localhost:5173` and `http://localhost:5174`).
 
-Admin screens: `/` sales, `/branding` (currency, file picker for logo/hero/tiles), `/people` (phone + address), `/products`, `/categories`, `/inventory`, `/login`.
+Admin screens: `/` sales, `/payments` (Stripe / Razorpay / demo), `/branding` (currency, file picker for logo/hero/tiles), `/people` (phone + address), `/products`, `/categories`, `/inventory`, `/login`.
 
 **Admin UX:** pages show a loader on first fetch; save buttons show a spinner while working; validation uses plain-English field hints (not browser-only tooltips). Required fields use a red **\*** on the label; gray hints sit under the field; red errors appear under the field only after submit (e.g. promo **Add tile**). Branding sample files: `branding-samples/README.md`.
 
@@ -23,9 +23,9 @@ Admin screens: `/` sales, `/branding` (currency, file picker for logo/hero/tiles
 
 - **Loaders** on home, shop, cart, orders, checkout, and product detail — no “empty” flash before data arrives.
 - **Cart** shows a subtotal; header cart count loads on app start (guest bag included).
-- **Add to cart** from the grid shows brief “Added” feedback with a link to the cart.
+- **Add to cart** from the grid or product page uses **`AddToCart`** (`components/catalog/`) — shows **Add to cart** or a **quantity stepper** when the item is already in the bag. The cart page uses **`CartLine`** rows only.
 - **Out of stock** disables add on the product page.
-- **Checkout** → **Orders** shows a green “Order placed” message; order lines use product names.
+- **Checkout** → **Payment** (`/checkout/pay/:orderId`) → **Orders** shows a green “Order placed” message once paid; order lines use product names.
 - **Orders** nav link is hidden until you are signed in (avoids a surprise login redirect).
 - **Buttons** use `loading` labels (“Signing in…”, “Placing order…”) instead of silent disabled states.
 
@@ -35,7 +35,8 @@ Admin screens: `/` sales, `/branding` (currency, file picker for logo/hero/tiles
 - **Success banners** after saves; **field hints** and inline errors on forms.
 - **Inventory** errors appear on the row you edited, not only at the top.
 - **People:** success after role/address changes; tooltips when you cannot edit your own account; empty group messages.
-- **Sales** stats use plain labels (All orders, Active orders, Gross revenue).
+- **Sales** stats use plain labels; payment status column; ship / cancel actions.
+- **Payments** — choose provider (auto / Stripe / Razorpay / demo) and publishable keys; secrets stay in order-service env.
 
 Catalog edits belong in **admin**: categories, products, featured flags, inventory, logo, banners, currency.
 
@@ -47,8 +48,9 @@ This shop follows that:
 
 1. Guest: home, shop, product, **add to cart**, **view cart**.
 2. **Proceed to checkout** → `/login?next=/checkout` (or register). The guest bag is copied onto the signed-in cart API.
-3. Checkout: confirm **shipping address**, place order.
-4. **Orders** stay behind a login (your purchases).
+3. Checkout: confirm **shipping address**, place order (creates a **pending** order).
+4. **Payment**: Stripe Elements, Razorpay Checkout (India), or **Pay now (demo)** when no gateway keys are set.
+5. **Orders** stay behind a login (your purchases).
 
 Amazon’s own **Create account** form is name / email / password (and often a mobile). The **address book** is filled at checkout. We collect phone + address on **register** as well, and show them again at checkout, because a shop cannot ship without a delivery address.
 
@@ -60,12 +62,12 @@ Guest cart lines live in the **browser** (`localStorage`), not in cart-service, 
 Browser URL
     → routes/router.tsx picks a page
     → the page uses a hook (useCart, useAuth, …)
-    → the hook dispatches a Redux action
-    → the slice calls axios (api/http.ts)
+    → the hook calls TanStack Query (src/query/)
+    → query modules call axios (api/http.ts)
     → a backend on port 3000–3004
 ```
 
-Redux only keeps a **copy** of data so the screen can re-render. The **real** cart, orders, and login live on the server. Your user id still comes from the cookie, not from Redux.
+TanStack Query holds a **cached copy** of server data so screens re-render and stay in sync. The **real** cart, orders, login, and payment state live on the server. Your user id comes from the cookie, not from the client cache.
 
 Prices from the API are **minor units** (1299 cents). The shop formats them with `storefront.currency` from admin Branding (`useMoney`).
 
@@ -76,7 +78,7 @@ There is **no separate search results page** — industry standard is `/shop?q=t
 1. Header `SearchBar` debounces input (**300ms**), then updates the URL.
 2. Minimum **2 characters** before querying (reduces noise and DB load).
 3. `ShopPage` calls `GET /api/products?q=…&category=…&min=…&max=…&sort=…` — server-side filter/sort, not client-side over the full catalog.
-4. In-flight requests are **aborted** when the query changes (RTK + `signal`).
+4. In-flight requests are **aborted** when the query changes (React Query + `signal`).
 5. Uncached on the API when `q` or price filters are present; full catalog list stays cached.
 
 ```bash
@@ -111,6 +113,7 @@ Admin (`apps/admin`) uses the **same names and folders**. Staff `Layout` is a si
 | `/products/:id` | Anyone | One product, stock, add to cart |
 | `/cart` | Anyone | Cart. Checkout asks you to sign in |
 | `/checkout` | Logged in | Address + place order |
+| `/checkout/pay/:orderId` | Logged in | Stripe / Razorpay / demo payment |
 | `/login` | Guests only | Sign in (`?next=` returns you to checkout) |
 | `/register` | Guests only | Create account (phone + shipping address) |
 | `/orders` | Logged in | Order history, cancel pending |
@@ -120,7 +123,7 @@ Admin (`apps/admin`) uses the **same names and folders**. Staff `Layout` is a si
 
 ## Folders (what each one is for)
 
-`apps/admin/src` uses the same tree (`pages`, `hooks`, `features`, `components/layout`, `api`, `routes`, `store`).
+`apps/admin/src` uses the same tree (`pages`, `hooks`, `query`, `components/layout`, `api`, `routes`).
 
 ```
 apps/web/src/
@@ -129,21 +132,19 @@ apps/web/src/
   routes/          which URL shows which page
   pages/           one file per screen (puts hooks + components together)
   hooks/           “do this for me” functions pages call (login, load cart, …)
-  query/           TanStack Query hooks (catalog, cart, orders, auth)
-  features/        (legacy folder — use query/ instead)
-    components/
+  query/           TanStack Query hooks (catalog, cart, orders, payments, auth)
+  components/
     ErrorBoundary  React class boundary (main.tsx)
     RouteError     React Router errorElement
     ErrorPanel     shared error screen
     ui/            Card, Button, Field, PageHeader, Section, HeroBanner, …
     layout/        Layout, ProtectedRoute (logged in), GuestRoute (logged out)
-    catalog/       ProductCard, category chips
+    catalog/       ProductCard, AddToCart, category chips
     account/       AddressFields (`register` + zod errors, or controlled for admin people)
-    cart/          CartLine
+    cart/          CartLine (cart page rows only)
     orders/        OrderCard
   api/             axios client, API URLs, TypeScript types
   lib/             schemas (zod), shop filters, helpers
-  store/           (removed — no Redux)
   styles/          Bootstrap 5.3 (index.css imports bootstrap + brand tokens)
 ```
 
@@ -167,7 +168,8 @@ import { money } from '@/api';
 | `AuthCard` | Login / register forms |
 | `TextLink` | Emerald in-text links |
 | `Badge` | Category / featured labels |
-| `Button`, `Field`, `Flash`, `EmptyState`, `Spinner`, `PageLoader` | Forms and feedback (`Flash` supports success/error tones; `Button` has `loading`) |
+| `Button`, `Field`, `Flash`, `EmptyState`, `Spinner`, `PageLoader`, `QtyStepper` | Forms and feedback (`Flash` supports success/error tones; `Button` has `loading`) |
+| `AddToCart` | On product cards / detail — add button or in-cart quantity (uses `useCart`) |
 
 Pages compose these; they should not repeat long `className` strings for the same pattern.
 
@@ -175,15 +177,21 @@ Files inside a folder still import siblings with `./` (a Button file does not go
 
 **Pages do not talk to axios.** They call hooks. Hooks call TanStack Query. Query modules call `api/`.
 
+**API errors (one path):** `api/http.ts` axios interceptor normalizes every failed request into an `Error` with a readable message (offline → `Cannot reach product-service (localhost:3001)…`, validation → Nest `message`, etc.). UI reads errors with **`queryError(err, fallback?)`** from `@/api` — do not use raw `error.message` on axios errors or wrap each query in try/catch.
+
 | Hook | Used on | What it does |
 |---|---|---|
 | `useAuth` | App, Layout, login/register, checkout | Me, login, register, logout; after login, merge guest cart |
 | `useCatalog` / `useProduct` / `useStorefront` | Home, shop, product, Layout | Product list / one product + stock / branding |
-| `useCart` | Cart, checkout, product cards | Guest or server cart, qty, checkout |
+| `useCart` | Cart, checkout, product cards | Guest or server cart, qty, checkout → order id |
 | `useOrders` | Orders, account | List orders, cancel |
 | `useMoney` | prices | Format cents using storefront currency |
 
-Checkout is: save address on the user (`useUpdateMeMutation`), create an order via TanStack Query mutation, then clear the cart.
+**TanStack Query modules** (`src/query/`): `auth.ts`, `catalog.ts`, `cart.ts`, `orders.ts`, `payments.ts` (checkout session, simulate pay, clear cart after success). Admin adds `storefront.ts`, `inventory.ts`, `users.ts`, etc.
+
+**Zod + react-hook-form:** schemas live in `src/lib/schemas.ts` (shop) and `apps/admin/src/lib/schemas.ts`. Pages pass `resolver: zodResolver(schema)` to `useForm`, then wire fields with shared `Field` + `register()`. Checkout address uses `deliverySchema` and `AddressFields`.
+
+Checkout is: save address on the user (`useUpdateMeMutation`), create a pending order (`useCheckoutMutation`), navigate to `/checkout/pay/:orderId`, then pay via `usePaymentCheckoutMutation` (Stripe / Razorpay / demo). Cart clears after successful payment.
 
 ## Login on this site
 
@@ -195,7 +203,7 @@ If a call comes back **401** and you still have a `csrf_token` cookie (you were 
 
 On first load, `fetchMe` only calls `/users/me` if that cookie exists. After a failed login check (401), the cookie is gone, so later visits to `/login` stay quiet. If user-service is **down**, you may still see a console error once (the API is unreachable). Starting the service is the fix, not clearing cookies.
 
-The name in the header is from Redux (`fetchMe`). Logging out hits the API and also drops that CSRF hint.
+The name in the header is from TanStack Query (`useMeQuery` / `useAuth`). Logging out hits the API and also drops that CSRF hint.
 
 ## If something looks wrong
 
@@ -208,4 +216,7 @@ The name in the header is from Redux (`fetchMe`). Logging out hits the API and a
 | CORS error in the browser console | `CORS_ORIGIN` missing `http://localhost:5173` |
 | `ERR_CONNECTION_REFUSED` on port 3004 | **order-service is not running.** `npx nx serve order-service` |
 | Same error on 3000–3003 | That API is down. Start the matching `npx nx serve …` |
+| “Network Error” vs “Cannot reach …” | Should not happen anymore — all API failures go through `apiMessage()` in `api/http.ts`. If you still see a raw message, hard-refresh the browser. |
+| Payment page errors | Missing Stripe/Razorpay keys — use **demo** (`PAYMENT_SIMULATE=true`) or set keys in admin **Payments** + order-service `.env` |
+| `504 Outdated Optimize Dep` (Stripe) | Stop `nx serve web`, run `rm -rf apps/web/node_modules/.vite`, restart dev server (or `npx vite --force` in `apps/web`) |
 | A styled “this page hit a snag” screen | Caught by `RouteError` / `ErrorBoundary`. Try again or start the APIs |

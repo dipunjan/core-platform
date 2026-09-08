@@ -23,4 +23,6 @@ Shared code: import `@core-platform/common` only (never `packages/common/src/...
 
 Redis: throttle, logout denylist, catalog cache — not carts/orders/stock. [docs/redis.md](docs/redis.md).
 
+Payments: Stripe + Razorpay on **order-service**; admin **Payments** page; demo mode when `PAYMENT_SIMULATE=true`.
+
 Folder patterns: [docs/conventions.md](docs/conventions.md). Map of the system: [docs/architecture.md](docs/architecture.md).

@@ -1,4 +1,5 @@
 import { isRouteErrorResponse } from 'react-router-dom';
+import { queryError } from '@/api';
 
 type Props = {
   error: unknown;
@@ -10,15 +11,12 @@ export function errorMessage(error: unknown): string {
   if (isRouteErrorResponse(error)) {
     return error.statusText || `Request failed (${error.status})`;
   }
-  if (error instanceof Error) {
-    return error.message;
-  }
-  return 'Something broke.';
+  return queryError(error, 'Something broke.');
 }
 
 export function ErrorPanel({ error, homeHref, homeLabel }: Props) {
   const message = errorMessage(error);
-  const offline = /failed to fetch|network error|err_connection|econnrefused/i.test(
+  const offline = /cannot reach|failed to fetch|network error|err_connection|econnrefused/i.test(
     String(message),
   );
 
@@ -31,7 +29,7 @@ export function ErrorPanel({ error, homeHref, homeLabel }: Props) {
         {offline ? 'Cannot reach the API' : 'This page hit a snag'}
       </h1>
       <p className="text-muted small mt-3 mb-0">
-        {offline
+        {offline && !message.startsWith('Cannot reach')
           ? 'Start Mongo, RabbitMQ, and the five services (ports 3000–3004), then try again. Health check: curl http://localhost:3000/api/health/live'
           : message}
       </p>

@@ -1,9 +1,9 @@
-import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { docId, type Category, type Product } from '@/api';
+import { AddToCart } from './AddToCart';
 import { categoryAccent, categoryInitial } from '@/lib/categoryAccent';
-import { Badge, Button, TextLink } from '@/components/ui';
-import { useCart, useMoney } from '@/hooks';
+import { Badge } from '@/components/ui';
+import { useMoney } from '@/hooks';
 
 type Props = {
   product: Product;
@@ -13,22 +13,9 @@ type Props = {
 export function ProductCard({ product, categories }: Props) {
   const money = useMoney();
   const id = docId(product);
-  const { addItem, loading: cartBusy } = useCart();
-  const [busy, setBusy] = useState(false);
-  const [added, setAdded] = useState(false);
   const category = categories.find((row) => row.slug === product.category);
   const accent = categoryAccent(product.category);
   const initial = categoryInitial(category?.name ?? product.name);
-
-  async function onAdd() {
-    setBusy(true);
-    const ok = await addItem(id, 1);
-    setBusy(false);
-    if (ok) {
-      setAdded(true);
-      window.setTimeout(() => setAdded(false), 2500);
-    }
-  }
 
   return (
     <div className="card w-100 product-card card-hover overflow-hidden d-flex flex-column">
@@ -60,21 +47,7 @@ export function ProductCard({ product, categories }: Props) {
           <p className="mt-3 fs-5 fw-bold mb-0">{money(product.price)}</p>
         </Link>
         <div className="mt-auto pt-3">
-          {added ? (
-            <p className="mb-0 text-center small fw-medium text-primary">
-              Added to cart. <TextLink to="/cart">View cart</TextLink>
-            </p>
-          ) : (
-            <Button
-              type="button"
-              className="w-100"
-              loading={busy || cartBusy}
-              loadingLabel="Adding…"
-              onClick={() => void onAdd()}
-            >
-              Add to cart
-            </Button>
-          )}
+          <AddToCart productId={id} block />
         </div>
       </div>
     </div>

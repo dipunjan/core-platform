@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { docId, type Product } from '@/api';
+import { queryError, docId, type Product } from '@/api';
 import { Button, Flash, PageHeader, PageLoader } from '@/components/ui';
 import {
   useInventoryQuery,
@@ -18,11 +18,9 @@ export function InventoryPage() {
   const products = productsQuery.data ?? [];
   const stock = inventoryQuery.data ?? [];
   const loading = productsQuery.isLoading || inventoryQuery.isLoading;
-  const error =
-    productsQuery.error?.message ??
-    inventoryQuery.error?.message ??
-    updateInventory.error?.message ??
-    '';
+  const error = queryError(
+    productsQuery.error ?? inventoryQuery.error ?? updateInventory.error,
+  );
 
   useEffect(() => {
     const next: Record<string, string> = {};

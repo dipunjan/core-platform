@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { cn } from '@/lib/cn';
 
 type PageTitleProps = {
   children: ReactNode;
@@ -9,11 +10,9 @@ type PageTitleProps = {
 export function PageTitle({ children, subtitle, className = '' }: PageTitleProps) {
   return (
     <header className={className}>
-      <h1 className="text-3xl font-semibold tracking-tight text-zinc-900">
-        {children}
-      </h1>
+      <h1 className="h2 fw-semibold">{children}</h1>
       {subtitle ? (
-        <p className="mt-2 text-sm text-zinc-500">{subtitle}</p>
+        <p className="text-muted small mt-2 mb-0">{subtitle}</p>
       ) : null}
     </header>
   );

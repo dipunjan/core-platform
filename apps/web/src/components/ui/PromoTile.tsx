@@ -10,16 +10,16 @@ export function PromoTile({ banner }: PromoTileProps) {
   return (
     <Link
       to={banner.href || '/shop'}
-      className="flex min-h-[11rem] flex-col justify-end overflow-hidden rounded-xl bg-zinc-900 p-6 text-white transition hover:brightness-110"
+      className="d-flex flex-column justify-content-end overflow-hidden rounded-3 text-white text-decoration-none p-4 promo-tile"
       style={{
         backgroundImage: `linear-gradient(rgba(9,9,11,.65), rgba(9,9,11,.65)), url(${brandImage(banner.imageUrl, 'promo')})`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
       }}
     >
-      <strong className="text-lg">{banner.headline}</strong>
+      <strong className="fs-5">{banner.headline}</strong>
       {banner.sub ? (
-        <p className="mt-1 text-sm text-zinc-300">{banner.sub}</p>
+        <p className="small text-white-50 mt-1 mb-0">{banner.sub}</p>
       ) : null}
     </Link>
   );

@@ -77,24 +77,24 @@ export function InventoryPage() {
 
   return (
     <>
-      <h1 className="mb-6 text-2xl font-semibold tracking-tight">Inventory</h1>
+      <h1 className="h2 mb-4">Inventory</h1>
       <Flash tone="success">{notice}</Flash>
       <Flash>{error}</Flash>
-      <div className="overflow-x-auto rounded-xl border border-zinc-200 bg-white">
-        <table className="w-full text-left text-sm">
-          <thead className="border-b border-zinc-200 text-xs uppercase text-zinc-500">
+      <div className="table-responsive card">
+        <table className="table table-hover mb-0">
+          <thead>
             <tr>
-              <th className="px-4 py-3">Product</th>
-              <th className="px-4 py-3">On hand</th>
-              <th className="px-4 py-3">Reserved</th>
-              <th className="px-4 py-3">Set quantity</th>
-              <th className="px-4 py-3" />
+              <th>Product</th>
+              <th>On hand</th>
+              <th>Reserved</th>
+              <th>Set quantity</th>
+              <th />
             </tr>
           </thead>
           <tbody>
             {products.length === 0 ? (
               <tr>
-                <td className="px-4 py-8 text-center text-zinc-500" colSpan={5}>
+                <td className="text-center text-muted py-5" colSpan={5}>
                   No products yet. Add products first, then set stock here.
                 </td>
               </tr>
@@ -103,32 +103,29 @@ export function InventoryPage() {
                 const id = docId(product);
                 const row = byId.get(id);
                 return (
-                  <tr key={id} className="border-b border-zinc-100">
-                    <td className="px-4 py-3">
+                  <tr key={id}>
+                    <td>
                       <strong>{product.name}</strong>
-                      <p className="text-xs text-zinc-500">{product.sku}</p>
+                      <p className="small text-muted mb-0">{product.sku}</p>
                     </td>
-                    <td className="px-4 py-3 tabular-nums">{row?.quantity ?? '—'}</td>
-                    <td className="px-4 py-3 tabular-nums">{row?.reserved ?? '—'}</td>
-                    <td className="px-4 py-3">
+                    <td className="font-monospace">{row?.quantity ?? '—'}</td>
+                    <td className="font-monospace">{row?.reserved ?? '—'}</td>
+                    <td>
                       <input
                         type="number"
                         min={0}
-                        className={`w-24 rounded-md border px-2 py-1 ${
-                          rowErrors[id]
-                            ? 'border-red-400'
-                            : 'border-zinc-300'
-                        }`}
+                        className={`form-control form-control-sm${rowErrors[id] ? ' is-invalid' : ''}`}
+                        style={{ width: '6rem' }}
                         value={draft[id] ?? '0'}
                         onChange={(e) =>
                           setDraft({ ...draft, [id]: e.target.value })
                         }
                       />
                       {rowErrors[id] ? (
-                        <p className="mt-1 text-xs text-red-700">{rowErrors[id]}</p>
+                        <div className="invalid-feedback d-block">{rowErrors[id]}</div>
                       ) : null}
                     </td>
-                    <td className="px-4 py-3">
+                    <td>
                       <Button
                         type="button"
                         loading={savingId === id}

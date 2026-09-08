@@ -23,30 +23,27 @@ export function ErrorPanel({ error, homeHref, homeLabel }: Props) {
   );
 
   return (
-    <div className="mx-auto max-w-lg px-4 py-12">
-      <p className="text-sm font-semibold uppercase tracking-wide text-emerald-800">
+    <div className="container py-5" style={{ maxWidth: '32rem' }}>
+      <p className="small fw-semibold text-uppercase text-success">
         Admin
       </p>
-      <h1 className="mt-2 text-2xl font-semibold tracking-tight text-zinc-950">
+      <h1 className="h2 mt-2">
         {offline ? 'Cannot reach the API' : 'This page hit a snag'}
       </h1>
-      <p className="mt-3 text-sm leading-6 text-zinc-600">
+      <p className="mt-3 text-muted">
         {offline
           ? 'Start the APIs (user-service on 3000, product-service on 3001, …), then try again.'
           : message}
       </p>
-      <div className="mt-8 flex flex-wrap gap-3">
+      <div className="mt-4 d-flex flex-wrap gap-2">
         <button
           type="button"
-          className="rounded-lg bg-zinc-950 px-4 py-2 text-sm font-semibold text-white hover:bg-zinc-800"
+          className="btn btn-dark"
           onClick={() => window.location.reload()}
         >
           Try again
         </button>
-        <a
-          href={homeHref}
-          className="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-semibold text-zinc-900 hover:bg-zinc-100"
-        >
+        <a href={homeHref} className="btn btn-outline-secondary">
           {homeLabel}
         </a>
       </div>

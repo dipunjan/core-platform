@@ -40,41 +40,49 @@ export function AddressFields({ value, onChange }: Props) {
         value={address.line2 ?? ''}
         onChange={(e) => setAddress({ line2: e.target.value })}
       />
-      <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2">
-        <Field
-          className="mb-0"
-          label="City"
-          autoComplete="address-level2"
-          value={address.city}
-          onChange={(e) => setAddress({ city: e.target.value })}
-          required
-        />
-        <Field
-          className="mb-0"
-          label="State / region"
-          autoComplete="address-level1"
-          value={address.region}
-          onChange={(e) => setAddress({ region: e.target.value })}
-          required
-        />
+      <div className="row g-3">
+        <div className="col-md-6">
+          <Field
+            className="mb-0"
+            label="City"
+            autoComplete="address-level2"
+            value={address.city}
+            onChange={(e) => setAddress({ city: e.target.value })}
+            required
+          />
+        </div>
+        <div className="col-md-6">
+          <Field
+            className="mb-0"
+            label="State / region"
+            autoComplete="address-level1"
+            value={address.region}
+            onChange={(e) => setAddress({ region: e.target.value })}
+            required
+          />
+        </div>
       </div>
-      <div className="mb-4 grid grid-cols-1 items-start gap-4 sm:grid-cols-2">
-        <Field
-          className="mb-0"
-          label="ZIP / postal code"
-          autoComplete="postal-code"
-          value={address.postalCode}
-          onChange={(e) => setAddress({ postalCode: e.target.value })}
-          required
-        />
-        <Field
-          className="mb-0"
-          label="Country"
-          autoComplete="country-name"
-          value={address.country}
-          onChange={(e) => setAddress({ country: e.target.value })}
-          required
-        />
+      <div className="row g-3 mb-3">
+        <div className="col-md-6">
+          <Field
+            className="mb-0"
+            label="ZIP / postal code"
+            autoComplete="postal-code"
+            value={address.postalCode}
+            onChange={(e) => setAddress({ postalCode: e.target.value })}
+            required
+          />
+        </div>
+        <div className="col-md-6">
+          <Field
+            className="mb-0"
+            label="Country"
+            autoComplete="country-name"
+            value={address.country}
+            onChange={(e) => setAddress({ country: e.target.value })}
+            required
+          />
+        </div>
       </div>
     </>
   );

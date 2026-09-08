@@ -18,21 +18,19 @@ export function Section({
   className = '',
 }: SectionProps) {
   return (
-    <section className={cn('mt-14', className)}>
+    <section className={cn('mt-5', className)}>
       {title ? (
-        <div className="mb-6 flex items-end justify-between gap-4">
+        <div className="d-flex align-items-end justify-content-between gap-3 mb-4">
           <div>
-            <h2 className="text-xl font-semibold tracking-tight text-zinc-950">
-              {title}
-            </h2>
+            <h2 className="h4 fw-semibold mb-0">{title}</h2>
             {description ? (
-              <p className="mt-1 text-sm text-zinc-500">{description}</p>
+              <p className="text-muted small mt-1 mb-0">{description}</p>
             ) : null}
           </div>
           {action ? (
             <Link
               to={action.to}
-              className="text-sm font-semibold text-emerald-800 hover:underline"
+              className="link-primary fw-semibold small text-nowrap"
             >
               {action.label}
             </Link>

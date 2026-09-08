@@ -13,8 +13,8 @@ export function TextLink({
   return (
     <Link
       className={cn(
-        'font-medium hover:underline',
-        muted ? 'text-zinc-600' : 'text-emerald-800',
+        'fw-medium',
+        muted ? 'text-muted' : 'link-primary',
         className,
       )}
       {...props}

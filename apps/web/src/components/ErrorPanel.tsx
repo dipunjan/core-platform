@@ -23,30 +23,27 @@ export function ErrorPanel({ error, homeHref, homeLabel }: Props) {
   );
 
   return (
-    <div className="mx-auto max-w-lg px-4 py-12">
-      <p className="text-sm font-semibold uppercase tracking-wide text-emerald-800">
+    <div className="mx-auto px-3 py-5" style={{ maxWidth: '32rem' }}>
+      <p className="small fw-semibold text-uppercase text-primary mb-0">
         Shop
       </p>
-      <h1 className="mt-2 text-2xl font-semibold tracking-tight text-zinc-950">
+      <h1 className="h3 fw-semibold mt-2">
         {offline ? 'Cannot reach the API' : 'This page hit a snag'}
       </h1>
-      <p className="mt-3 text-sm leading-6 text-zinc-600">
+      <p className="text-muted small mt-3 mb-0">
         {offline
           ? 'Start Mongo, RabbitMQ, and the five services (ports 3000–3004), then try again. Health check: curl http://localhost:3000/api/health/live'
           : message}
       </p>
-      <div className="mt-8 flex flex-wrap gap-3">
+      <div className="d-flex flex-wrap gap-2 mt-4">
         <button
           type="button"
-          className="rounded-lg bg-zinc-950 px-4 py-2 text-sm font-semibold text-white hover:bg-zinc-800"
+          className="btn btn-dark fw-semibold"
           onClick={() => window.location.reload()}
         >
           Try again
         </button>
-        <a
-          href={homeHref}
-          className="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-semibold text-zinc-900 hover:bg-zinc-100"
-        >
+        <a href={homeHref} className="btn btn-outline-secondary fw-semibold">
           {homeLabel}
         </a>
       </div>

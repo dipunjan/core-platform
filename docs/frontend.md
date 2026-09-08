@@ -1,6 +1,6 @@
 # Website (frontend)
 
-The shop site lives in **`apps/web`**. It is a React app (Vite + Tailwind) at **http://localhost:5173**. The storefront is branded **swoop**.
+The shop site lives in **`apps/web`**. It is a React app (Vite + **Bootstrap 5.3**) at **http://localhost:5173**. The storefront is branded **swoop**.
 
 Staff UI is a **second app**, **`apps/admin`**, at **http://localhost:5174**. It is not mixed into the shop routes. Logo and banners are uploaded as files there and stored by product-service. The shop reads them via `GET /api/storefront`. Currency is also set on that record.
 
@@ -140,7 +140,7 @@ apps/web/src/
     orders/        OrderCard
   api/             axios client, API URLs, TypeScript types
   store/           Redux store + typed useAppDispatch / useAppSelector
-  styles/          Tailwind (index.css)
+  styles/          Bootstrap 5.3 (index.css imports bootstrap + brand tokens)
 ```
 
 Cross-folder imports use `@` (meaning `src/`) and a folder’s `index.ts` barrel, for example:
@@ -151,7 +151,7 @@ import { useCart } from '@/hooks';
 import { money } from '@/api';
 ```
 
-**Keep pages lean.** Repeated Tailwind lives in `components/ui/` — not copy-pasted on every screen:
+**Keep pages lean.** Repeated Bootstrap markup lives in `components/ui/` — not copy-pasted on every screen. Use `form-control`, `form-select`, `btn btn-primary`, `card`, `alert`, and the grid (`row` / `col-*`) from [Bootstrap forms](https://getbootstrap.com/docs/5.3/forms/overview/).
 
 | Component | Use for |
 |---|---|

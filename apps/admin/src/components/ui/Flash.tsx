@@ -6,9 +6,9 @@ type Props = {
 };
 
 const tones: Record<NonNullable<Props['tone']>, string> = {
-  error: 'border-red-200 bg-red-50 text-red-800',
-  success: 'border-emerald-200 bg-emerald-50 text-emerald-900',
-  info: 'border-sky-200 bg-sky-50 text-sky-900',
+  error: 'alert-danger',
+  success: 'alert-success',
+  info: 'alert-info',
 };
 
 export function Flash({ children, tone = 'error' }: Props) {
@@ -17,7 +17,7 @@ export function Flash({ children, tone = 'error' }: Props) {
   }
   return (
     <div
-      className={`mb-4 rounded-lg border px-3 py-2.5 text-sm ${tones[tone]}`}
+      className={`alert ${tones[tone]} mb-4`}
       role={tone === 'error' ? 'alert' : 'status'}
       aria-live="polite"
     >

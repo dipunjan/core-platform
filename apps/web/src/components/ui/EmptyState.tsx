@@ -6,8 +6,8 @@ type Props = {
 
 export function EmptyState({ children }: Props) {
   return (
-    <p className="rounded-xl border border-dashed border-zinc-300 bg-white px-4 py-8 text-center text-sm text-zinc-500">
+    <div className="border border-dashed rounded-3 bg-white px-3 py-5 text-center text-muted small">
       {children}
-    </p>
+    </div>
   );
 }

@@ -75,20 +75,16 @@ export function ImagePicker({
   const errorId = error ? `picker-${kind}-error` : undefined;
 
   return (
-    <div className="mb-4">
-      <div className="mb-1.5 flex items-center justify-between gap-2">
-        <p className="text-sm font-medium text-zinc-700">
+    <div className="mb-3">
+      <div className="d-flex align-items-center justify-content-between gap-2 mb-2">
+        <p className="form-label mb-0">
           {label}
           {required ? (
-            <span className="text-red-600" aria-hidden="true"> *</span>
+            <span className="text-danger" aria-hidden="true"> *</span>
           ) : null}
         </p>
         <span
-          className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
-            live
-              ? 'bg-emerald-100 text-emerald-800'
-              : 'bg-zinc-100 text-zinc-600'
-          }`}
+          className={`badge ${live ? 'text-bg-success' : 'text-bg-secondary'}`}
         >
           {live ? 'Live on shop' : 'Placeholder on shop'}
         </span>
@@ -97,11 +93,10 @@ export function ImagePicker({
         src={preview}
         alt=""
         onError={() => setBroken(true)}
-        className={`mb-3 h-24 w-full max-w-xs rounded-lg border object-cover ${
-          error ? 'border-red-400' : 'border-zinc-200'
-        }`}
+        className={`mb-3 rounded object-fit-cover${error ? ' border border-danger' : ' border'}`}
+        style={{ height: '6rem', maxWidth: '20rem', width: '100%' }}
       />
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="d-flex flex-wrap align-items-center gap-2">
         <input
           type="file"
           accept="image/jpeg,image/png,image/gif,image/webp,image/svg+xml"
@@ -109,30 +104,31 @@ export function ImagePicker({
           aria-invalid={error ? true : undefined}
           aria-describedby={[hintId, errorId].filter(Boolean).join(' ') || undefined}
           onChange={(event) => void onPick(event.target.files?.[0])}
-          className="block text-sm text-zinc-600 file:mr-3 file:rounded-lg file:border-0 file:bg-zinc-950 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-white"
+          className={`form-control form-control-sm${error ? ' is-invalid' : ''}`}
+          style={{ maxWidth: '20rem' }}
         />
         {value.trim() && onRemove ? (
           <button
             type="button"
             disabled={busy}
             onClick={onRemove}
-            className="rounded-lg border border-zinc-300 px-3 py-2 text-sm font-semibold text-zinc-700 hover:bg-zinc-50"
+            className="btn btn-outline-secondary btn-sm"
           >
             Remove
           </button>
         ) : null}
       </div>
       {busy ? (
-        <p className="mt-1 flex items-center gap-1.5 text-xs text-zinc-500">
-          <SpinnerIcon className="h-3.5 w-3.5" />
+        <p className="mt-1 d-flex align-items-center gap-2 form-text mb-0">
+          <SpinnerIcon />
           Uploading…
         </p>
       ) : error ? (
-        <p id={errorId} className="mt-1 text-xs font-normal text-red-700" role="alert">
+        <div id={errorId} className="invalid-feedback d-block" role="alert">
           {error}
-        </p>
+        </div>
       ) : hint ? (
-        <p id={hintId} className="mt-1 text-xs font-normal text-zinc-500">
+        <p id={hintId} className="form-text mb-0">
           {hint}
         </p>
       ) : null}

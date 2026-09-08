@@ -360,8 +360,8 @@ export function BrandingPage() {
 
   return (
     <>
-      <h1 className="mb-2 text-2xl font-semibold tracking-tight">Branding</h1>
-      <p className="mb-6 text-sm text-zinc-500">
+      <h1 className="h2 mb-2">Branding</h1>
+      <p className="text-muted mb-4">
         Uploaded images are live on the shop. Empty slots show a placeholder on
         the website until you upload something.
       </p>
@@ -369,9 +369,11 @@ export function BrandingPage() {
       <Flash>{loadError || error}</Flash>
       <form
         onSubmit={(event) => void saveSite(event)}
-        className="mb-10 max-w-xl rounded-xl border border-zinc-200 bg-white p-6"
+        className="card mb-4"
+        style={{ maxWidth: '36rem' }}
       >
-        <h2 className="mb-4 font-semibold">Site identity</h2>
+        <div className="card-body">
+        <h2 className="h5 mb-3">Site identity</h2>
         <Field
           label="App / shop name"
           value={appName}
@@ -392,12 +394,15 @@ export function BrandingPage() {
           onRemove={() => void removeFavicon()}
         />
         <Button type="submit" loading={busy === 'site'}>Save site identity</Button>
+        </div>
       </form>
       <form
         onSubmit={(event) => void saveCurrency(event)}
-        className="mb-10 max-w-xl rounded-xl border border-zinc-200 bg-white p-6"
+        className="card mb-4"
+        style={{ maxWidth: '36rem' }}
       >
-        <h2 className="mb-4 font-semibold">Currency</h2>
+        <div className="card-body">
+        <h2 className="h5 mb-3">Currency</h2>
         <SelectField
           label="Display currency"
           value={currency}
@@ -410,9 +415,11 @@ export function BrandingPage() {
           ))}
         </SelectField>
         <Button type="submit" loading={busy === 'currency'}>Save currency</Button>
+        </div>
       </form>
-      <section className="mb-10 max-w-xl rounded-xl border border-zinc-200 bg-white p-6">
-        <h2 className="mb-4 font-semibold">Logo (header)</h2>
+      <section className="card mb-4" style={{ maxWidth: '36rem' }}>
+        <div className="card-body">
+        <h2 className="h5 mb-3">Logo (header)</h2>
         <ImagePicker
           label="Logo file"
           kind="logo"
@@ -421,12 +428,15 @@ export function BrandingPage() {
           onError={setError}
           onRemove={() => void removeLogo()}
         />
+        </div>
       </section>
       <form
         onSubmit={(event) => void saveHero(event)}
-        className="mb-10 max-w-xl rounded-xl border border-zinc-200 bg-white p-6"
+        className="card mb-4"
+        style={{ maxWidth: '36rem' }}
       >
-        <h2 className="mb-4 font-semibold">Home hero</h2>
+        <div className="card-body">
+        <h2 className="h5 mb-3">Home hero</h2>
         <Field
           label="Headline"
           value={headline}
@@ -453,25 +463,26 @@ export function BrandingPage() {
           onChange={(e) => setHref(e.target.value)}
         />
         <Button type="submit" loading={busy === 'hero'}>Save hero</Button>
+        </div>
       </form>
-      <section className="max-w-xl rounded-xl border border-zinc-200 bg-white p-6">
-        <h2 className="mb-2 font-semibold">Promo tiles (under the hero)</h2>
-        <p className="mb-6 text-sm text-zinc-500">
+      <section className="card" style={{ maxWidth: '36rem' }}>
+        <div className="card-body">
+        <h2 className="h5 mb-2">Promo tiles (under the hero)</h2>
+        <p className="text-muted mb-4">
           Optional cards on the shop home page, below the hero. Enter a headline,
           upload an image, then click <strong>Add tile</strong>. Sample files
-          are in <code className="text-xs">branding-samples/</code>.
+          are in <code className="small">branding-samples/</code>.
         </p>
-        <ul className="mb-6 grid gap-3">
+        <ul className="list-unstyled d-grid gap-3 mb-4">
           {(store?.banners ?? []).map((banner) => {
             const bannerId = docId(banner);
             const editing = editingBannerId === bannerId;
             return (
               <li
                 key={bannerId}
-                className={`rounded-lg border p-3 ${
-                  editing ? 'border-emerald-200 bg-emerald-50/40' : 'border-zinc-100'
-                }`}
+                className={`card${editing ? ' border-success bg-success-subtle' : ''}`}
               >
+                <div className="card-body">
                 {editing ? (
                   <form onSubmit={(event) => void saveEditBanner(event)} noValidate>
                     <Field
@@ -529,7 +540,7 @@ export function BrandingPage() {
                       value={editPromoHref}
                       onChange={(e) => setEditPromoHref(e.target.value)}
                     />
-                    <div className="flex flex-wrap gap-2">
+                    <div className="d-flex flex-wrap gap-2">
                       <Button
                         type="submit"
                         loading={busy === `edit-${bannerId}`}
@@ -546,30 +557,31 @@ export function BrandingPage() {
                     </div>
                   </form>
                 ) : (
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex min-w-0 gap-3">
+                  <div className="d-flex align-items-start justify-content-between gap-3">
+                    <div className="d-flex min-w-0 gap-3">
                       <div>
                         <img
                           src={brandImage(banner.imageUrl, 'promo')}
                           alt=""
-                          className="h-14 w-24 shrink-0 rounded-md border border-zinc-200 object-cover"
+                          className="rounded border object-fit-cover flex-shrink-0"
+                          style={{ height: '3.5rem', width: '6rem' }}
                         />
                         <span
-                          className={`mt-1 inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                          className={`badge mt-1 ${
                             hasBrandImage(banner.imageUrl)
-                              ? 'bg-emerald-100 text-emerald-800'
-                              : 'bg-zinc-100 text-zinc-600'
+                              ? 'text-bg-success'
+                              : 'text-bg-secondary'
                           }`}
                         >
                           {hasBrandImage(banner.imageUrl) ? 'Live' : 'Placeholder'}
                         </span>
                       </div>
                       <div>
-                        <p className="font-semibold">{banner.headline}</p>
-                        <p className="text-sm text-zinc-500">{banner.sub}</p>
+                        <p className="fw-semibold mb-0">{banner.headline}</p>
+                        <p className="small text-muted mb-0">{banner.sub}</p>
                       </div>
                     </div>
-                    <div className="flex shrink-0 gap-2">
+                    <div className="d-flex flex-shrink-0 gap-2">
                       <Button
                         type="button"
                         variant="secondary"
@@ -589,6 +601,7 @@ export function BrandingPage() {
                     </div>
                   </div>
                 )}
+                </div>
               </li>
             );
           })}
@@ -651,6 +664,7 @@ export function BrandingPage() {
             Add tile
           </Button>
         </form>
+        </div>
       </section>
     </>
   );

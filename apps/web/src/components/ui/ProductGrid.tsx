@@ -8,8 +8,8 @@ type ProductGridProps = {
 };
 
 const colsClass = {
-  3: 'sm:grid-cols-2 lg:grid-cols-3',
-  4: 'sm:grid-cols-2 lg:grid-cols-4',
+  3: 'row-cols-sm-2 row-cols-lg-3',
+  4: 'row-cols-sm-2 row-cols-lg-4',
 };
 
 export function ProductGrid({
@@ -18,9 +18,7 @@ export function ProductGrid({
   className = '',
 }: ProductGridProps) {
   return (
-    <div
-      className={cn('grid grid-cols-1 gap-4', colsClass[cols], className)}
-    >
+    <div className={cn('row row-cols-1 g-3', colsClass[cols], className)}>
       {children}
     </div>
   );

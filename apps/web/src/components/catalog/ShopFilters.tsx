@@ -48,10 +48,15 @@ export function ShopFilters({ categories, filters, resultCount }: Props) {
   }
 
   return (
-    <Card padding="sm" className="h-fit lg:sticky lg:top-36">
-      <div className="mb-4 flex items-baseline justify-between gap-2">
-        <h2 className="text-sm font-semibold text-zinc-900">Filters</h2>
-        <span className="text-xs text-zinc-500">{resultCount} items</span>
+    <Card
+      padding="sm"
+      className="shop-filters-sidebar"
+    >
+      <div className="d-flex align-items-baseline justify-content-between gap-2 mb-3">
+        <h2 className="small fw-semibold mb-0">Filters</h2>
+        <span className="text-muted" style={{ fontSize: '0.75rem' }}>
+          {resultCount} items
+        </span>
       </div>
 
       <SelectField
@@ -116,7 +121,7 @@ export function ShopFilters({ categories, filters, resultCount }: Props) {
       <Button
         type="button"
         variant="secondary"
-        className="w-full"
+        className="w-100"
         onClick={() => navigate('/shop')}
       >
         Clear filters

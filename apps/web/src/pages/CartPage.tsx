@@ -19,7 +19,7 @@ export function CartPage() {
   if (loading && !cart) {
     return (
       <>
-        <PageTitle className="mb-6">Cart</PageTitle>
+        <PageTitle className="mb-4">Cart</PageTitle>
         <PageLoader label="Loading your cart…" />
       </>
     );
@@ -27,7 +27,7 @@ export function CartPage() {
 
   return (
     <>
-      <PageTitle className="mb-6">Cart</PageTitle>
+      <PageTitle className="mb-4">Cart</PageTitle>
       <Flash>{error}</Flash>
       {error ? null : !cart || cart.items.length === 0 ? (
         <EmptyState>
@@ -35,13 +35,13 @@ export function CartPage() {
         </EmptyState>
       ) : (
         <Card padding="none">
-          <div className="overflow-x-auto px-4 sm:px-6">
-            <table className="w-full text-left text-sm">
+          <div className="table-responsive px-3 px-sm-4 pt-3">
+            <table className="table table-sm align-middle mb-0">
               <thead>
-                <tr className="border-b border-zinc-200 text-xs uppercase tracking-wide text-zinc-500">
-                  <th className="py-3 pr-4 font-medium">Item</th>
-                  <th className="py-3 pr-4 font-medium">Qty</th>
-                  <th className="py-3 text-right font-medium">Price</th>
+                <tr className="text-muted text-uppercase small">
+                  <th scope="col">Item</th>
+                  <th scope="col">Qty</th>
+                  <th scope="col" className="text-end">Price</th>
                 </tr>
               </thead>
               <tbody>
@@ -57,10 +57,10 @@ export function CartPage() {
               </tbody>
             </table>
           </div>
-          <div className="border-t border-zinc-100 px-4 py-4 sm:px-6">
-            <p className="mb-4 flex justify-between text-base font-semibold text-zinc-900">
+          <div className="border-top px-3 px-sm-4 py-3">
+            <p className="d-flex justify-content-between fw-semibold mb-3">
               <span>Subtotal</span>
-              <span className="tabular-nums">{money(total)}</span>
+              <span className="font-monospace">{money(total)}</span>
             </p>
             <Button
               type="button"
@@ -76,7 +76,7 @@ export function CartPage() {
               {user ? 'Proceed to checkout' : 'Sign in to check out'}
             </Button>
             {!user ? (
-              <p className="mt-3 text-sm text-zinc-500">
+              <p className="mt-3 mb-0 text-muted small">
                 You can add items without an account. Sign in is required to
                 place the order.
               </p>

@@ -1,5 +1,4 @@
 import type { InputHTMLAttributes } from 'react';
-import { fieldShellClass, inputControlClass } from './fieldStyles';
 
 export type FieldProps = InputHTMLAttributes<HTMLInputElement> & {
   label: string;
@@ -20,31 +19,31 @@ export function Field({
   const hintId = hint ? `${fieldId}-hint` : undefined;
   const errorId = error ? `${fieldId}-error` : undefined;
   return (
-    <label htmlFor={fieldId} className={fieldShellClass(className)}>
-      <span>
+    <div className={`mb-3 ${className}`.trim()}>
+      <label htmlFor={fieldId} className="form-label">
         {label}
         {required ? (
-          <span className="text-red-600" aria-hidden="true"> *</span>
+          <span className="text-danger" aria-hidden="true"> *</span>
         ) : null}
-      </span>
+      </label>
       <input
         id={fieldId}
         required={required}
         aria-invalid={error ? true : undefined}
         aria-describedby={[hintId, errorId].filter(Boolean).join(' ') || undefined}
-        className={inputControlClass(error)}
+        className={`form-control${error ? ' is-invalid' : ''}`}
         {...props}
       />
       {hint && !error ? (
-        <span id={hintId} className="text-xs font-normal text-zinc-500">
+        <div id={hintId} className="form-text">
           {hint}
-        </span>
+        </div>
       ) : null}
       {error ? (
-        <span id={errorId} className="text-xs font-normal text-red-700" role="alert">
+        <div id={errorId} className="invalid-feedback" role="alert">
           {error}
-        </span>
+        </div>
       ) : null}
-    </label>
+    </div>
   );
 }

@@ -79,7 +79,7 @@ export function RegisterPage() {
           required
         />
         <AddressFields value={delivery} onChange={setDelivery} />
-        <Button type="submit" className="w-full" loading={busy} loadingLabel="Creating account…">
+        <Button type="submit" className="w-100" loading={busy} loadingLabel="Creating account…">
           Create account
         </Button>
       </form>

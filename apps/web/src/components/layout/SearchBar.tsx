@@ -57,7 +57,7 @@ export function SearchBar({ className = '' }: Props) {
   }, [draft, urlQ, params, pathname, navigate]);
 
   return (
-    <div className={cn('relative w-full', className)}>
+    <div className={cn('position-relative w-100', className)}>
       <input
         type="search"
         value={draft}
@@ -67,15 +67,15 @@ export function SearchBar({ className = '' }: Props) {
         spellCheck={false}
         aria-label="Search products"
         aria-busy={pending}
-        className="w-full rounded-lg border border-zinc-300 bg-white py-2.5 pl-4 pr-10 text-sm text-zinc-900 outline-none focus:border-emerald-700 focus:ring-2 focus:ring-emerald-700/20"
+        className="form-control pe-5"
       />
       {pending ? (
         <SpinnerIcon
-          className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400"
+          className="position-absolute top-50 end-0 translate-middle-y me-3 text-muted"
         />
       ) : null}
       {draft.trim().length > 0 && draft.trim().length < SEARCH_MIN_CHARS ? (
-        <p className="mt-1 text-xs text-zinc-500">
+        <p className="form-text mb-0 mt-1">
           Type at least {SEARCH_MIN_CHARS} characters to search.
         </p>
       ) : null}

@@ -57,7 +57,7 @@ export function LoginPage() {
           minLength={8}
           required
         />
-        <Button type="submit" className="w-full" loading={busy} loadingLabel="Signing in…">
+        <Button type="submit" className="w-100" loading={busy} loadingLabel="Signing in…">
           Log in
         </Button>
       </form>

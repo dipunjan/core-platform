@@ -185,117 +185,139 @@ export function CategoriesPage() {
 
   return (
     <>
-      <h1 className="mb-2 text-2xl font-semibold tracking-tight">Categories</h1>
-      <p className="mb-6 text-sm text-zinc-500">
+      <h1 className="h2 mb-2">Categories</h1>
+      <p className="text-muted mb-4">
         Taxonomy only. Featured is a product flag, not a category.
       </p>
       <Flash tone="success">{notice}</Flash>
       <Flash>{error}</Flash>
       <form
         onSubmit={(event) => void create(event)}
-        className="mb-8 max-w-xl rounded-xl border border-zinc-200 bg-white p-6"
+        className="card mb-4"
+        style={{ maxWidth: '36rem' }}
       >
-        <h2 className="mb-4 text-lg font-semibold">Add category</h2>
-        <Field
-          label="Slug"
-          value={form.slug}
-          onChange={(e) => setForm({ ...form, slug: e.target.value })}
-          error={slugError}
-          hint="URL-friendly id, e.g. shoes or new-arrivals."
-          required
-        />
-        <Field
-          label="Name"
-          value={form.name}
-          onChange={(e) => setForm({ ...form, name: e.target.value })}
-          error={nameError}
-          required
-        />
-        <Field
-          label="Blurb"
-          value={form.blurb}
-          onChange={(e) => setForm({ ...form, blurb: e.target.value })}
-          hint="Short line shown on the shop home page."
-        />
-        <label className="mb-4 flex items-center gap-2 text-sm font-medium text-zinc-700">
-          <input
-            type="checkbox"
-            checked={form.showInNav}
-            onChange={(e) => setForm({ ...form, showInNav: e.target.checked })}
+        <div className="card-body">
+          <h2 className="h5 mb-3">Add category</h2>
+          <Field
+            label="Slug"
+            value={form.slug}
+            onChange={(e) => setForm({ ...form, slug: e.target.value })}
+            error={slugError}
+            hint="URL-friendly id, e.g. shoes or new-arrivals."
+            required
           />
-          Show in shop navigation
-        </label>
-        <label className="mb-4 flex items-center gap-2 text-sm font-medium text-zinc-700">
-          <input
-            type="checkbox"
-            checked={form.showOnHome}
-            onChange={(e) => setForm({ ...form, showOnHome: e.target.checked })}
+          <Field
+            label="Name"
+            value={form.name}
+            onChange={(e) => setForm({ ...form, name: e.target.value })}
+            error={nameError}
+            required
           />
-          Show on home page
-        </label>
-        <Button type="submit" loading={saving}>Add category</Button>
+          <Field
+            label="Blurb"
+            value={form.blurb}
+            onChange={(e) => setForm({ ...form, blurb: e.target.value })}
+            hint="Short line shown on the shop home page."
+          />
+          <div className="form-check mb-3">
+            <input
+              className="form-check-input"
+              type="checkbox"
+              id="show-in-nav"
+              checked={form.showInNav}
+              onChange={(e) => setForm({ ...form, showInNav: e.target.checked })}
+            />
+            <label className="form-check-label" htmlFor="show-in-nav">
+              Show in shop navigation
+            </label>
+          </div>
+          <div className="form-check mb-3">
+            <input
+              className="form-check-input"
+              type="checkbox"
+              id="show-on-home"
+              checked={form.showOnHome}
+              onChange={(e) => setForm({ ...form, showOnHome: e.target.checked })}
+            />
+            <label className="form-check-label" htmlFor="show-on-home">
+              Show on home page
+            </label>
+          </div>
+          <Button type="submit" loading={saving}>Add category</Button>
+        </div>
       </form>
 
       {editingId ? (
         <section
           ref={editPanelRef}
-          className="mb-8 max-w-xl rounded-xl border border-emerald-200 bg-emerald-50/40 p-6"
+          className="card mb-4 border-success bg-success-subtle"
+          style={{ maxWidth: '36rem' }}
         >
-          <h2 className="mb-4 text-lg font-semibold">Edit category</h2>
-          <form onSubmit={(event) => void saveEdit(event)}>
-            <Field
-              label="Slug"
-              value={editForm.slug}
-              readOnly
-              hint="Slug is fixed after creation. Products reference it."
-            />
-            <Field
-              label="Name"
-              value={editForm.name}
-              onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-              error={editNameError}
-              required
-            />
-            <Field
-              label="Blurb"
-              value={editForm.blurb}
-              onChange={(e) => setEditForm({ ...editForm, blurb: e.target.value })}
-              hint="Short line shown on the shop home page."
-            />
-            <label className="mb-4 flex items-center gap-2 text-sm font-medium text-zinc-700">
-              <input
-                type="checkbox"
-                checked={editForm.showInNav}
-                onChange={(e) =>
-                  setEditForm({ ...editForm, showInNav: e.target.checked })
-                }
+          <div className="card-body">
+            <h2 className="h5 mb-3">Edit category</h2>
+            <form onSubmit={(event) => void saveEdit(event)}>
+              <Field
+                label="Slug"
+                value={editForm.slug}
+                readOnly
+                hint="Slug is fixed after creation. Products reference it."
               />
-              Show in shop navigation
-            </label>
-            <label className="mb-4 flex items-center gap-2 text-sm font-medium text-zinc-700">
-              <input
-                type="checkbox"
-                checked={editForm.showOnHome}
-                onChange={(e) =>
-                  setEditForm({ ...editForm, showOnHome: e.target.checked })
-                }
+              <Field
+                label="Name"
+                value={editForm.name}
+                onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                error={editNameError}
+                required
               />
-              Show on home page
-            </label>
-            <div className="flex flex-wrap gap-2">
-              <Button type="submit" loading={editSaving}>Save changes</Button>
-              <Button type="button" variant="secondary" onClick={cancelEdit}>
-                Cancel
-              </Button>
-            </div>
-          </form>
+              <Field
+                label="Blurb"
+                value={editForm.blurb}
+                onChange={(e) => setEditForm({ ...editForm, blurb: e.target.value })}
+                hint="Short line shown on the shop home page."
+              />
+              <div className="form-check mb-3">
+                <input
+                  className="form-check-input"
+                  type="checkbox"
+                  id="edit-show-in-nav"
+                  checked={editForm.showInNav}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, showInNav: e.target.checked })
+                  }
+                />
+                <label className="form-check-label" htmlFor="edit-show-in-nav">
+                  Show in shop navigation
+                </label>
+              </div>
+              <div className="form-check mb-3">
+                <input
+                  className="form-check-input"
+                  type="checkbox"
+                  id="edit-show-on-home"
+                  checked={editForm.showOnHome}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, showOnHome: e.target.checked })
+                  }
+                />
+                <label className="form-check-label" htmlFor="edit-show-on-home">
+                  Show on home page
+                </label>
+              </div>
+              <div className="d-flex flex-wrap gap-2">
+                <Button type="submit" loading={editSaving}>Save changes</Button>
+                <Button type="button" variant="secondary" onClick={cancelEdit}>
+                  Cancel
+                </Button>
+              </div>
+            </form>
+          </div>
         </section>
       ) : null}
 
-      <ul className="grid max-w-xl gap-3">
+      <ul className="list-unstyled d-grid gap-3" style={{ maxWidth: '36rem' }}>
         {rows.length === 0 ? (
-          <li className="rounded-xl border border-dashed border-zinc-200 px-4 py-8 text-center text-sm text-zinc-500">
-            No categories yet. Add one above.
+          <li className="card border-dashed text-center text-muted py-5">
+            <div className="card-body">No categories yet. Add one above.</div>
           </li>
         ) : (
           rows.map((row) => {
@@ -304,32 +326,32 @@ export function CategoriesPage() {
             return (
               <li
                 key={row.slug}
-                className={`flex items-center justify-between rounded-xl border bg-white px-4 py-3 ${
-                  editing ? 'border-emerald-200 bg-emerald-50/50' : 'border-zinc-200'
-                }`}
+                className={`card${editing ? ' border-success bg-success-subtle' : ''}`}
               >
-                <div>
-                  <strong>{row.name}</strong>
-                  <p className="text-sm text-zinc-500">{row.slug}</p>
-                  {row.blurb ? (
-                    <p className="mt-1 text-sm text-zinc-600">{row.blurb}</p>
-                  ) : null}
-                </div>
-                <div className="flex shrink-0 gap-2">
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    onClick={() => startEdit(row)}
-                  >
-                    Edit
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="danger"
-                    onClick={() => void remove(row)}
-                  >
-                    Delete
-                  </Button>
+                <div className="card-body d-flex align-items-center justify-content-between gap-3">
+                  <div>
+                    <strong>{row.name}</strong>
+                    <p className="small text-muted mb-0">{row.slug}</p>
+                    {row.blurb ? (
+                      <p className="small mb-0 mt-1">{row.blurb}</p>
+                    ) : null}
+                  </div>
+                  <div className="d-flex flex-shrink-0 gap-2">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={() => startEdit(row)}
+                    >
+                      Edit
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="danger"
+                      onClick={() => void remove(row)}
+                    >
+                      Delete
+                    </Button>
+                  </div>
                 </div>
               </li>
             );

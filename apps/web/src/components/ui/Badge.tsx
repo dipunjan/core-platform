@@ -8,15 +8,15 @@ type BadgeProps = {
 };
 
 const toneClass = {
-  brand: 'text-emerald-800',
-  muted: 'text-zinc-400',
+  brand: 'text-primary',
+  muted: 'text-muted',
 };
 
 export function Badge({ children, tone = 'brand', className = '' }: BadgeProps) {
   return (
     <span
       className={cn(
-        'text-xs font-semibold uppercase tracking-wide',
+        'small fw-semibold text-uppercase',
         toneClass[tone],
         className,
       )}

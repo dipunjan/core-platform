@@ -46,16 +46,18 @@ export function ShopPage() {
   return (
     <>
       <PageHeader eyebrow="Shop" title={title} description={blurb} />
-      <div className="grid gap-8 lg:grid-cols-[15rem_1fr]">
-        <ShopFilters
-          categories={categories}
-          filters={filters}
-          resultCount={qTooShort ? 0 : products.length}
-        />
-        <div>
+      <div className="row g-4">
+        <div className="col-lg-auto">
+          <ShopFilters
+            categories={categories}
+            filters={filters}
+            resultCount={qTooShort ? 0 : products.length}
+          />
+        </div>
+        <div className="col">
           <Flash>{error}</Flash>
           {loading && !qTooShort ? (
-            <div className="mb-4">
+            <div className="mb-3">
               <Spinner label="Updating results…" size="sm" />
             </div>
           ) : null}

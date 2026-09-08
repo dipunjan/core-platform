@@ -196,8 +196,8 @@ export function PeoplePage() {
 
   return (
     <>
-      <h1 className="mb-2 text-2xl font-semibold tracking-tight">People</h1>
-      <p className="mb-6 text-sm text-zinc-500">
+      <h1 className="h2 mb-2">People</h1>
+      <p className="text-muted mb-4">
         Create shoppers or staff with a shipping address. You cannot delete or
         demote yourself, or remove the last admin.
       </p>
@@ -205,48 +205,51 @@ export function PeoplePage() {
       <Flash>{error}</Flash>
       <form
         onSubmit={(event) => void create(event)}
-        className="mb-10 max-w-xl rounded-xl border border-zinc-200 bg-white p-6"
+        className="card mb-4"
+        style={{ maxWidth: '36rem' }}
       >
-        <h2 className="mb-4 font-semibold">Add account</h2>
-        <Field
-          label="Name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          required
-        />
-        <Field
-          label="Email"
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-        />
-        <Field
-          label="Password (min 8)"
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          minLength={8}
-          required
-        />
-        <Field
-          label="Mobile phone"
-          type="tel"
-          value={phone}
-          onChange={(e) => setPhone(e.target.value)}
-          minLength={7}
-          required
-        />
-        <AddressFields value={address} onChange={setAddress} />
-        <SelectField
-          label="Role"
-          value={role}
-          onChange={(e) => setRole(e.target.value as 'customer' | 'admin')}
-        >
-          <option value="customer">Customer</option>
-          <option value="admin">Admin</option>
-        </SelectField>
-        <Button type="submit" loading={saving}>Create</Button>
+        <div className="card-body">
+          <h2 className="h5 mb-3">Add account</h2>
+          <Field
+            label="Name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            required
+          />
+          <Field
+            label="Email"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+          <Field
+            label="Password (min 8)"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            minLength={8}
+            required
+          />
+          <Field
+            label="Mobile phone"
+            type="tel"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            minLength={7}
+            required
+          />
+          <AddressFields value={address} onChange={setAddress} />
+          <SelectField
+            label="Role"
+            value={role}
+            onChange={(e) => setRole(e.target.value as 'customer' | 'admin')}
+          >
+            <option value="customer">Customer</option>
+            <option value="admin">Admin</option>
+          </SelectField>
+          <Button type="submit" loading={saving}>Create</Button>
+        </div>
       </form>
       <Group
         title="Admins"
@@ -328,11 +331,11 @@ function Group({
   onRemove: (person: User) => void;
 }) {
   return (
-    <section className="mb-8 max-w-3xl rounded-xl border border-zinc-200 bg-white">
-      <h2 className="border-b border-zinc-100 px-4 py-3 font-semibold">{title}</h2>
-      <ul>
+    <section className="card mb-4" style={{ maxWidth: '48rem' }}>
+      <h2 className="card-header h5 mb-0">{title}</h2>
+      <ul className="list-group list-group-flush">
         {people.length === 0 ? (
-          <li className="px-4 py-6 text-center text-sm text-zinc-500">
+          <li className="list-group-item text-center text-muted py-4">
             No {title.toLowerCase()} yet.
           </li>
         ) : null}
@@ -341,19 +344,16 @@ function Group({
           const mine = id === myId;
           const editing = editingId === id;
           return (
-            <li
-              key={id}
-              className="border-b border-zinc-100 px-4 py-3 last:border-0"
-            >
-              <div className="flex flex-wrap items-start justify-between gap-3">
+            <li key={id} className="list-group-item">
+              <div className="d-flex flex-wrap align-items-start justify-content-between gap-3">
                 <div>
                   <strong>{person.name}</strong>
-                  <p className="text-sm text-zinc-500">{person.email}</p>
-                  <p className="text-sm text-zinc-500">
+                  <p className="small text-muted mb-0">{person.email}</p>
+                  <p className="small text-muted mb-0">
                     {person.phone || 'No phone'} · {formatAddress(person.address)}
                   </p>
                 </div>
-                <div className="flex flex-wrap gap-2">
+                <div className="d-flex flex-wrap gap-2">
                   <Button
                     type="button"
                     variant="secondary"
@@ -396,34 +396,36 @@ function Group({
               {editing ? (
                 <form
                   onSubmit={(event) => void onSaveEdit(event)}
-                  className="mt-4 max-w-xl rounded-lg border border-emerald-200 bg-emerald-50/40 p-4"
+                  className="card mt-3 border-success bg-success-subtle"
                 >
-                  <Field
-                    label="Name"
-                    value={editName}
-                    onChange={(e) => onEditName(e.target.value)}
-                    error={editNameError}
-                    required
-                  />
-                  <Field
-                    label="Mobile phone"
-                    type="tel"
-                    value={editPhone}
-                    onChange={(e) => onEditPhone(e.target.value)}
-                    minLength={7}
-                    required
-                  />
-                  <AddressFields
-                    value={editAddress}
-                    onChange={onEditAddress}
-                  />
-                  <div className="flex flex-wrap gap-2">
-                    <Button type="submit" loading={editSaving}>
-                      Save changes
-                    </Button>
-                    <Button type="button" variant="secondary" onClick={onCancelEdit}>
-                      Cancel
-                    </Button>
+                  <div className="card-body">
+                    <Field
+                      label="Name"
+                      value={editName}
+                      onChange={(e) => onEditName(e.target.value)}
+                      error={editNameError}
+                      required
+                    />
+                    <Field
+                      label="Mobile phone"
+                      type="tel"
+                      value={editPhone}
+                      onChange={(e) => onEditPhone(e.target.value)}
+                      minLength={7}
+                      required
+                    />
+                    <AddressFields
+                      value={editAddress}
+                      onChange={onEditAddress}
+                    />
+                    <div className="d-flex flex-wrap gap-2">
+                      <Button type="submit" loading={editSaving}>
+                        Save changes
+                      </Button>
+                      <Button type="button" variant="secondary" onClick={onCancelEdit}>
+                        Cancel
+                      </Button>
+                    </div>
                   </div>
                 </form>
               ) : null}

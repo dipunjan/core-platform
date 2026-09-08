@@ -222,185 +222,193 @@ export function ProductsPage() {
 
   return (
     <>
-      <h1 className="mb-6 text-2xl font-semibold tracking-tight">Products</h1>
+      <h1 className="h2 mb-4">Products</h1>
       <Flash tone="success">{notice}</Flash>
       <Flash>{error}</Flash>
 
       <form
         onSubmit={(event) => void create(event)}
         noValidate
-        className="mb-8 max-w-xl rounded-xl border border-zinc-200 bg-white p-6"
+        className="card mb-4"
+        style={{ maxWidth: '36rem' }}
       >
-        <h2 className="mb-2 text-lg font-semibold">Add product</h2>
-        <Field
-          label="Name"
-          value={form.name}
-          onChange={(e) => setForm({ ...form, name: e.target.value })}
-          error={fieldErrors.name}
-          required
-        />
-        <Field
-          label="SKU"
-          value={form.sku}
-          onChange={(e) => setForm({ ...form, sku: e.target.value })}
-          error={fieldErrors.sku}
-          hint="Unique code for this product, e.g. SWOOP-TEE-01."
-          required
-        />
-        <TextAreaField
-          label="Description"
-          value={form.description}
-          onChange={(e) => setForm({ ...form, description: e.target.value })}
-          error={fieldErrors.description}
-          required
-        />
-        <div className="mb-4">
-          <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2">
-            <Field
-              className="mb-0"
-              label="Price (cents)"
-              type="number"
-              min={0}
-              value={form.price}
-              onChange={(e) => setForm({ ...form, price: e.target.value })}
-              error={fieldErrors.price}
-              required
-            />
-            <SelectField
-              className="mb-0"
-              label="Category"
-              value={form.category}
-              onChange={(e) => setForm({ ...form, category: e.target.value })}
-              error={fieldErrors.category}
-              required
-              disabled={categories.length === 0}
-            >
-              {categoryOptions()}
-            </SelectField>
+        <div className="card-body">
+          <h2 className="h5 mb-3">Add product</h2>
+          <Field
+            label="Name"
+            value={form.name}
+            onChange={(e) => setForm({ ...form, name: e.target.value })}
+            error={fieldErrors.name}
+            required
+          />
+          <Field
+            label="SKU"
+            value={form.sku}
+            onChange={(e) => setForm({ ...form, sku: e.target.value })}
+            error={fieldErrors.sku}
+            hint="Unique code for this product, e.g. SWOOP-TEE-01."
+            required
+          />
+          <TextAreaField
+            label="Description"
+            value={form.description}
+            onChange={(e) => setForm({ ...form, description: e.target.value })}
+            error={fieldErrors.description}
+            required
+          />
+          <div className="row">
+            <div className="col-md-6">
+              <Field
+                label="Price (cents)"
+                type="number"
+                min={0}
+                value={form.price}
+                onChange={(e) => setForm({ ...form, price: e.target.value })}
+                error={fieldErrors.price}
+                required
+              />
+            </div>
+            <div className="col-md-6">
+              <SelectField
+                label="Category"
+                value={form.category}
+                onChange={(e) => setForm({ ...form, category: e.target.value })}
+                error={fieldErrors.category}
+                required
+                disabled={categories.length === 0}
+              >
+                {categoryOptions()}
+              </SelectField>
+            </div>
           </div>
           {!fieldErrors.price ? (
-            <p className="mt-1.5 text-xs font-normal text-zinc-500">
-              Whole cents only. 1299 = $12.99.
-            </p>
+            <p className="form-text">Whole cents only. 1299 = $12.99.</p>
           ) : null}
-        </div>
-        <label className="flex items-center gap-2 text-sm font-medium text-zinc-700">
-          <input
-            type="checkbox"
-            checked={form.featured}
-            onChange={(e) => setForm({ ...form, featured: e.target.checked })}
-          />
-          Featured on the home page
-        </label>
-        <div>
-          <Button type="submit" loading={saving} disabled={categories.length === 0}>
-            Add product
-          </Button>
-          {categories.length === 0 ? (
-            <p className="mt-2 text-sm text-zinc-500">
-              Create a category first, then you can add products.
-            </p>
-          ) : null}
+          <div className="form-check mb-3">
+            <input
+              className="form-check-input"
+              type="checkbox"
+              id="featured"
+              checked={form.featured}
+              onChange={(e) => setForm({ ...form, featured: e.target.checked })}
+            />
+            <label className="form-check-label" htmlFor="featured">
+              Featured on the home page
+            </label>
+          </div>
+          <div>
+            <Button type="submit" loading={saving} disabled={categories.length === 0}>
+              Add product
+            </Button>
+            {categories.length === 0 ? (
+              <p className="mt-2 text-muted small">
+                Create a category first, then you can add products.
+              </p>
+            ) : null}
+          </div>
         </div>
       </form>
 
       {editingId ? (
         <section
           ref={editPanelRef}
-          className="mb-8 max-w-xl rounded-xl border border-emerald-200 bg-emerald-50/40 p-6"
+          className="card mb-4 border-success bg-success-subtle"
+          style={{ maxWidth: '36rem' }}
         >
-          <h2 className="mb-4 text-lg font-semibold">Edit product</h2>
-          <form
-            onSubmit={(event) => void saveEdit(event)}
-            noValidate
-            className="flex flex-col"
-          >
-            <Field
-              label="Name"
-              value={editForm.name}
-              onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-              error={editErrors.name}
-              required
-            />
-            <Field
-              label="SKU"
-              value={editForm.sku}
-              onChange={(e) => setEditForm({ ...editForm, sku: e.target.value })}
-              error={editErrors.sku}
-              required
-            />
-            <TextAreaField
-              label="Description"
-              value={editForm.description}
-              onChange={(e) =>
-                setEditForm({ ...editForm, description: e.target.value })
-              }
-              error={editErrors.description}
-              required
-            />
-            <div className="mb-4">
-              <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2">
-                <Field
-                  className="mb-0"
-                  label="Price (cents)"
-                  type="number"
-                  min={0}
-                  value={editForm.price}
-                  onChange={(e) => setEditForm({ ...editForm, price: e.target.value })}
-                  error={editErrors.price}
-                  required
-                />
-                <SelectField
-                  className="mb-0"
-                  label="Category"
-                  value={editForm.category}
-                  onChange={(e) =>
-                    setEditForm({ ...editForm, category: e.target.value })
-                  }
-                  error={editErrors.category}
-                  required
-                >
-                  {categoryOptions()}
-                </SelectField>
-              </div>
-            </div>
-            <label className="flex items-center gap-2 text-sm font-medium text-zinc-700">
-              <input
-                type="checkbox"
-                checked={editForm.featured}
-                onChange={(e) =>
-                  setEditForm({ ...editForm, featured: e.target.checked })
-                }
+          <div className="card-body">
+            <h2 className="h5 mb-3">Edit product</h2>
+            <form onSubmit={(event) => void saveEdit(event)} noValidate>
+              <Field
+                label="Name"
+                value={editForm.name}
+                onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                error={editErrors.name}
+                required
               />
-              Featured on the home page
-            </label>
-            <div className="flex flex-wrap gap-2">
-              <Button type="submit" loading={editSaving}>
-                Save changes
-              </Button>
-              <Button type="button" variant="secondary" onClick={cancelEdit}>
-                Cancel
-              </Button>
-            </div>
-          </form>
+              <Field
+                label="SKU"
+                value={editForm.sku}
+                onChange={(e) => setEditForm({ ...editForm, sku: e.target.value })}
+                error={editErrors.sku}
+                required
+              />
+              <TextAreaField
+                label="Description"
+                value={editForm.description}
+                onChange={(e) =>
+                  setEditForm({ ...editForm, description: e.target.value })
+                }
+                error={editErrors.description}
+                required
+              />
+              <div className="row">
+                <div className="col-md-6">
+                  <Field
+                    label="Price (cents)"
+                    type="number"
+                    min={0}
+                    value={editForm.price}
+                    onChange={(e) => setEditForm({ ...editForm, price: e.target.value })}
+                    error={editErrors.price}
+                    required
+                  />
+                </div>
+                <div className="col-md-6">
+                  <SelectField
+                    label="Category"
+                    value={editForm.category}
+                    onChange={(e) =>
+                      setEditForm({ ...editForm, category: e.target.value })
+                    }
+                    error={editErrors.category}
+                    required
+                  >
+                    {categoryOptions()}
+                  </SelectField>
+                </div>
+              </div>
+              <div className="form-check mb-3">
+                <input
+                  className="form-check-input"
+                  type="checkbox"
+                  id="edit-featured"
+                  checked={editForm.featured}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, featured: e.target.checked })
+                  }
+                />
+                <label className="form-check-label" htmlFor="edit-featured">
+                  Featured on the home page
+                </label>
+              </div>
+              <div className="d-flex flex-wrap gap-2">
+                <Button type="submit" loading={editSaving}>
+                  Save changes
+                </Button>
+                <Button type="button" variant="secondary" onClick={cancelEdit}>
+                  Cancel
+                </Button>
+              </div>
+            </form>
+          </div>
         </section>
       ) : null}
 
-      <div className="overflow-x-auto rounded-xl border border-zinc-200 bg-white">
-        <table className="w-full text-left text-sm">
-          <thead className="border-b border-zinc-200 text-xs uppercase text-zinc-500">
+      <div className="table-responsive card">
+        <table className="table table-hover mb-0">
+          <thead>
             <tr>
-              <th className="px-4 py-3">Product</th>
-              <th className="px-4 py-3">Category</th>
-              <th className="px-4 py-3">Price</th>
-              <th className="px-4 py-3">Featured</th>
-              <th className="px-4 py-3 text-right">Actions</th>
+              <th>Product</th>
+              <th>Category</th>
+              <th>Price</th>
+              <th>Featured</th>
+              <th className="text-end">Actions</th>
             </tr>
           </thead>
           <tbody>
             {products.length === 0 ? (
               <tr>
-                <td className="px-4 py-8 text-center text-zinc-500" colSpan={5}>
+                <td className="text-center text-muted py-5" colSpan={5}>
                   No products yet. Add one above.
                 </td>
               </tr>
@@ -411,19 +419,19 @@ export function ProductsPage() {
                 return (
                   <tr
                     key={id}
-                    className={`border-b border-zinc-100 ${editing ? 'bg-emerald-50/50' : ''}`}
+                    className={editing ? 'table-success' : undefined}
                   >
-                    <td className="px-4 py-3">
+                    <td>
                       <strong>{product.name}</strong>
-                      <p className="text-xs text-zinc-500">{product.sku}</p>
+                      <p className="small text-muted mb-0">{product.sku}</p>
                     </td>
-                    <td className="px-4 py-3">{categoryName(product.category)}</td>
-                    <td className="px-4 py-3 tabular-nums">{money(product.price)}</td>
-                    <td className="px-4 py-3">
+                    <td>{categoryName(product.category)}</td>
+                    <td className="font-monospace">{money(product.price)}</td>
+                    <td>
                       {product.featured ? 'Yes' : '—'}
                     </td>
-                    <td className="px-4 py-3">
-                      <div className="flex justify-end gap-2">
+                    <td>
+                      <div className="d-flex justify-content-end gap-2">
                         <Button
                           type="button"
                           variant="secondary"

@@ -30,7 +30,7 @@ export function ProductPage() {
   if (error && !product) {
     return (
       <>
-        <PageTitle className="mb-4">Product</PageTitle>
+        <PageTitle className="mb-3">Product</PageTitle>
         <Flash>{error}</Flash>
         <EmptyState>
           This product is not available.{' '}
@@ -50,34 +50,32 @@ export function ProductPage() {
   const category = categories.find((row) => row.slug === product.category);
 
   return (
-    <div className="mx-auto max-w-2xl">
-      <p className="mb-4">
+    <div className="mx-auto" style={{ maxWidth: '42rem' }}>
+      <p className="mb-3">
         <TextLink to="/shop">← Shop</TextLink>
       </p>
       <Card padding="lg">
         {category ? (
-          <Link to={`/shop/${product.category}`}>
+          <Link to={`/shop/${product.category}`} className="text-decoration-none">
             <Badge>{category.name}</Badge>
           </Link>
         ) : null}
-        <h1 className="mt-1 text-3xl font-semibold tracking-tight text-zinc-900">
-          {product.name}
-        </h1>
-        <p className="mt-3 text-zinc-600">{product.description}</p>
-        <p className="mt-4">
-          <strong className="text-2xl font-semibold tabular-nums">
+        <h1 className="h2 fw-semibold mt-1">{product.name}</h1>
+        <p className="mt-3 text-muted mb-0">{product.description}</p>
+        <p className="mt-3 mb-0">
+          <strong className="fs-4 fw-semibold font-monospace">
             {money(product.price)}
           </strong>
-          <span className="ml-2 text-sm text-zinc-500">SKU {product.sku}</span>
+          <span className="ms-2 text-muted small">SKU {product.sku}</span>
         </p>
-        <p className="mt-2 text-sm text-zinc-500">
+        <p className="mt-2 text-muted small mb-0">
           {inventory
             ? outOfStock
               ? 'Out of stock'
               : `${available} in stock`
             : 'Stock check unavailable — you can still try adding to cart.'}
         </p>
-        <div className="mt-6">
+        <div className="mt-4">
           <Flash>{cartError}</Flash>
           <Button
             type="button"

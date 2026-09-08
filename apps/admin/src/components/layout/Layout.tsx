@@ -4,9 +4,7 @@ import { brandImage } from '@/lib/brandImage';
 import { Button } from '@/components/ui';
 
 const item = ({ isActive }: { isActive: boolean }) =>
-  `block rounded-lg px-3 py-2 text-sm font-semibold ${
-    isActive ? 'bg-zinc-950 text-white' : 'text-zinc-700 hover:bg-zinc-100'
-  }`;
+  `nav-link${isActive ? ' active' : ''}`;
 
 export function Layout() {
   const { user, signOut } = useAuth();
@@ -21,21 +19,25 @@ export function Layout() {
     return <Outlet />;
   }
   return (
-    <div className="flex min-h-screen bg-zinc-100">
-      <aside className="flex w-56 shrink-0 flex-col border-r border-zinc-200 bg-white px-3 py-6">
-        <div className="flex items-center gap-2 px-3">
+    <div className="d-flex min-vh-100">
+      <aside
+        className="admin-sidebar d-flex flex-column border-end bg-white px-3 py-4"
+        style={{ width: '14rem', flexShrink: 0 }}
+      >
+        <div className="d-flex align-items-center gap-2 px-2">
           <img
             src={logo}
             alt=""
             width={28}
             height={28}
-            className="h-7 w-7 rounded-md object-contain"
+            className="rounded object-fit-contain"
+            style={{ width: '1.75rem', height: '1.75rem' }}
           />
-          <p className="text-sm font-bold tracking-tight text-zinc-950">
+          <p className="small fw-bold mb-0">
             {name} admin
           </p>
         </div>
-        <nav className="mt-6 grid gap-1">
+        <nav className="nav flex-column gap-1 mt-4">
           <NavLink to="/" end className={item}>
             Sales
           </NavLink>
@@ -55,19 +57,19 @@ export function Layout() {
             Inventory
           </NavLink>
         </nav>
-        <div className="mt-auto px-3 pt-6">
-          <p className="mb-2 truncate text-xs text-zinc-500">{user?.email}</p>
+        <div className="mt-auto px-2 pt-4">
+          <p className="mb-2 text-truncate text-muted small">{user?.email}</p>
           <Button
             type="button"
             variant="secondary"
-            className="w-full"
+            className="w-100"
             onClick={() => void signOut()}
           >
             Log out
           </Button>
         </div>
       </aside>
-      <main className="min-w-0 flex-1 p-8">
+      <main className="flex-grow-1 p-4" style={{ minWidth: 0 }}>
         <Outlet />
       </main>
     </div>

@@ -15,17 +15,13 @@ export function PageHeader({
   children,
 }: PageHeaderProps) {
   return (
-    <header className="mb-8">
-      {eyebrow ? (
-        <Badge className="tracking-[0.18em]">{eyebrow}</Badge>
-      ) : null}
-      <h1 className="mt-1 text-3xl font-semibold tracking-tight text-zinc-900">
-        {title}
-      </h1>
+    <header className="mb-4">
+      {eyebrow ? <Badge className="letter-spacing-wide">{eyebrow}</Badge> : null}
+      <h1 className="h2 fw-semibold mt-1">{title}</h1>
       {description ? (
-        <p className="mt-2 text-sm text-zinc-500">{description}</p>
+        <p className="text-muted small mt-2 mb-0">{description}</p>
       ) : null}
-      {children ? <div className="mt-6">{children}</div> : null}
+      {children ? <div className="mt-4">{children}</div> : null}
     </header>
   );
 }

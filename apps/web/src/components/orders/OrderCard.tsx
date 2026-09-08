@@ -13,18 +13,18 @@ export function OrderCard({ order, productsById, busy, onCancel }: Props) {
   const money = useMoney();
   const id = docId(order);
   return (
-    <Card className="mb-4" padding="sm">
-      <p className="flex flex-wrap items-baseline gap-2">
-        <strong className="capitalize text-zinc-900">{order.status}</strong>
-        <span className="text-sm text-zinc-500">· {money(order.total)}</span>
+    <Card className="mb-3" padding="sm">
+      <p className="d-flex flex-wrap align-items-baseline gap-2 mb-0">
+        <strong className="text-capitalize">{order.status}</strong>
+        <span className="text-muted small">· {money(order.total)}</span>
       </p>
       {order.shippingAddress ? (
-        <p className="mt-3 text-sm text-zinc-500">
+        <p className="mt-3 mb-0 text-muted small">
           Ship to {order.shippingAddress.line1}, {order.shippingAddress.city},{' '}
           {order.shippingAddress.region} {order.shippingAddress.postalCode}
         </p>
       ) : null}
-      <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-zinc-600">
+      <ul className="mt-3 mb-0 ps-3 text-muted small">
         {order.items.map((item) => {
           const product = productsById.get(item.productId);
           const label = product?.name ?? item.productId;
@@ -39,7 +39,7 @@ export function OrderCard({ order, productsById, busy, onCancel }: Props) {
         <Button
           variant="danger"
           type="button"
-          className="mt-4"
+          className="mt-3"
           loading={busy}
           loadingLabel="Cancelling…"
           onClick={() => onCancel(id)}

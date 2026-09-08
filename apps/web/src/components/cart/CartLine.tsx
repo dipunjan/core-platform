@@ -12,29 +12,34 @@ type Props = {
 export function CartLine({ item, product, busy, onQty }: Props) {
   const money = useMoney();
   return (
-    <tr className="border-b border-zinc-100 last:border-0">
-      <td className="py-3 pr-4 font-medium text-zinc-900">
+    <tr>
+      <td className="align-middle fw-medium">
         {product?.name ?? item.productId}
       </td>
-      <td className="py-3 pr-4">
-        <div className="flex items-center gap-2">
+      <td className="align-middle">
+        <div className="d-flex align-items-center gap-2">
           <Button
             variant="secondary"
             type="button"
-            className="h-8 w-8 px-0"
+            className="px-2"
+            style={{ width: '2rem', height: '2rem' }}
             disabled={busy}
             title={busy ? 'Updating cart…' : 'Decrease quantity'}
             onClick={() => onQty(item.quantity - 1)}
           >
             −
           </Button>
-          <span className="w-6 text-center text-sm tabular-nums">
+          <span
+            className="text-center small font-monospace"
+            style={{ width: '1.5rem' }}
+          >
             {item.quantity}
           </span>
           <Button
             variant="secondary"
             type="button"
-            className="h-8 w-8 px-0"
+            className="px-2"
+            style={{ width: '2rem', height: '2rem' }}
             disabled={busy}
             title={busy ? 'Updating cart…' : 'Increase quantity'}
             onClick={() => onQty(item.quantity + 1)}
@@ -43,7 +48,7 @@ export function CartLine({ item, product, busy, onQty }: Props) {
           </Button>
         </div>
       </td>
-      <td className="py-3 text-right tabular-nums text-zinc-700">
+      <td className="align-middle text-end font-monospace text-muted">
         {product ? money(product.price * item.quantity) : '—'}
       </td>
     </tr>

@@ -13,16 +13,10 @@ type CardProps<T extends ElementType = 'div'> = CardOwnProps & {
 } & Omit<ComponentPropsWithoutRef<T>, keyof CardOwnProps | 'as' | 'children' | 'className'>;
 
 const paddingClass = {
-  none: '',
-  sm: 'p-4',
-  md: 'p-6',
-  lg: 'p-6 sm:p-8',
-};
-
-const variantClass = {
-  default: '',
-  interactive:
-    'transition hover:-translate-y-0.5 hover:border-emerald-700/30 hover:shadow-md',
+  none: 'p-0',
+  sm: 'p-3',
+  md: 'p-4',
+  lg: 'p-4',
 };
 
 export function Card<T extends ElementType = 'div'>({
@@ -37,14 +31,13 @@ export function Card<T extends ElementType = 'div'>({
   return (
     <Tag
       className={cn(
-        'rounded-xl border border-zinc-200 bg-white shadow-sm',
-        paddingClass[padding],
-        variantClass[variant],
+        'card shadow-sm',
+        variant === 'interactive' && 'card-hover',
         className,
       )}
       {...props}
     >
-      {children}
+      <div className={cn('card-body', paddingClass[padding])}>{children}</div>
     </Tag>
   );
 }

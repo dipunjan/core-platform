@@ -20,19 +20,20 @@ export function CategoryGrid({ categories, loading = false }: Props) {
     );
   }
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+    <div className="row row-cols-1 row-cols-sm-2 row-cols-lg-5 g-3">
       {tiles.map((category) => (
-        <Card
-          key={category.slug}
-          as={Link}
-          to={shopPath(category)}
-          padding="sm"
-          variant="interactive"
-          className="block hover:border-emerald-700/40"
-        >
-          <strong className="text-zinc-950">{category.name}</strong>
-          <p className="mt-1 text-sm text-zinc-500">{category.blurb}</p>
-        </Card>
+        <div key={category.slug} className="col">
+          <Card
+            as={Link}
+            to={shopPath(category)}
+            padding="sm"
+            variant="interactive"
+            className="text-decoration-none text-body h-100"
+          >
+            <strong>{category.name}</strong>
+            <p className="mt-1 mb-0 text-muted small">{category.blurb}</p>
+          </Card>
+        </div>
       ))}
     </div>
   );

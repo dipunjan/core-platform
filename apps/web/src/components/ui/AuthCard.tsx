@@ -22,20 +22,15 @@ export function AuthCard({
   return (
     <Card
       padding="lg"
-      className={cn(
-        'mx-auto w-full',
-        wide ? 'max-w-lg' : 'max-w-md',
-        className,
-      )}
+      className={cn('mx-auto w-100', className)}
+      style={{ maxWidth: wide ? '32rem' : '28rem' }}
     >
-      <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">
-        {title}
-      </h1>
+      <h1 className="h3 fw-semibold">{title}</h1>
       {description ? (
-        <p className="mt-2 mb-6 text-sm text-zinc-500">{description}</p>
+        <p className="text-muted small mt-2 mb-4">{description}</p>
       ) : null}
       {children}
-      {footer ? <div className="mt-6 text-sm text-zinc-600">{footer}</div> : null}
+      {footer ? <div className="mt-4 text-muted small">{footer}</div> : null}
     </Card>
   );
 }

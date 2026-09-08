@@ -27,39 +27,45 @@ export function SalesPage() {
 
   return (
     <>
-      <h1 className="mb-6 text-2xl font-semibold tracking-tight">Sales</h1>
+      <h1 className="h2 mb-4">Sales</h1>
       <Flash>{error}</Flash>
-      <div className="mb-6 grid gap-4 sm:grid-cols-3">
-        <Stat label="All orders" value={String(orders.length)} />
-        <Stat label="Active orders" value={String(paidish.length)} />
-        <Stat label="Gross revenue" value={money(revenue)} />
+      <div className="row g-3 mb-4">
+        <div className="col-md-4">
+          <Stat label="All orders" value={String(orders.length)} />
+        </div>
+        <div className="col-md-4">
+          <Stat label="Active orders" value={String(paidish.length)} />
+        </div>
+        <div className="col-md-4">
+          <Stat label="Gross revenue" value={money(revenue)} />
+        </div>
       </div>
-      <div className="overflow-x-auto rounded-xl border border-zinc-200 bg-white">
-        <table className="w-full text-left text-sm">
-          <thead className="border-b border-zinc-200 text-xs uppercase text-zinc-500">
+      <div className="table-responsive card">
+        <table className="table table-hover mb-0">
+          <thead>
             <tr>
-              <th className="px-4 py-3">Order</th>
-              <th className="px-4 py-3">Status</th>
-              <th className="px-4 py-3">Items</th>
-              <th className="px-4 py-3 text-right">Total</th>
+              <th>Order</th>
+              <th>Status</th>
+              <th>Items</th>
+              <th className="text-end">Total</th>
             </tr>
           </thead>
           <tbody>
             {orders.length === 0 ? (
               <tr>
-                <td className="px-4 py-8 text-center text-zinc-500" colSpan={4}>
+                <td className="text-center text-muted py-5" colSpan={4}>
                   No orders yet.
                 </td>
               </tr>
             ) : (
               orders.map((order) => (
-                <tr key={docId(order)} className="border-b border-zinc-100">
-                  <td className="px-4 py-3 font-mono text-xs">{docId(order)}</td>
-                  <td className="px-4 py-3 capitalize">{order.status}</td>
-                  <td className="px-4 py-3">
+                <tr key={docId(order)}>
+                  <td className="font-monospace small">{docId(order)}</td>
+                  <td className="text-capitalize">{order.status}</td>
+                  <td>
                     {order.items.reduce((sum, item) => sum + item.quantity, 0)}
                   </td>
-                  <td className="px-4 py-3 text-right tabular-nums">
+                  <td className="text-end font-monospace">
                     {money(order.total)}
                   </td>
                 </tr>
@@ -68,7 +74,7 @@ export function SalesPage() {
           </tbody>
         </table>
       </div>
-      <p className="mt-4 text-sm text-zinc-500">
+      <p className="mt-3 text-muted small">
         Payment is not wired. These totals are order records only.
       </p>
     </>
@@ -77,11 +83,13 @@ export function SalesPage() {
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border border-zinc-200 bg-white p-4">
-      <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
-        {label}
-      </p>
-      <p className="mt-1 text-2xl font-semibold tabular-nums">{value}</p>
+    <div className="card h-100">
+      <div className="card-body">
+        <p className="small fw-semibold text-uppercase text-muted mb-1">
+          {label}
+        </p>
+        <p className="h3 mb-0 font-monospace">{value}</p>
+      </div>
     </div>
   );
 }

@@ -1,110 +1,109 @@
-@import 'tailwindcss';
+@import 'bootstrap/dist/css/bootstrap.min.css';
 
-@theme {
-  --font-sans: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
-}
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
 
-html {
-  @apply antialiased;
+:root {
+  --bs-body-font-family: 'DM Sans', system-ui, sans-serif;
+  --bs-primary: #047857;
+  --bs-primary-rgb: 4, 120, 87;
+  --bs-link-color: #047857;
+  --bs-link-hover-color: #065f46;
 }
 
 body {
-  @apply m-0 bg-zinc-50 font-sans text-zinc-900;
+  background-color: #fafafa;
 }
 
-a {
-  @apply no-underline;
+.text-accent {
+  color: #34d399;
 }
 
-button,
-input,
-select,
-textarea {
-  font: inherit;
+.letter-spacing-wide {
+  letter-spacing: 0.18em;
 }
 
-@layer components {
-  /* One shell for text inputs and selects — same box model everywhere. */
-  .form-control {
-    box-sizing: border-box;
-    display: block;
-    width: 100%;
-    height: 2.5rem;
-    min-height: 2.5rem;
-    max-height: 2.5rem;
-    padding-inline: 0.75rem;
-    padding-block: 0;
-    border-radius: 0.5rem;
-    border: 1px solid var(--color-zinc-300);
-    background-color: #fff;
-    font-size: 0.875rem;
-    line-height: 2.5rem;
-    color: var(--color-zinc-900);
-    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-    outline: none;
-  }
+.line-clamp-3 {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
 
-  .form-control:focus {
-    border-color: var(--color-emerald-700);
-    box-shadow: 0 0 0 2px color-mix(in oklab, var(--color-emerald-700) 20%, transparent);
-  }
+.hero-headline {
+  max-width: 36rem;
+}
 
-  .form-control:disabled {
-    cursor: not-allowed;
-    background-color: var(--color-zinc-50);
-    opacity: 0.6;
-  }
+.hero-subhead {
+  max-width: 32rem;
+}
 
-  .form-control-error {
-    border-color: var(--color-red-400);
-  }
+.promo-tile {
+  min-height: 11rem;
+  transition: filter 0.15s ease;
+}
 
-  .form-control-error:focus {
-    border-color: var(--color-red-600);
-    box-shadow: 0 0 0 2px color-mix(in oklab, var(--color-red-600) 20%, transparent);
-  }
+.promo-tile:hover {
+  filter: brightness(1.1);
+}
 
-  .form-select {
-    appearance: none;
-    -webkit-appearance: none;
-    padding-right: 2.5rem;
-    background-image: none;
-  }
+.product-card .card-body {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
 
-  input.form-control[type='number'] {
-    -moz-appearance: textfield;
-    appearance: textfield;
-  }
+.product-card:hover .product-card-title {
+  color: var(--bs-primary);
+}
 
-  input.form-control[type='number']::-webkit-outer-spin-button,
-  input.form-control[type='number']::-webkit-inner-spin-button {
-    -webkit-appearance: none;
-    margin: 0;
-  }
+.shop-filters-sidebar {
+  position: sticky;
+  top: 9rem;
+}
 
-  .form-textarea {
-    box-sizing: border-box;
-    display: block;
-    width: 100%;
-    min-height: 6rem;
-    padding: 0.5rem 0.75rem;
-    border-radius: 0.5rem;
-    border: 1px solid var(--color-zinc-300);
-    background-color: #fff;
-    font-size: 0.875rem;
-    line-height: 1.5;
-    color: var(--color-zinc-900);
-    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-    outline: none;
-    resize: vertical;
+@media (min-width: 992px) {
+  .shop-filters-sidebar {
+    width: 15rem;
   }
+}
 
-  .form-textarea:focus {
-    border-color: var(--color-emerald-700);
-    box-shadow: 0 0 0 2px color-mix(in oklab, var(--color-emerald-700) 20%, transparent);
-  }
+.admin-sidebar .nav-link {
+  border-radius: 0.5rem;
+  color: #3f3f46;
+  font-weight: 600;
+  padding: 0.5rem 0.75rem;
+}
 
-  .form-textarea.form-control-error {
-    border-color: var(--color-red-400);
-  }
+.admin-sidebar .nav-link:hover {
+  background-color: #f4f4f5;
+  color: #18181b;
+}
+
+.admin-sidebar .nav-link.active {
+  background-color: #18181b;
+  color: #fff;
+}
+
+.shop-nav-link {
+  color: #3f3f46;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  padding: 0.5rem 0.75rem;
+  text-decoration: none;
+}
+
+.shop-nav-link:hover {
+  color: #18181b;
+}
+
+.shop-nav-link.active {
+  border-bottom: 3px solid #059669;
+  color: #18181b;
+}
+
+.card-hover:hover {
+  border-color: rgb(4 120 87 / 0.3) !important;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+  transform: translateY(-2px);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
 }

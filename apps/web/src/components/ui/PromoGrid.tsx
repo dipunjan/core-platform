@@ -10,9 +10,11 @@ export function PromoGrid({ banners }: PromoGridProps) {
     return null;
   }
   return (
-    <section className="mt-8 grid gap-4 sm:grid-cols-2">
+    <section className="row row-cols-1 row-cols-sm-2 g-3 mt-4">
       {banners.map((banner) => (
-        <PromoTile key={docId(banner)} banner={banner} />
+        <div key={docId(banner)} className="col">
+          <PromoTile banner={banner} />
+        </div>
       ))}
     </section>
   );

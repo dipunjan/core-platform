@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { cn } from '@/lib/cn';
 
 type Props = {
   children: ReactNode;
@@ -6,9 +7,9 @@ type Props = {
 };
 
 const tones: Record<NonNullable<Props['tone']>, string> = {
-  error: 'border-red-200 bg-red-50 text-red-800',
-  success: 'border-emerald-200 bg-emerald-50 text-emerald-900',
-  info: 'border-sky-200 bg-sky-50 text-sky-900',
+  error: 'alert alert-danger',
+  success: 'alert alert-success',
+  info: 'alert alert-info',
 };
 
 export function Flash({ children, tone = 'error' }: Props) {
@@ -17,7 +18,7 @@ export function Flash({ children, tone = 'error' }: Props) {
   }
   return (
     <div
-      className={`mb-4 rounded-lg border px-3 py-2.5 text-sm ${tones[tone]}`}
+      className={cn('alert mb-3', tones[tone])}
       role={tone === 'error' ? 'alert' : 'status'}
       aria-live="polite"
     >

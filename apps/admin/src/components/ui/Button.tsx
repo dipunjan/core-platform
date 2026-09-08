@@ -40,7 +40,7 @@ export function Button({
   const isDisabled = disabled || loading;
   return (
     <button
-      className={`btn ${variants[variant]} ${className}`.trim()}
+      className={`btn btn-sm ${variants[variant]} ${className}`.trim()}
       disabled={isDisabled}
       aria-busy={loading || undefined}
       {...props}

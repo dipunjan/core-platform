@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { docId, type Category, type Product } from '@/api';
-import { Badge, Button, Card, TextLink } from '@/components/ui';
+import { categoryAccent, categoryInitial } from '@/lib/categoryAccent';
+import { Badge, Button, TextLink } from '@/components/ui';
 import { useCart, useMoney } from '@/hooks';
 
 type Props = {
@@ -16,6 +17,8 @@ export function ProductCard({ product, categories }: Props) {
   const [busy, setBusy] = useState(false);
   const [added, setAdded] = useState(false);
   const category = categories.find((row) => row.slug === product.category);
+  const accent = categoryAccent(product.category);
+  const initial = categoryInitial(category?.name ?? product.name);
 
   async function onAdd() {
     setBusy(true);
@@ -28,41 +31,52 @@ export function ProductCard({ product, categories }: Props) {
   }
 
   return (
-    <Card
-      padding="md"
-      variant="interactive"
-      className="h-100 product-card"
-    >
-      <Link to={`/products/${id}`} className="text-decoration-none text-body d-flex flex-column flex-grow-1">
-        {category ? <Badge>{category.name}</Badge> : null}
-        {product.featured ? (
-          <Badge tone="muted" className="mt-1">Featured</Badge>
-        ) : null}
-        <strong className="mt-1 fw-semibold product-card-title">
-          {product.name}
-        </strong>
-        <p className="mt-2 line-clamp-3 flex-grow-1 text-muted small mb-0">
-          {product.description}
-        </p>
-        <p className="mt-3 fs-5 fw-semibold mb-0">
-          {money(product.price)}
-        </p>
-      </Link>
-      {added ? (
-        <p className="mt-3 mb-0 text-center small fw-medium text-primary">
-          Added to cart. <TextLink to="/cart">View cart</TextLink>
-        </p>
-      ) : (
-        <Button
-          type="button"
-          className="mt-3 w-100"
-          loading={busy || cartBusy}
-          loadingLabel="Adding…"
-          onClick={() => void onAdd()}
+    <div className="card w-100 product-card card-hover overflow-hidden d-flex flex-column">
+      <Link to={`/products/${id}`} className="text-decoration-none text-body">
+        <div
+          className="product-card-thumb"
+          style={{
+            background: `linear-gradient(135deg, ${accent} 0%, color-mix(in srgb, ${accent} 75%, #000) 100%)`,
+          }}
         >
-          Add to cart
-        </Button>
-      )}
-    </Card>
+          <span aria-hidden="true">{initial}</span>
+        </div>
+      </Link>
+      <div className="card-body p-4 d-flex flex-column flex-grow-1">
+        <Link
+          to={`/products/${id}`}
+          className="text-decoration-none text-body d-flex flex-column flex-grow-1"
+        >
+          <div className="d-flex flex-wrap gap-1">
+            {category ? <Badge>{category.name}</Badge> : null}
+            {product.featured ? <Badge tone="muted">Featured</Badge> : null}
+          </div>
+          <strong className="mt-2 fw-semibold product-card-title">
+            {product.name}
+          </strong>
+          <p className="mt-2 mb-0 text-muted small product-card-description">
+            {product.description}
+          </p>
+          <p className="mt-3 fs-5 fw-bold mb-0">{money(product.price)}</p>
+        </Link>
+        <div className="mt-auto pt-3">
+          {added ? (
+            <p className="mb-0 text-center small fw-medium text-primary">
+              Added to cart. <TextLink to="/cart">View cart</TextLink>
+            </p>
+          ) : (
+            <Button
+              type="button"
+              className="w-100"
+              loading={busy || cartBusy}
+              loadingLabel="Adding…"
+              onClick={() => void onAdd()}
+            >
+              Add to cart
+            </Button>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }

@@ -18,13 +18,14 @@ export function Section({
   className = '',
 }: SectionProps) {
   return (
-    <section className={cn('mt-5', className)}>
+    <section className={cn('section-block', className)}>
       {title ? (
         <div className="d-flex align-items-end justify-content-between gap-3 mb-4">
           <div>
-            <h2 className="h4 fw-semibold mb-0">{title}</h2>
+            <p className="section-eyebrow mb-1">Collection</p>
+            <h2 className="section-title mb-0">{title}</h2>
             {description ? (
-              <p className="text-muted small mt-1 mb-0">{description}</p>
+              <p className="text-muted mt-2 mb-0">{description}</p>
             ) : null}
           </div>
           {action ? (
@@ -32,7 +33,7 @@ export function Section({
               to={action.to}
               className="link-primary fw-semibold small text-nowrap"
             >
-              {action.label}
+              {action.label} →
             </Link>
           ) : null}
         </div>

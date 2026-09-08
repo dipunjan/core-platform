@@ -41,13 +41,14 @@ export function HomePage() {
       <PromoGrid banners={extras} />
       <Section
         title="Shop by category"
-        description="Pick a lane. Everything else can wait."
+        description="Find your lane — apparel, tech, and more."
       >
         <CategoryGrid categories={categories} loading={loading} />
       </Section>
       <Section
         title="Featured"
-        description="Picked in the catalog. An admin can change this later."
+        description="Hand-picked favorites from this week’s drop."
+        action={{ to: '/shop', label: 'View all' }}
       >
         <Flash>{error}</Flash>
         {!error && featured.length === 0 ? (

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { apiMessage, docId, http, urls, type Category } from '@/api';
-import { Button, Field, Flash, PageLoader } from '@/components/ui';
+import { Button, Field, Flash, PageHeader, PageLoader } from '@/components/ui';
 import { confirmAction } from '@/lib/confirm';
 
 const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -185,10 +185,10 @@ export function CategoriesPage() {
 
   return (
     <>
-      <h1 className="h2 mb-2">Categories</h1>
-      <p className="text-muted mb-4">
-        Taxonomy only. Featured is a product flag, not a category.
-      </p>
+      <PageHeader
+        title="Categories"
+        description="Taxonomy only. Featured is a product flag, not a category."
+      />
       <Flash tone="success">{notice}</Flash>
       <Flash>{error}</Flash>
       <form
@@ -197,7 +197,7 @@ export function CategoriesPage() {
         style={{ maxWidth: '36rem' }}
       >
         <div className="card-body">
-          <h2 className="h5 mb-3">Add category</h2>
+          <h2 className="admin-section-title mb-3">Add category</h2>
           <Field
             label="Slug"
             value={form.slug}
@@ -250,11 +250,11 @@ export function CategoriesPage() {
       {editingId ? (
         <section
           ref={editPanelRef}
-          className="card mb-4 border-success bg-success-subtle"
+          className="card mb-4 admin-panel-edit"
           style={{ maxWidth: '36rem' }}
         >
           <div className="card-body">
-            <h2 className="h5 mb-3">Edit category</h2>
+            <h2 className="admin-section-title mb-3">Edit category</h2>
             <form onSubmit={(event) => void saveEdit(event)}>
               <Field
                 label="Slug"
@@ -326,7 +326,7 @@ export function CategoriesPage() {
             return (
               <li
                 key={row.slug}
-                className={`card${editing ? ' border-success bg-success-subtle' : ''}`}
+                className={`card card-hover${editing ? ' admin-panel-edit' : ''}`}
               >
                 <div className="card-body d-flex align-items-center justify-content-between gap-3">
                   <div>

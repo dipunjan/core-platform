@@ -7,7 +7,7 @@ import {
   type Inventory,
   type Product,
 } from '@/api';
-import { Button, Flash, PageLoader } from '@/components/ui';
+import { Button, Flash, PageHeader, PageLoader } from '@/components/ui';
 
 export function InventoryPage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -77,11 +77,14 @@ export function InventoryPage() {
 
   return (
     <>
-      <h1 className="h2 mb-4">Inventory</h1>
+      <PageHeader
+        title="Inventory"
+        description="Set on-hand stock per product. Reserved counts update when orders are placed."
+      />
       <Flash tone="success">{notice}</Flash>
       <Flash>{error}</Flash>
-      <div className="table-responsive card">
-        <table className="table table-hover mb-0">
+      <div className="card admin-table-card">
+        <table className="table table-hover align-middle mb-0">
           <thead>
             <tr>
               <th>Product</th>

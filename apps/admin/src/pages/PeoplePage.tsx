@@ -8,7 +8,7 @@ import {
   type User,
 } from '@/api';
 import { AddressFields, emptyAddress } from '@/components/account';
-import { Button, Field, Flash, PageLoader, SelectField } from '@/components/ui';
+import { Button, Field, Flash, PageHeader, PageLoader, SelectField } from '@/components/ui';
 import { confirmAction } from '@/lib/confirm';
 import { useAuth } from '@/hooks';
 
@@ -196,11 +196,10 @@ export function PeoplePage() {
 
   return (
     <>
-      <h1 className="h2 mb-2">People</h1>
-      <p className="text-muted mb-4">
-        Create shoppers or staff with a shipping address. You cannot delete or
-        demote yourself, or remove the last admin.
-      </p>
+      <PageHeader
+        title="People"
+        description="Create shoppers or staff with a shipping address. You cannot delete or demote yourself, or remove the last admin."
+      />
       <Flash tone="success">{notice}</Flash>
       <Flash>{error}</Flash>
       <form
@@ -209,7 +208,7 @@ export function PeoplePage() {
         style={{ maxWidth: '36rem' }}
       >
         <div className="card-body">
-          <h2 className="h5 mb-3">Add account</h2>
+          <h2 className="admin-section-title mb-3">Add account</h2>
           <Field
             label="Name"
             value={name}
@@ -331,8 +330,8 @@ function Group({
   onRemove: (person: User) => void;
 }) {
   return (
-    <section className="card mb-4" style={{ maxWidth: '48rem' }}>
-      <h2 className="card-header h5 mb-0">{title}</h2>
+    <section className="card mb-4 admin-list-card" style={{ maxWidth: '48rem' }}>
+      <div className="card-header admin-section-title py-3">{title}</div>
       <ul className="list-group list-group-flush">
         {people.length === 0 ? (
           <li className="list-group-item text-center text-muted py-4">
@@ -396,7 +395,7 @@ function Group({
               {editing ? (
                 <form
                   onSubmit={(event) => void onSaveEdit(event)}
-                  className="card mt-3 border-success bg-success-subtle"
+                  className="card mt-3 admin-panel-edit"
                 >
                   <div className="card-body">
                     <Field

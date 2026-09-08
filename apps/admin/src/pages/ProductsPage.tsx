@@ -4,6 +4,7 @@ import {
   Button,
   Field,
   Flash,
+  PageHeader,
   PageLoader,
   SelectField,
   TextAreaField,
@@ -222,7 +223,10 @@ export function ProductsPage() {
 
   return (
     <>
-      <h1 className="h2 mb-4">Products</h1>
+      <PageHeader
+        title="Products"
+        description="Add and edit catalog items. Prices are stored in cents."
+      />
       <Flash tone="success">{notice}</Flash>
       <Flash>{error}</Flash>
 
@@ -233,7 +237,7 @@ export function ProductsPage() {
         style={{ maxWidth: '36rem' }}
       >
         <div className="card-body">
-          <h2 className="h5 mb-3">Add product</h2>
+          <h2 className="admin-section-title mb-3">Add product</h2>
           <Field
             label="Name"
             value={form.name}
@@ -312,11 +316,11 @@ export function ProductsPage() {
       {editingId ? (
         <section
           ref={editPanelRef}
-          className="card mb-4 border-success bg-success-subtle"
+          className="card mb-4 admin-panel-edit"
           style={{ maxWidth: '36rem' }}
         >
           <div className="card-body">
-            <h2 className="h5 mb-3">Edit product</h2>
+            <h2 className="admin-section-title mb-3">Edit product</h2>
             <form onSubmit={(event) => void saveEdit(event)} noValidate>
               <Field
                 label="Name"
@@ -394,7 +398,7 @@ export function ProductsPage() {
         </section>
       ) : null}
 
-      <div className="table-responsive card">
+      <div className="card admin-table-card">
         <table className="table table-hover mb-0">
           <thead>
             <tr>

@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { shopPath, type Category } from '@/api';
+import { categoryAccent } from '@/lib/categoryAccent';
 import { Card, EmptyState } from '@/components/ui';
 
 type Props = {
@@ -28,10 +29,11 @@ export function CategoryGrid({ categories, loading = false }: Props) {
             to={shopPath(category)}
             padding="sm"
             variant="interactive"
-            className="text-decoration-none text-body h-100"
+            className="category-tile text-decoration-none text-body h-100"
+            style={{ borderLeftColor: categoryAccent(category.slug) }}
           >
             <strong>{category.name}</strong>
-            <p className="mt-1 mb-0 text-muted small">{category.blurb}</p>
+            <p className="mt-2 mb-0 text-muted small">{category.blurb}</p>
           </Card>
         </div>
       ))}

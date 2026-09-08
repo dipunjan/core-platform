@@ -7,17 +7,12 @@ type BadgeProps = {
   className?: string;
 };
 
-const toneClass = {
-  brand: 'text-primary',
-  muted: 'text-muted',
-};
-
 export function Badge({ children, tone = 'brand', className = '' }: BadgeProps) {
   return (
     <span
       className={cn(
-        'small fw-semibold text-uppercase',
-        toneClass[tone],
+        'badge-pill',
+        tone === 'muted' && 'badge-pill-muted',
         className,
       )}
     >

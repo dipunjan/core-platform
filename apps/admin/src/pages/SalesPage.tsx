@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { apiMessage, docId, http, urls, type Order } from '@/api';
-import { Flash, PageLoader } from '@/components/ui';
+import { Flash, PageHeader, PageLoader } from '@/components/ui';
 import { useMoney } from '@/hooks';
 
 export function SalesPage() {
@@ -27,21 +27,24 @@ export function SalesPage() {
 
   return (
     <>
-      <h1 className="h2 mb-4">Sales</h1>
+      <PageHeader
+        title="Sales"
+        description="Order volume and revenue across the storefront. Payment is not wired — these are order records only."
+      />
       <Flash>{error}</Flash>
       <div className="row g-3 mb-4">
         <div className="col-md-4">
-          <Stat label="All orders" value={String(orders.length)} />
+          <Stat label="All orders" value={String(orders.length)} tone="orders" />
         </div>
         <div className="col-md-4">
-          <Stat label="Active orders" value={String(paidish.length)} />
+          <Stat label="Active orders" value={String(paidish.length)} tone="active" />
         </div>
         <div className="col-md-4">
-          <Stat label="Gross revenue" value={money(revenue)} />
+          <Stat label="Gross revenue" value={money(revenue)} tone="revenue" />
         </div>
       </div>
-      <div className="table-responsive card">
-        <table className="table table-hover mb-0">
+      <div className="card admin-table-card">
+        <table className="table table-hover align-middle mb-0">
           <thead>
             <tr>
               <th>Order</th>
@@ -61,11 +64,15 @@ export function SalesPage() {
               orders.map((order) => (
                 <tr key={docId(order)}>
                   <td className="font-monospace small">{docId(order)}</td>
-                  <td className="text-capitalize">{order.status}</td>
+                  <td>
+                    <span className="badge text-bg-light text-capitalize border">
+                      {order.status}
+                    </span>
+                  </td>
                   <td>
                     {order.items.reduce((sum, item) => sum + item.quantity, 0)}
                   </td>
-                  <td className="text-end font-monospace">
+                  <td className="text-end font-monospace fw-semibold">
                     {money(order.total)}
                   </td>
                 </tr>
@@ -74,21 +81,24 @@ export function SalesPage() {
           </tbody>
         </table>
       </div>
-      <p className="mt-3 text-muted small">
-        Payment is not wired. These totals are order records only.
-      </p>
     </>
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function Stat({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: string;
+  tone: 'orders' | 'active' | 'revenue';
+}) {
   return (
-    <div className="card h-100">
+    <div className={`card stat-card stat-card--${tone}`}>
       <div className="card-body">
-        <p className="small fw-semibold text-uppercase text-muted mb-1">
-          {label}
-        </p>
-        <p className="h3 mb-0 font-monospace">{value}</p>
+        <p className="stat-card-label mb-0">{label}</p>
+        <p className="stat-card-value mb-0">{value}</p>
       </div>
     </div>
   );

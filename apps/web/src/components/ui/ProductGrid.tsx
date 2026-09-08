@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { Children, type ReactNode } from 'react';
 import { cn } from '@/lib/cn';
 
 type ProductGridProps = {
@@ -18,8 +18,10 @@ export function ProductGrid({
   className = '',
 }: ProductGridProps) {
   return (
-    <div className={cn('row row-cols-1 g-3', colsClass[cols], className)}>
-      {children}
+    <div className={cn('row row-cols-1 g-4', colsClass[cols], className)}>
+      {Children.map(children, (child) => (
+        <div className="col d-flex">{child}</div>
+      ))}
     </div>
   );
 }

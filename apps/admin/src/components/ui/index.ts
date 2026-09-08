@@ -2,6 +2,7 @@ export { Button } from './Button';
 export { Field } from './Field';
 export { Flash } from './Flash';
 export { ImagePicker } from './ImagePicker';
+export { PageHeader } from './PageHeader';
 export { SelectField } from './SelectField';
 export type { SelectFieldProps } from './SelectField';
 export { TextAreaField } from './TextAreaField';

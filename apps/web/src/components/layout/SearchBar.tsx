@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { cn } from '@/lib/cn';
 import { SEARCH_DEBOUNCE_MS, SEARCH_MIN_CHARS } from '@/lib/search';
-import { SpinnerIcon } from '@/components/ui/Spinner';
 
 type Props = {
   className?: string;
@@ -14,7 +13,6 @@ export function SearchBar({ className = '' }: Props) {
   const [params] = useSearchParams();
   const urlQ = params.get('q') ?? '';
   const [draft, setDraft] = useState(urlQ);
-  const [pending, setPending] = useState(false);
 
   useEffect(() => {
     setDraft(urlQ);
@@ -25,13 +23,16 @@ export function SearchBar({ className = '' }: Props) {
     const current = urlQ.trim();
 
     if (term === current) {
-      setPending(false);
       return;
     }
 
-    setPending(true);
+    // Avoid URL churn for a lone character when search is not active yet.
+    if (term.length > 0 && term.length < SEARCH_MIN_CHARS && !current) {
+      return;
+    }
+
     const timer = window.setTimeout(() => {
-      const next = new URLSearchParams(params);
+      const next = new URLSearchParams(window.location.search);
       if (term.length >= SEARCH_MIN_CHARS) {
         next.set('q', term);
       } else {
@@ -41,7 +42,6 @@ export function SearchBar({ className = '' }: Props) {
 
       if (!pathname.startsWith('/shop')) {
         navigate(qs ? `/shop?${qs}` : '/shop');
-        setPending(false);
         return;
       }
 
@@ -50,14 +50,13 @@ export function SearchBar({ className = '' }: Props) {
           ? pathname
           : '/shop';
       navigate(qs ? `${base}?${qs}` : base, { replace: true });
-      setPending(false);
     }, SEARCH_DEBOUNCE_MS);
 
     return () => window.clearTimeout(timer);
-  }, [draft, urlQ, params, pathname, navigate]);
+  }, [draft, urlQ, pathname, navigate]);
 
   return (
-    <div className={cn('position-relative w-100', className)}>
+    <div className={cn('search-bar w-100', className)}>
       <input
         type="search"
         value={draft}
@@ -66,19 +65,14 @@ export function SearchBar({ className = '' }: Props) {
         autoComplete="off"
         spellCheck={false}
         aria-label="Search products"
-        aria-busy={pending}
-        className="form-control pe-5"
+        aria-describedby="shop-search-hint"
+        className="form-control"
       />
-      {pending ? (
-        <SpinnerIcon
-          className="position-absolute top-50 end-0 translate-middle-y me-3 text-muted"
-        />
-      ) : null}
-      {draft.trim().length > 0 && draft.trim().length < SEARCH_MIN_CHARS ? (
-        <p className="form-text mb-0 mt-1">
-          Type at least {SEARCH_MIN_CHARS} characters to search.
-        </p>
-      ) : null}
+      <p id="shop-search-hint" className="search-bar-hint mb-0">
+        {draft.trim().length > 0 && draft.trim().length < SEARCH_MIN_CHARS
+          ? `Type at least ${SEARCH_MIN_CHARS} characters to search.`
+          : '\u00a0'}
+      </p>
     </div>
   );
 }

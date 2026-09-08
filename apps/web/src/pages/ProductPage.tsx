@@ -2,13 +2,13 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
   Badge,
   Button,
-  Card,
   EmptyState,
   Flash,
   PageLoader,
   PageTitle,
   TextLink,
 } from '@/components';
+import { categoryAccent, categoryInitial } from '@/lib/categoryAccent';
 import { useCart, useMoney, useProduct } from '@/hooks';
 
 export function ProductPage() {
@@ -48,46 +48,66 @@ export function ProductPage() {
     : null;
   const outOfStock = available === 0;
   const category = categories.find((row) => row.slug === product.category);
+  const accent = categoryAccent(product.category);
+  const initial = categoryInitial(category?.name ?? product.name);
 
   return (
-    <div className="mx-auto" style={{ maxWidth: '42rem' }}>
-      <p className="mb-3">
-        <TextLink to="/shop">← Shop</TextLink>
+    <article className="product-detail mx-auto">
+      <p className="mb-4">
+        <TextLink to="/shop">← Back to shop</TextLink>
       </p>
-      <Card padding="lg">
-        {category ? (
-          <Link to={`/shop/${product.category}`} className="text-decoration-none">
-            <Badge>{category.name}</Badge>
-          </Link>
-        ) : null}
-        <h1 className="h2 fw-semibold mt-1">{product.name}</h1>
-        <p className="mt-3 text-muted mb-0">{product.description}</p>
-        <p className="mt-3 mb-0">
-          <strong className="fs-4 fw-semibold font-monospace">
-            {money(product.price)}
-          </strong>
-          <span className="ms-2 text-muted small">SKU {product.sku}</span>
-        </p>
-        <p className="mt-2 text-muted small mb-0">
-          {inventory
-            ? outOfStock
-              ? 'Out of stock'
-              : `${available} in stock`
-            : 'Stock check unavailable — you can still try adding to cart.'}
-        </p>
-        <div className="mt-4">
-          <Flash>{cartError}</Flash>
-          <Button
-            type="button"
-            loading={cartBusy}
-            loadingLabel="Adding…"
-            disabled={outOfStock}
-            onClick={() => void onAdd()}
+      <div className="row g-4 align-items-start">
+        <div className="col-md-5">
+          <div
+            className="product-detail-thumb"
+            style={{
+              background: `linear-gradient(135deg, ${accent} 0%, color-mix(in srgb, ${accent} 70%, #000) 100%)`,
+            }}
           >
-            {outOfStock ? 'Out of stock' : 'Add to cart'}
-          </Button>
+            <span className="product-detail-initial" aria-hidden="true">
+              {initial}
+            </span>
+          </div>
         </div>
-      </Card>
-    </div>
+        <div className="col-md-7">
+          <div className="product-detail-body">
+            {category ? (
+              <Link to={`/shop/${product.category}`} className="text-decoration-none">
+                <Badge>{category.name}</Badge>
+              </Link>
+            ) : null}
+            <h1 className="section-title mt-2 mb-0">{product.name}</h1>
+            <p className="product-detail-price mt-3 mb-0">{money(product.price)}</p>
+            <p className="text-muted small mb-0 mt-1">SKU {product.sku}</p>
+            <p className="product-detail-description mt-4 mb-0">
+              {product.description}
+            </p>
+            <p className="mt-3 mb-0">
+              <span
+                className={`badge ${outOfStock ? 'text-bg-secondary' : 'text-bg-success'}`}
+              >
+                {inventory
+                  ? outOfStock
+                    ? 'Out of stock'
+                    : `${available} in stock`
+                  : 'Stock unknown'}
+              </span>
+            </p>
+            <div className="product-detail-actions mt-4">
+              <Flash>{cartError}</Flash>
+              <Button
+                type="button"
+                loading={cartBusy}
+                loadingLabel="Adding…"
+                disabled={outOfStock}
+                onClick={() => void onAdd()}
+              >
+                {outOfStock ? 'Out of stock' : 'Add to cart'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </article>
   );
 }

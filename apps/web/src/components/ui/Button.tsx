@@ -42,7 +42,7 @@ export function Button({
   return (
     <button
       className={cn(
-        'btn fw-semibold d-inline-flex align-items-center justify-content-center',
+        'btn btn-sm fw-semibold d-inline-flex align-items-center justify-content-center',
         variants[variant],
         className,
       )}

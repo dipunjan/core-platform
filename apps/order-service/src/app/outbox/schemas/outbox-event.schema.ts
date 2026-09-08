@@ -11,7 +11,7 @@ export class OutboxEvent {
   @Prop({ type: Object, required: true })
   payload!: Record<string, unknown>;
 
-  @Prop({ default: null })
+  @Prop({ type: Date, default: null })
   publishedAt?: Date | null;
 
   @Prop({ default: 0 })

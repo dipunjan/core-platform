@@ -8,7 +8,7 @@ import {
   type Banner,
   type Storefront,
 } from '@/api';
-import { Button, Field, Flash, ImagePicker, PageLoader, SelectField } from '@/components/ui';
+import { Button, Field, Flash, ImagePicker, PageHeader, PageLoader, SelectField } from '@/components/ui';
 import { brandImage, hasBrandImage } from '@/lib/brandImage';
 import { confirmAction } from '@/lib/confirm';
 import { useStorefront } from '@/hooks';
@@ -360,11 +360,10 @@ export function BrandingPage() {
 
   return (
     <>
-      <h1 className="h2 mb-2">Branding</h1>
-      <p className="text-muted mb-4">
-        Uploaded images are live on the shop. Empty slots show a placeholder on
-        the website until you upload something.
-      </p>
+      <PageHeader
+        title="Branding"
+        description="Uploaded images are live on the shop. Empty slots show a placeholder on the website until you upload something."
+      />
       <Flash tone="success">{notice}</Flash>
       <Flash>{loadError || error}</Flash>
       <form
@@ -373,7 +372,7 @@ export function BrandingPage() {
         style={{ maxWidth: '36rem' }}
       >
         <div className="card-body">
-        <h2 className="h5 mb-3">Site identity</h2>
+        <h2 className="admin-section-title mb-3">Site identity</h2>
         <Field
           label="App / shop name"
           value={appName}
@@ -402,7 +401,7 @@ export function BrandingPage() {
         style={{ maxWidth: '36rem' }}
       >
         <div className="card-body">
-        <h2 className="h5 mb-3">Currency</h2>
+        <h2 className="admin-section-title mb-3">Currency</h2>
         <SelectField
           label="Display currency"
           value={currency}
@@ -419,7 +418,7 @@ export function BrandingPage() {
       </form>
       <section className="card mb-4" style={{ maxWidth: '36rem' }}>
         <div className="card-body">
-        <h2 className="h5 mb-3">Logo (header)</h2>
+        <h2 className="admin-section-title mb-3">Logo (header)</h2>
         <ImagePicker
           label="Logo file"
           kind="logo"
@@ -436,7 +435,7 @@ export function BrandingPage() {
         style={{ maxWidth: '36rem' }}
       >
         <div className="card-body">
-        <h2 className="h5 mb-3">Home hero</h2>
+        <h2 className="admin-section-title mb-3">Home hero</h2>
         <Field
           label="Headline"
           value={headline}
@@ -467,7 +466,7 @@ export function BrandingPage() {
       </form>
       <section className="card" style={{ maxWidth: '36rem' }}>
         <div className="card-body">
-        <h2 className="h5 mb-2">Promo tiles (under the hero)</h2>
+        <h2 className="admin-section-title mb-2">Promo tiles (under the hero)</h2>
         <p className="text-muted mb-4">
           Optional cards on the shop home page, below the hero. Enter a headline,
           upload an image, then click <strong>Add tile</strong>. Sample files
@@ -480,7 +479,7 @@ export function BrandingPage() {
             return (
               <li
                 key={bannerId}
-                className={`card${editing ? ' border-success bg-success-subtle' : ''}`}
+                className={`card${editing ? ' admin-panel-edit' : ''}`}
               >
                 <div className="card-body">
                 {editing ? (

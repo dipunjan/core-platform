@@ -28,7 +28,7 @@ export function useShop(filters: ShopFilters) {
   }, [dispatch, key, qTooShort, filters]);
 
   return {
-    products: qTooShort ? [] : shopProducts,
+    products: shopProducts,
     categories,
     loading: shopLoading,
     error,

@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Navigate, useParams, useSearchParams } from 'react-router-dom';
 import { docId } from '@/api';
 import { ProductCard, ShopFilters } from '@/components';
@@ -8,7 +8,6 @@ import {
   PageHeader,
   PageLoader,
   ProductGrid,
-  Spinner,
 } from '@/components/ui';
 import { activeFilterCount, parseShopFilters } from '@/lib/shopFilters';
 import { SEARCH_MIN_CHARS } from '@/lib/search';
@@ -22,6 +21,13 @@ export function ShopPage() {
     [slug, searchParams],
   );
   const { products, categories, error, loading, qTooShort } = useShop(filters);
+  const [hydrated, setHydrated] = useState(false);
+
+  useEffect(() => {
+    if (!loading) {
+      setHydrated(true);
+    }
+  }, [loading]);
 
   if (slug === 'featured') {
     return <Navigate to="/shop" replace />;
@@ -31,17 +37,24 @@ export function ShopPage() {
     ? categories.find((row) => row.slug === filters.category)
     : undefined;
   const title = category?.name ?? (filters.q ? 'Search results' : 'All products');
-  const blurb = qTooShort
-    ? `Type at least ${SEARCH_MIN_CHARS} characters to search.`
-    : filters.q
-      ? `${products.length} result${products.length === 1 ? '' : 's'} for “${filters.q}”.`
-      : (category?.blurb ?? 'Refine with category, price, or sort.');
 
-  const initialLoad = loading && products.length === 0 && !qTooShort;
+  let blurb = category?.blurb ?? 'Refine with category, price, or sort.';
+  if (qTooShort) {
+    blurb = `Type at least ${SEARCH_MIN_CHARS} characters to search.`;
+  } else if (filters.q) {
+    blurb = loading
+      ? `Searching for “${filters.q}”…`
+      : `${products.length} result${products.length === 1 ? '' : 's'} for “${filters.q}”.`;
+  }
+
+  const initialLoad = !hydrated && products.length === 0;
 
   if (initialLoad) {
     return <PageLoader label="Loading products…" />;
   }
+
+  const showEmpty =
+    !error && !loading && !qTooShort && products.length === 0;
 
   return (
     <>
@@ -51,37 +64,33 @@ export function ShopPage() {
           <ShopFilters
             categories={categories}
             filters={filters}
-            resultCount={qTooShort ? 0 : products.length}
+            resultCount={products.length}
           />
         </div>
         <div className="col">
           <Flash>{error}</Flash>
-          {loading && !qTooShort ? (
-            <div className="mb-3">
-              <Spinner label="Updating results…" size="sm" />
-            </div>
-          ) : null}
-          {!error && !qTooShort && products.length === 0 ? (
-            <EmptyState>
-              {activeFilterCount(filters) > 0
-                ? 'No products match these filters.'
-                : 'Nothing in the catalog yet.'}
-            </EmptyState>
-          ) : qTooShort ? (
-            <EmptyState>
-              Keep typing — search starts after {SEARCH_MIN_CHARS} characters.
-            </EmptyState>
-          ) : (
-            <ProductGrid>
-              {products.map((product) => (
-                <ProductCard
-                  key={docId(product)}
-                  product={product}
-                  categories={categories}
-                />
-              ))}
-            </ProductGrid>
-          )}
+          <div
+            className={loading && !qTooShort ? 'shop-results-loading' : undefined}
+            aria-busy={loading && !qTooShort ? true : undefined}
+          >
+            {showEmpty ? (
+              <EmptyState>
+                {activeFilterCount(filters) > 0
+                  ? 'No products match these filters.'
+                  : 'Nothing in the catalog yet.'}
+              </EmptyState>
+            ) : (
+              <ProductGrid>
+                {products.map((product) => (
+                  <ProductCard
+                    key={docId(product)}
+                    product={product}
+                    categories={categories}
+                  />
+                ))}
+              </ProductGrid>
+            )}
+          </div>
         </div>
       </div>
     </>

@@ -10,7 +10,7 @@ Short map so shop, admin, and APIs stay the same shape. Cursor also loads `.curs
 | Chrome | `Layout` (header) | `Layout` (sidebar; hidden on `/login`) |
 | Logged-in gate | `ProtectedRoute` (any user) | `ProtectedRoute` (`role === 'admin'`) |
 | Guest gate | `GuestRoute` (any session → leave login) | `GuestRoute` (admin session → leave login) |
-| Auth | Redux + `useAuth` | same |
+| Auth | TanStack Query + `useAuth` | same |
 | Router | `Layout` → public / `GuestRoute` / `ProtectedRoute` | same |
 
 Do **not** name chrome `Shell` or gates `StaffRoute`.
@@ -22,12 +22,13 @@ src/
   routes/router.tsx URL → page
   pages/            one screen per file + index.ts barrel
   hooks/            pages call these
-  features/         Redux slices (axios lives here)
+  query/            TanStack Query (catalog, cart, orders, auth)
+  features/         (empty — legacy folder; logic is in query/)
   components/layout Layout, ProtectedRoute, GuestRoute
   components/       ErrorBoundary, RouteError, ErrorPanel
   components/ui     Button, Field, Flash, Spinner
   api/              http, urls, types
-  store/            store + typed hooks
+  store/            (removed — no Redux)
 ```
 
 Imports: `@/pages`, `@/hooks`, `@/components`. Pages do not import axios.
@@ -45,6 +46,7 @@ apps/<name>-service/src/
 Example: products + categories share `products/`. Auth HTTP lives in `users/` beside `UsersController`.
 
 - `@Public()` = no login. `@Roles('admin')` = staff. JWT still required unless public.
+- OpenAPI docs at `/api/docs` on every API (via shared `bootstrapNestApp`).
 - Import `@core-platform/common`, not files under `packages/common/src`.
 
 ## Domain rules (do not drift)

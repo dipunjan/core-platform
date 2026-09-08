@@ -1,47 +1,38 @@
 import { useEffect, useState } from 'react';
-import {
-  apiMessage,
-  docId,
-  http,
-  urls,
-  type Inventory,
-  type Product,
-} from '@/api';
+import { docId, type Product } from '@/api';
 import { Button, Flash, PageHeader, PageLoader } from '@/components/ui';
+import {
+  useInventoryQuery,
+  useProductsQuery,
+  useUpdateInventoryMutation,
+} from '@/query';
 
 export function InventoryPage() {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [stock, setStock] = useState<Inventory[]>([]);
+  const productsQuery = useProductsQuery();
+  const inventoryQuery = useInventoryQuery();
+  const updateInventory = useUpdateInventoryMutation();
   const [draft, setDraft] = useState<Record<string, string>>({});
-  const [loading, setLoading] = useState(true);
-  const [savingId, setSavingId] = useState('');
   const [rowErrors, setRowErrors] = useState<Record<string, string>>({});
-  const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
 
-  async function reload() {
-    const [p, i] = await Promise.all([
-      http.get<Product[]>(urls.products),
-      http.get<Inventory[]>(urls.inventory),
-    ]);
-    setProducts(p.data);
-    setStock(i.data);
+  const products = productsQuery.data ?? [];
+  const stock = inventoryQuery.data ?? [];
+  const loading = productsQuery.isLoading || inventoryQuery.isLoading;
+  const error =
+    productsQuery.error?.message ??
+    inventoryQuery.error?.message ??
+    updateInventory.error?.message ??
+    '';
+
+  useEffect(() => {
     const next: Record<string, string> = {};
-    for (const row of i.data) {
+    for (const row of stock) {
       next[row.productId] = String(row.quantity);
     }
     setDraft(next);
-  }
-
-  useEffect(() => {
-    setLoading(true);
-    void reload()
-      .catch((err) => setError(apiMessage(err)))
-      .finally(() => setLoading(false));
-  }, []);
+  }, [stock]);
 
   async function save(productId: string) {
-    setError('');
     setNotice('');
     setRowErrors((prev) => {
       const next = { ...prev };
@@ -57,15 +48,11 @@ export function InventoryPage() {
       }));
       return;
     }
-    setSavingId(productId);
     try {
-      await http.put(urls.inventoryItem(productId), { quantity });
+      await updateInventory.mutateAsync({ productId, quantity });
       setNotice('Stock updated.');
-      await reload();
-    } catch (err) {
-      setError(apiMessage(err));
-    } finally {
-      setSavingId('');
+    } catch {
+      /* error on mutation */
     }
   }
 
@@ -99,7 +86,7 @@ export function InventoryPage() {
                 </td>
               </tr>
             ) : (
-              products.map((product) => {
+              products.map((product: Product) => {
                 const id = docId(product);
                 const row = byId.get(id);
                 return (
@@ -128,7 +115,7 @@ export function InventoryPage() {
                     <td>
                       <Button
                         type="button"
-                        loading={savingId === id}
+                        loading={updateInventory.isPending}
                         onClick={() => void save(id)}
                       >
                         Save

@@ -92,6 +92,8 @@ Routing is **not** mixed into `App.tsx`. The list of pages is in **`src/routes/r
 1. Asks “who am I?” once on load (`useAuth().loadMe()`), and loads storefront (currency, logo).
 2. Hands the router to the screen (`RouterProvider`).
 
+**Server data** (products, cart, orders, auth session) uses **TanStack Query** in `src/query/`. **Forms** use **react-hook-form** with **zod** schemas in `src/lib/schemas.ts`. There is **no Redux** on either frontend.
+
 Crashes: **`ErrorBoundary`** in `main.tsx` (tree outside the router). Route render/loader failures: **`errorElement: <RouteError />`** in `routes/router.tsx`, nested *under* `Layout` so the header or sidebar stays. Both live in `src/components/` (`ErrorPanel`, `ErrorBoundary`, `RouteError`). Do not put them in `routes/`.
 
 The header is **`Layout`** (never `Shell`). Two gates sit under it:
@@ -122,24 +124,26 @@ Admin (`apps/admin`) uses the **same names and folders**. Staff `Layout` is a si
 
 ```
 apps/web/src/
-  main.tsx         ErrorBoundary, Redux Provider, then App
-  App.tsx          load current user, then start the router
+  main.tsx         ErrorBoundary, QueryClientProvider, then App
+  App.tsx          load current user + storefront, then start the router
   routes/          which URL shows which page
   pages/           one file per screen (puts hooks + components together)
   hooks/           “do this for me” functions pages call (login, load cart, …)
-  features/        Redux slices (the actual server calls and saved copies)
-  components/
+  query/           TanStack Query hooks (catalog, cart, orders, auth)
+  features/        (legacy folder — use query/ instead)
+    components/
     ErrorBoundary  React class boundary (main.tsx)
     RouteError     React Router errorElement
     ErrorPanel     shared error screen
     ui/            Card, Button, Field, PageHeader, Section, HeroBanner, …
     layout/        Layout, ProtectedRoute (logged in), GuestRoute (logged out)
     catalog/       ProductCard, category chips
-    account/       AddressFields (register + checkout)
+    account/       AddressFields (`register` + zod errors, or controlled for admin people)
     cart/          CartLine
     orders/        OrderCard
   api/             axios client, API URLs, TypeScript types
-  store/           Redux store + typed useAppDispatch / useAppSelector
+  lib/             schemas (zod), shop filters, helpers
+  store/           (removed — no Redux)
   styles/          Bootstrap 5.3 (index.css imports bootstrap + brand tokens)
 ```
 
@@ -169,17 +173,17 @@ Pages compose these; they should not repeat long `className` strings for the sam
 
 Files inside a folder still import siblings with `./` (a Button file does not go through `@/components`). Layout imports `@/components/ui`, not `@/components`, so it does not loop back on itself.
 
-**Pages do not talk to axios.** They call hooks. Hooks talk to slices. Slices talk to `api/`.
+**Pages do not talk to axios.** They call hooks. Hooks call TanStack Query. Query modules call `api/`.
 
 | Hook | Used on | What it does |
 |---|---|---|
 | `useAuth` | App, Layout, login/register, checkout | Me, login, register, logout; after login, merge guest cart |
-| `useCatalog` / `useProduct` | Home, shop, product | Product list / one product + stock |
+| `useCatalog` / `useProduct` / `useStorefront` | Home, shop, product, Layout | Product list / one product + stock / branding |
 | `useCart` | Cart, checkout, product cards | Guest or server cart, qty, checkout |
-| `useOrders` | Orders | List orders, cancel |
+| `useOrders` | Orders, account | List orders, cancel |
 | `useMoney` | prices | Format cents using storefront currency |
 
-Checkout is: save address on the user, create an order (with a shipping snapshot), then delete the cart (that logic is in the cart slice, not in the page).
+Checkout is: save address on the user (`useUpdateMeMutation`), create an order via TanStack Query mutation, then clear the cart.
 
 ## Login on this site
 

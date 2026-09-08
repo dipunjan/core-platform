@@ -1,20 +1,16 @@
 import { useEffect } from 'react';
 import { RouterProvider } from 'react-router-dom';
-import { fetchCart } from '@/features/cart';
-import { useAuth, useCatalog } from '@/hooks';
-import { useAppDispatch } from '@/store/hooks';
+import { useAuth, useStorefront } from '@/hooks';
 import { router } from '@/routes';
 
 export function App() {
-  const dispatch = useAppDispatch();
   const { loadMe } = useAuth();
-  const { loadStorefront } = useCatalog();
+  const { loadStorefront } = useStorefront();
 
   useEffect(() => {
     void loadMe();
     loadStorefront();
-    void dispatch(fetchCart());
-  }, [dispatch, loadMe, loadStorefront]);
+  }, [loadMe, loadStorefront]);
 
   return <RouterProvider router={router} />;
 }

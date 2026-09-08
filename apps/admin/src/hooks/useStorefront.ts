@@ -1,25 +1,17 @@
 import { useCallback } from 'react';
-import { fetchStorefront, setStorefront } from '@/features/storefront';
-import type { Storefront } from '@/api';
-import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import { useStorefrontQuery } from '@/query';
 
 export function useStorefront() {
-  const dispatch = useAppDispatch();
-  const { storefront, loading, error } = useAppSelector(
-    (state) => state.storefront,
-  );
+  const query = useStorefrontQuery();
 
-  const loadStorefront = useCallback(
-    () => dispatch(fetchStorefront()),
-    [dispatch],
-  );
+  const loadStorefront = useCallback(() => {
+    void query.refetch();
+  }, [query]);
 
-  const remember = useCallback(
-    (row: Storefront) => {
-      dispatch(setStorefront(row));
-    },
-    [dispatch],
-  );
-
-  return { storefront, loading, error, loadStorefront, remember };
+  return {
+    storefront: query.data ?? null,
+    loading: query.isLoading,
+    error: query.error?.message ?? '',
+    loadStorefront,
+  };
 }

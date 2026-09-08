@@ -22,6 +22,7 @@ Related HTTP (e.g. `auth.controller.ts` next to users, `categories.controller.ts
 
 - DTOs validate input. Schemas are Mongoose. Business rules stay in the service.
 - Public routes: `@Public()`. Staff writes: `@Roles('admin')` after JWT.
+- OpenAPI at `/api/docs` (shared `bootstrapNestApp`). Pass `serviceName` in `main.ts`.
 - Import `@core-platform/common` only. Do not add a sixth service unless a new bounded context needs its own DB.
 - Storefront images live on **product-service** (`POST /api/storefront/assets`). Do not add a media service.
 - HTTP prefix is `/api`. Mongo via `MONGO_URI`. Events via RabbitMQ in the owning service. Redis via `REDIS_URL` (not a sixth microservice).

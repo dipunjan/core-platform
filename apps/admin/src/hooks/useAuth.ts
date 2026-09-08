@@ -1,22 +1,45 @@
 import { useCallback } from 'react';
-import { fetchMe, login, logout } from '@/features/auth';
-import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import {
+  authErrorMessage,
+  useLoginMutation,
+  useLogoutMutation,
+  useMeQuery,
+} from '@/query';
 
 export function useAuth() {
-  const dispatch = useAppDispatch();
-  const { user, loading, error } = useAppSelector((state) => state.auth);
+  const meQuery = useMeQuery();
+  const loginMutation = useLoginMutation();
+  const logoutMutation = useLogoutMutation();
 
-  const loadMe = useCallback(() => dispatch(fetchMe()), [dispatch]);
+  const loadMe = useCallback(() => meQuery.refetch(), [meQuery]);
 
   const signIn = useCallback(
     async (email: string, password: string) => {
-      const result = await dispatch(login({ email, password }));
-      return login.fulfilled.match(result);
+      loginMutation.reset();
+      try {
+        await loginMutation.mutateAsync({ email, password });
+        return true;
+      } catch {
+        return false;
+      }
     },
-    [dispatch],
+    [loginMutation],
   );
 
-  const signOut = useCallback(() => dispatch(logout()), [dispatch]);
+  const signOut = useCallback(async () => {
+    await logoutMutation.mutateAsync();
+  }, [logoutMutation]);
 
-  return { user, loading, error, loadMe, signIn, signOut };
+  const error = loginMutation.isError
+    ? authErrorMessage(loginMutation.error, 'Login failed')
+    : '';
+
+  return {
+    user: meQuery.data ?? null,
+    loading: meQuery.isLoading,
+    error,
+    loadMe,
+    signIn,
+    signOut,
+  };
 }

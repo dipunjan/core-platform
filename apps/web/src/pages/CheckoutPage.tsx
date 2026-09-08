@@ -1,8 +1,9 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useEffect } from 'react';
+import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import {
   AddressFields,
-  emptyDelivery,
   Button,
   Card,
   EmptyState,
@@ -11,26 +12,34 @@ import {
   PageLoader,
   TextLink,
 } from '@/components';
-import { updateMe } from '@/features/auth';
+import { useUpdateMeMutation } from '@/query';
 import { useAuth, useCart, useMoney } from '@/hooks';
-import { useAppDispatch } from '@/store/hooks';
+import { deliverySchema, emptyDeliveryValues, type DeliveryFormValues } from '@/lib/schemas';
 
 export function CheckoutPage() {
   const navigate = useNavigate();
-  const dispatch = useAppDispatch();
+  const updateMe = useUpdateMeMutation();
   const { user, error: authError } = useAuth();
   const { cart, error, loading, productsById, placeOrder } = useCart({
     load: true,
   });
   const money = useMoney();
-  const [delivery, setDelivery] = useState(emptyDelivery);
-  const [busy, setBusy] = useState(false);
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<DeliveryFormValues>({
+    resolver: zodResolver(deliverySchema),
+    defaultValues: emptyDeliveryValues,
+  });
 
   useEffect(() => {
     if (!user) {
       return;
     }
-    setDelivery({
+    reset({
       phone: user.phone ?? '',
       address: {
         line1: user.address?.line1 ?? '',
@@ -41,7 +50,7 @@ export function CheckoutPage() {
         country: user.address?.country ?? 'US',
       },
     });
-  }, [user]);
+  }, [reset, user]);
 
   const items = cart?.items ?? [];
   const total = items.reduce((sum, item) => {
@@ -49,18 +58,16 @@ export function CheckoutPage() {
     return sum + (product ? product.price * item.quantity : 0);
   }, 0);
 
-  async function onSubmit(event: FormEvent) {
-    event.preventDefault();
-    setBusy(true);
-    const saved = await dispatch(
-      updateMe({ phone: delivery.phone, address: delivery.address }),
-    );
-    if (!updateMe.fulfilled.match(saved)) {
-      setBusy(false);
+  async function onSubmit(values: DeliveryFormValues) {
+    try {
+      await updateMe.mutateAsync({
+        phone: values.phone,
+        address: values.address,
+      });
+    } catch {
       return;
     }
-    const ok = await placeOrder(delivery.address);
-    setBusy(false);
+    const ok = await placeOrder(values.address);
     if (ok) {
       navigate('/account?tab=orders', { state: { orderPlaced: true } });
     }
@@ -85,14 +92,14 @@ export function CheckoutPage() {
     <div className="row g-4">
       <div className="col-lg">
         <PageTitle className="mb-4">Checkout</PageTitle>
-        <Flash>{error || authError}</Flash>
-        <Card as="form" onSubmit={(event) => void onSubmit(event)}>
+        <Flash>{error || authError || updateMe.error?.message}</Flash>
+        <Card as="form" onSubmit={(event) => void handleSubmit(onSubmit)(event)}>
           <h2 className="h5 fw-semibold mb-3">Shipping address</h2>
-          <AddressFields value={delivery} onChange={setDelivery} />
+          <AddressFields register={register} errors={errors} />
           <Button
             type="submit"
             className="w-100"
-            loading={busy || loading}
+            loading={isSubmitting || loading}
             loadingLabel="Placing order…"
           >
             Place order

@@ -3,7 +3,6 @@ import {
   STORE_CURRENCIES,
   apiMessage,
   docId,
-  http,
   urls,
   type Banner,
   type Storefront,
@@ -11,6 +10,7 @@ import {
 import { Button, Field, Flash, ImagePicker, PageHeader, PageLoader, SelectField } from '@/components/ui';
 import { brandImage, hasBrandImage } from '@/lib/brandImage';
 import { confirmAction } from '@/lib/confirm';
+import { useBannerMutation, usePatchStorefrontMutation } from '@/query';
 import { useStorefront } from '@/hooks';
 
 export function BrandingPage() {
@@ -18,8 +18,9 @@ export function BrandingPage() {
     storefront: store,
     loading: storeLoading,
     error: loadError,
-    remember,
   } = useStorefront();
+  const patchStorefront = usePatchStorefrontMutation();
+  const bannerMutation = useBannerMutation();
   const [appName, setAppName] = useState('');
   const [tagline, setTagline] = useState('');
   const [faviconUrl, setFaviconUrl] = useState('');
@@ -71,7 +72,6 @@ export function BrandingPage() {
   }
 
   function apply(data: Storefront) {
-    remember(data);
     syncForm(data);
   }
 
@@ -105,7 +105,7 @@ export function BrandingPage() {
     }
     setBusy('site');
     try {
-      const { data } = await http.patch<Storefront>(urls.storefront, {
+      const data = await patchStorefront.mutateAsync({
         appName: appName.trim(),
         tagline: tagline.trim(),
         faviconUrl,
@@ -127,9 +127,7 @@ export function BrandingPage() {
     clearStatus();
     setBusy('logo');
     try {
-      const { data } = await http.patch<Storefront>(urls.storefront, {
-        logoUrl: url,
-      });
+      const data = await patchStorefront.mutateAsync({ logoUrl: url });
       apply(data);
       setNotice(url ? 'Logo updated.' : 'Logo removed.');
     } catch (err) {
@@ -148,9 +146,7 @@ export function BrandingPage() {
     clearStatus();
     setBusy('site');
     try {
-      const { data } = await http.patch<Storefront>(urls.storefront, {
-        faviconUrl: '',
-      });
+      const data = await patchStorefront.mutateAsync({ faviconUrl: '' });
       apply(data);
       setNotice('Favicon removed.');
     } catch (err) {
@@ -165,7 +161,7 @@ export function BrandingPage() {
     clearStatus();
     setBusy('hero');
     try {
-      const { data } = await http.patch<Storefront>(urls.storefront, {
+      const data = await patchStorefront.mutateAsync({
         hero: { headline, sub, imageUrl: '', href, cta },
       });
       apply(data);
@@ -182,9 +178,7 @@ export function BrandingPage() {
     clearStatus();
     setBusy('currency');
     try {
-      const { data } = await http.patch<Storefront>(urls.storefront, {
-        currency,
-      });
+      const data = await patchStorefront.mutateAsync({ currency });
       apply(data);
       setNotice('Currency saved.');
     } catch (err) {
@@ -215,7 +209,7 @@ export function BrandingPage() {
     }
     setBusy('hero');
     try {
-      const { data } = await http.patch<Storefront>(urls.storefront, {
+      const data = await patchStorefront.mutateAsync({
         hero: {
           headline: headline.trim(),
           sub: sub.trim(),
@@ -298,11 +292,15 @@ export function BrandingPage() {
     const headline = editPromoHeadline.trim();
     setBusy(`edit-${editingBannerId}`);
     try {
-      const { data } = await http.patch<Storefront>(urls.banner(editingBannerId), {
-        headline,
-        sub: editPromoSub.trim(),
-        imageUrl: editPromoImage,
-        href: editPromoHref.trim(),
+      const data = await bannerMutation.mutateAsync({
+        method: 'patch',
+        url: urls.banner(editingBannerId),
+        body: {
+          headline,
+          sub: editPromoSub.trim(),
+          imageUrl: editPromoImage,
+          href: editPromoHref.trim(),
+        },
       });
       apply(data);
       cancelEditBanner();
@@ -326,11 +324,15 @@ export function BrandingPage() {
     const headline = promoHeadline.trim();
     setBusy('promo');
     try {
-      const { data } = await http.post<Storefront>(urls.banners, {
-        headline,
-        sub: promoSub.trim(),
-        imageUrl: promoImage,
-        href: promoHref.trim(),
+      const data = await bannerMutation.mutateAsync({
+        method: 'post',
+        url: urls.banners,
+        body: {
+          headline,
+          sub: promoSub.trim(),
+          imageUrl: promoImage,
+          href: promoHref.trim(),
+        },
       });
       apply(data);
       setPromoHeadline('');
@@ -361,7 +363,10 @@ export function BrandingPage() {
       if (editingBannerId === docId(banner)) {
         cancelEditBanner();
       }
-      const { data } = await http.delete<Storefront>(urls.banner(docId(banner)));
+      const data = await bannerMutation.mutateAsync({
+        method: 'delete',
+        url: urls.banner(docId(banner)),
+      });
       apply(data);
       setNotice('Promo tile removed.');
     } catch (err) {

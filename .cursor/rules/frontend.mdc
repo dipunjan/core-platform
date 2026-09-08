@@ -9,14 +9,14 @@ alwaysApply: false
 Same shape in `apps/web` and `apps/admin`:
 
 ```
-src/pages/  src/hooks/  src/features/  src/components/{layout,ui}  src/api/  src/routes/  src/store/
+src/pages/  src/hooks/  src/query/  src/components/{layout,ui}  src/api/  src/routes/
 ```
 
 - Chrome is **`Layout`**, never `Shell`. Gates are **`ProtectedRoute`** and **`GuestRoute`** under `components/layout/`.
 - Errors: `ErrorBoundary` in `main.tsx`; `errorElement: <RouteError />` on the router (nested under `Layout`). Files in `src/components/`, not `routes/`.
 - `router.tsx` wraps pages in `Layout`. Import pages from `@/pages`, hooks from `@/hooks`.
 - Admin `ProtectedRoute` requires `user.role === 'admin'`. Admin `GuestRoute` redirects only if the session is already admin. Admin `Layout` may omit the sidebar on `/login`.
-- Auth is Redux (`features/auth`) + `useAuth`. `App.tsx` calls `loadMe()`. `main.tsx` wraps `<Provider>`. No React auth context.
-- Pages do not call axios. Hooks → slices → `api/`. Cross-folder imports use `@/` barrels; siblings use `./`.
+- **Both frontends**: server state + auth session in **TanStack Query** (`src/query/`). Forms use **react-hook-form** + **zod**. `main.tsx` wraps `<QueryClientProvider>` only — **no Redux**.
+- Pages do not call axios. Hooks → query → `api/`. Cross-folder imports use `@/` barrels; siblings use `./`.
 - **Pages stay lean** — reuse `components/ui/` (`Card`, `PageHeader`, `Section`, `TextLink`, …). Do not copy long Bootstrap class strings onto every screen; use shared UI components.
 - Tokens stay in cookies. Guest shop cart may use `localStorage`; admin does not.

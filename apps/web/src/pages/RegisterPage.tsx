@@ -1,9 +1,9 @@
-import { useState, type FormEvent } from 'react';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm } from 'react-hook-form';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { safeNext } from '@/api';
 import {
   AddressFields,
-  emptyDelivery,
   AuthCard,
   Button,
   Field,
@@ -11,29 +11,40 @@ import {
   TextLink,
 } from '@/components';
 import { useAuth } from '@/hooks';
+import {
+  emptyDeliveryValues,
+  registerSchema,
+  type RegisterFormValues,
+} from '@/lib/schemas';
 
 export function RegisterPage() {
   const { signUp, error } = useAuth();
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const next = safeNext(params.get('next'));
-  const [name, setName] = useState('Ada');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('secret12');
-  const [delivery, setDelivery] = useState(emptyDelivery);
-  const [busy, setBusy] = useState(false);
 
-  async function onSubmit(event: FormEvent) {
-    event.preventDefault();
-    setBusy(true);
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<RegisterFormValues>({
+    resolver: zodResolver(registerSchema),
+    defaultValues: {
+      name: 'Ada',
+      email: '',
+      password: 'secret12',
+      ...emptyDeliveryValues,
+    },
+  });
+
+  async function onSubmit(values: RegisterFormValues) {
     const ok = await signUp({
-      email,
-      name,
-      password,
-      phone: delivery.phone,
-      address: delivery.address,
+      email: values.email,
+      name: values.name,
+      password: values.password,
+      phone: values.phone,
+      address: values.address,
     });
-    setBusy(false);
     if (ok) {
       navigate(next === '/' ? '/' : next);
     }
@@ -52,33 +63,37 @@ export function RegisterPage() {
       }
     >
       <Flash>{error}</Flash>
-      <form onSubmit={(event) => void onSubmit(event)}>
+      <form onSubmit={(event) => void handleSubmit(onSubmit)(event)}>
         <Field
           label="Name"
           autoComplete="name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
           required
+          {...register('name')}
+          error={errors.name?.message}
         />
         <Field
           label="Email"
           type="email"
           autoComplete="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
           required
+          {...register('email')}
+          error={errors.email?.message}
         />
         <Field
           label="Password (min 8)"
           type="password"
           autoComplete="new-password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          minLength={8}
           required
+          {...register('password')}
+          error={errors.password?.message}
         />
-        <AddressFields value={delivery} onChange={setDelivery} />
-        <Button type="submit" className="w-100" loading={busy} loadingLabel="Creating account…">
+        <AddressFields register={register} errors={errors} />
+        <Button
+          type="submit"
+          className="w-100"
+          loading={isSubmitting}
+          loadingLabel="Creating account…"
+        >
           Create account
         </Button>
       </form>

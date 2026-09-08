@@ -1,9 +1,9 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { Provider } from 'react-redux';
+import { QueryClientProvider } from '@tanstack/react-query';
 import { App } from '@/App';
 import { ErrorBoundary } from '@/components';
-import { store } from '@/store';
+import { queryClient } from '@/query';
 import './styles/index.css';
 
 const root = document.getElementById('root');
@@ -14,9 +14,9 @@ if (!root) {
 createRoot(root).render(
   <StrictMode>
     <ErrorBoundary homeHref="/" homeLabel="Back to sales">
-      <Provider store={store}>
+      <QueryClientProvider client={queryClient}>
         <App />
-      </Provider>
+      </QueryClientProvider>
     </ErrorBoundary>
   </StrictMode>,
 );

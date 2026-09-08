@@ -1,5 +1,5 @@
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
-import { useAuth, useCart, useCatalog, siteName, useSiteBranding } from '@/hooks';
+import { useAuth, useCart, useStorefront, siteName, useSiteBranding } from '@/hooks';
 import { brandImage } from '@/lib/brandImage';
 import { cn } from '@/lib/cn';
 import { Button, SpinnerIcon } from '@/components/ui';
@@ -11,7 +11,7 @@ const navLinkClass = ({ isActive }: { isActive: boolean }) =>
 export function Layout() {
   const { user, loading, signOut } = useAuth();
   const { cart } = useCart();
-  const { storefront } = useCatalog();
+  const { storefront } = useStorefront();
   const { pathname } = useLocation();
   const shopOn = pathname === '/shop' || pathname.startsWith('/shop/');
   const accountOn = pathname === '/account' || pathname.startsWith('/account/');

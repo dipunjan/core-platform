@@ -1,5 +1,7 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { apiMessage, docId, http, urls, type Category, type Product } from '@/api';
+import { useEffect, useRef, useState } from 'react';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm } from 'react-hook-form';
+import { docId, type Category, type Product } from '@/api';
 import {
   Button,
   Field,
@@ -10,56 +12,24 @@ import {
   TextAreaField,
 } from '@/components/ui';
 import { confirmAction } from '@/lib/confirm';
+import { productSchema, type ProductFormValues } from '@/lib/schemas';
 import { useMoney } from '@/hooks';
-
-type ProductForm = {
-  name: string;
-  description: string;
-  price: string;
-  sku: string;
-  category: string;
-  featured: boolean;
-};
-
-const emptyForm = (): ProductForm => ({
-  name: '',
-  description: '',
-  price: '1299',
-  sku: '',
-  category: '',
-  featured: false,
-});
+import {
+  productError,
+  useCategoriesQuery,
+  useProductMutations,
+  useProductsQuery,
+} from '@/query';
 
 type FieldErrors = Partial<
   Record<'name' | 'sku' | 'description' | 'price' | 'category', string>
 >;
 
-function validateForm(form: ProductForm): FieldErrors {
-  const errors: FieldErrors = {};
-  if (!form.name.trim()) {
-    errors.name = 'Enter a product name.';
-  }
-  if (!form.sku.trim()) {
-    errors.sku = 'Enter a SKU (stock-keeping unit).';
-  }
-  if (!form.description.trim()) {
-    errors.description = 'Add a short description shoppers will see.';
-  }
-  const price = Number(form.price);
-  if (form.price === '' || Number.isNaN(price) || price < 0) {
-    errors.price = 'Enter a valid price in cents (0 or more).';
-  }
-  if (!form.category) {
-    errors.category = 'Choose a category.';
-  }
-  return errors;
-}
-
-function productToForm(product: Product): ProductForm {
+function productToForm(product: Product): ProductFormValues {
   return {
     name: product.name,
     description: product.description,
-    price: String(product.price),
+    price: product.price,
     sku: product.sku,
     category: product.category,
     featured: Boolean(product.featured),
@@ -69,38 +39,37 @@ function productToForm(product: Product): ProductForm {
 export function ProductsPage() {
   const money = useMoney();
   const editPanelRef = useRef<HTMLElement>(null);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [form, setForm] = useState<ProductForm>(emptyForm());
-  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const productsQuery = useProductsQuery();
+  const categoriesQuery = useCategoriesQuery();
+  const { create, update, remove } = useProductMutations();
+  const products = productsQuery.data ?? [];
+  const categories = categoriesQuery.data ?? [];
+  const loading = productsQuery.isLoading || categoriesQuery.isLoading;
+
+  const createForm = useForm<ProductFormValues>({
+    resolver: zodResolver(productSchema),
+    defaultValues: {
+      name: '',
+      description: '',
+      price: 1299,
+      sku: '',
+      category: '',
+      featured: false,
+    },
+  });
+
   const [editingId, setEditingId] = useState('');
-  const [editForm, setEditForm] = useState<ProductForm>(emptyForm());
+  const [editForm, setEditForm] = useState<ProductFormValues | null>(null);
   const [editErrors, setEditErrors] = useState<FieldErrors>({});
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [editSaving, setEditSaving] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
 
-  async function reload() {
-    const [p, c] = await Promise.all([
-      http.get<Product[]>(urls.products),
-      http.get<Category[]>(urls.categories),
-    ]);
-    setProducts(p.data);
-    setCategories(c.data);
-    setForm((prev) => ({
-      ...prev,
-      category: prev.category || c.data[0]?.slug || '',
-    }));
-  }
-
   useEffect(() => {
-    setLoading(true);
-    void reload()
-      .catch((err) => setError(apiMessage(err)))
-      .finally(() => setLoading(false));
-  }, []);
+    const first = categories[0]?.slug;
+    if (first && !createForm.getValues('category')) {
+      createForm.setValue('category', first);
+    }
+  }, [categories, createForm]);
 
   useEffect(() => {
     if (editingId && editPanelRef.current) {
@@ -122,74 +91,75 @@ export function ProductsPage() {
 
   function cancelEdit() {
     setEditingId('');
-    setEditForm(emptyForm());
+    setEditForm(null);
     setEditErrors({});
   }
 
-  async function create(event: FormEvent) {
-    event.preventDefault();
+  async function onCreate(values: ProductFormValues) {
     setError('');
     setNotice('');
-    const errors = validateForm(form);
-    setFieldErrors(errors);
-    if (Object.keys(errors).length > 0) {
-      setError('Fix the highlighted fields and try again.');
-      return;
-    }
-    setSaving(true);
     try {
-      await http.post(urls.products, {
-        ...form,
-        name: form.name.trim(),
-        sku: form.sku.trim(),
-        description: form.description.trim(),
-        price: Number(form.price),
+      await create.mutateAsync({
+        ...values,
+        name: values.name.trim(),
+        sku: values.sku.trim(),
+        description: values.description.trim(),
       });
-      setForm({ ...emptyForm(), category: form.category });
-      setFieldErrors({});
+      createForm.reset({
+        name: '',
+        description: '',
+        price: 1299,
+        sku: '',
+        category: values.category,
+        featured: false,
+      });
       setNotice('Product added.');
-      await reload();
     } catch (err) {
-      setError(apiMessage(err));
-    } finally {
-      setSaving(false);
+      setError(productError(err, 'Could not add product'));
     }
   }
 
-  async function saveEdit(event: FormEvent) {
+  async function saveEdit(event: React.FormEvent) {
     event.preventDefault();
+    if (!editForm) {
+      return;
+    }
     setError('');
     setNotice('');
-    const errors = validateForm(editForm);
-    setEditErrors(errors);
-    if (Object.keys(errors).length > 0) {
+    const parsed = productSchema.safeParse(editForm);
+    if (!parsed.success) {
+      const errors: FieldErrors = {};
+      for (const issue of parsed.error.issues) {
+        const key = issue.path[0];
+        if (typeof key === 'string' && key in errors === false) {
+          errors[key as keyof FieldErrors] = issue.message;
+        }
+      }
+      setEditErrors(errors);
       setError('Fix the highlighted fields and try again.');
       return;
     }
-    setEditSaving(true);
     try {
-      await http.patch(urls.product(editingId), {
-        name: editForm.name.trim(),
-        sku: editForm.sku.trim(),
-        description: editForm.description.trim(),
-        price: Number(editForm.price),
-        category: editForm.category,
-        featured: editForm.featured,
+      await update.mutateAsync({
+        id: editingId,
+        body: {
+          name: parsed.data.name.trim(),
+          sku: parsed.data.sku.trim(),
+          description: parsed.data.description.trim(),
+          price: parsed.data.price,
+          category: parsed.data.category,
+          featured: parsed.data.featured,
+        },
       });
       setNotice('Product updated.');
       cancelEdit();
-      await reload();
     } catch (err) {
-      setError(apiMessage(err));
-    } finally {
-      setEditSaving(false);
+      setError(productError(err, 'Could not update product'));
     }
   }
 
-  async function remove(product: Product) {
-    if (
-      !confirmAction(`Delete "${product.name}"? This cannot be undone.`)
-    ) {
+  async function removeProduct(product: Product) {
+    if (!confirmAction(`Delete "${product.name}"? This cannot be undone.`)) {
       return;
     }
     setError('');
@@ -198,11 +168,10 @@ export function ProductsPage() {
       if (editingId === docId(product)) {
         cancelEdit();
       }
-      await http.delete(urls.product(docId(product)));
+      await remove.mutateAsync(docId(product));
       setNotice('Product removed.');
-      await reload();
     } catch (err) {
-      setError(apiMessage(err));
+      setError(productError(err, 'Could not delete product'));
     }
   }
 
@@ -210,7 +179,7 @@ export function ProductsPage() {
     if (categories.length === 0) {
       return <option value="">Add a category first</option>;
     }
-    return categories.map((category) => (
+    return categories.map((category: Category) => (
       <option key={category.slug} value={category.slug}>
         {category.name}
       </option>
@@ -221,6 +190,15 @@ export function ProductsPage() {
     return <PageLoader label="Loading products…" />;
   }
 
+  const {
+    register,
+    handleSubmit,
+    formState: { errors: createErrors, isSubmitting },
+    watch,
+    setValue,
+  } = createForm;
+  const form = watch();
+
   return (
     <>
       <PageHeader title="Products" />
@@ -228,7 +206,7 @@ export function ProductsPage() {
       <Flash>{error}</Flash>
 
       <form
-        onSubmit={(event) => void create(event)}
+        onSubmit={(event) => void handleSubmit(onCreate)(event)}
         noValidate
         className="card mb-4"
         style={{ maxWidth: '36rem' }}
@@ -237,24 +215,21 @@ export function ProductsPage() {
           <h2 className="admin-section-title mb-3">Add product</h2>
           <Field
             label="Name"
-            value={form.name}
-            onChange={(e) => setForm({ ...form, name: e.target.value })}
-            error={fieldErrors.name}
+            {...register('name')}
+            error={createErrors.name?.message}
             required
           />
           <Field
             label="SKU"
-            value={form.sku}
-            onChange={(e) => setForm({ ...form, sku: e.target.value })}
-            error={fieldErrors.sku}
+            {...register('sku')}
+            error={createErrors.sku?.message}
             hint="Unique code for this product, e.g. SWOOP-TEE-01."
             required
           />
           <TextAreaField
             label="Description"
-            value={form.description}
-            onChange={(e) => setForm({ ...form, description: e.target.value })}
-            error={fieldErrors.description}
+            {...register('description')}
+            error={createErrors.description?.message}
             required
           />
           <div className="row">
@@ -263,18 +238,16 @@ export function ProductsPage() {
                 label="Price (cents)"
                 type="number"
                 min={0}
-                value={form.price}
-                onChange={(e) => setForm({ ...form, price: e.target.value })}
-                error={fieldErrors.price}
+                {...register('price', { valueAsNumber: true })}
+                error={createErrors.price?.message}
                 required
               />
             </div>
             <div className="col-md-6">
               <SelectField
                 label="Category"
-                value={form.category}
-                onChange={(e) => setForm({ ...form, category: e.target.value })}
-                error={fieldErrors.category}
+                {...register('category')}
+                error={createErrors.category?.message}
                 required
                 disabled={categories.length === 0}
               >
@@ -282,7 +255,7 @@ export function ProductsPage() {
               </SelectField>
             </div>
           </div>
-          {!fieldErrors.price ? (
+          {!createErrors.price ? (
             <p className="form-text">Whole cents only. 1299 = $12.99.</p>
           ) : null}
           <div className="form-check mb-3">
@@ -291,14 +264,14 @@ export function ProductsPage() {
               type="checkbox"
               id="featured"
               checked={form.featured}
-              onChange={(e) => setForm({ ...form, featured: e.target.checked })}
+              onChange={(e) => setValue('featured', e.target.checked)}
             />
             <label className="form-check-label" htmlFor="featured">
               Featured on the home page
             </label>
           </div>
           <div>
-            <Button type="submit" loading={saving} disabled={categories.length === 0}>
+            <Button type="submit" loading={isSubmitting} disabled={categories.length === 0}>
               Add product
             </Button>
             {categories.length === 0 ? (
@@ -310,7 +283,7 @@ export function ProductsPage() {
         </div>
       </form>
 
-      {editingId ? (
+      {editingId && editForm ? (
         <section
           ref={editPanelRef}
           className="card mb-4 admin-panel-edit"
@@ -349,7 +322,9 @@ export function ProductsPage() {
                     type="number"
                     min={0}
                     value={editForm.price}
-                    onChange={(e) => setEditForm({ ...editForm, price: e.target.value })}
+                    onChange={(e) =>
+                      setEditForm({ ...editForm, price: Number(e.target.value) })
+                    }
                     error={editErrors.price}
                     required
                   />
@@ -383,7 +358,7 @@ export function ProductsPage() {
                 </label>
               </div>
               <div className="d-flex flex-wrap gap-2">
-                <Button type="submit" loading={editSaving}>
+                <Button type="submit" loading={update.isPending}>
                   Save changes
                 </Button>
                 <Button type="button" variant="secondary" onClick={cancelEdit}>
@@ -443,7 +418,7 @@ export function ProductsPage() {
                         <Button
                           type="button"
                           variant="danger"
-                          onClick={() => void remove(product)}
+                          onClick={() => void removeProduct(product)}
                         >
                           Delete
                         </Button>

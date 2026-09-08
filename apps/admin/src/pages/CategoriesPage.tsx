@@ -1,19 +1,18 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { apiMessage, docId, http, urls, type Category } from '@/api';
+import { useEffect, useRef, useState } from 'react';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm } from 'react-hook-form';
+import { docId, type Category } from '@/api';
 import { Button, Field, Flash, PageHeader, PageLoader } from '@/components/ui';
 import { confirmAction } from '@/lib/confirm';
+import {
+  categoryCreateSchema,
+  categoryEditSchema,
+  type CategoryCreateValues,
+  type CategoryEditValues,
+} from '@/lib/schemas';
+import { productError, useCategoriesQuery, useCategoryMutations } from '@/query';
 
-const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-
-type CategoryForm = {
-  slug: string;
-  name: string;
-  blurb: string;
-  showInNav: boolean;
-  showOnHome: boolean;
-};
-
-const emptyForm = (): CategoryForm => ({
+const emptyForm = (): CategoryCreateValues => ({
   slug: '',
   name: '',
   blurb: '',
@@ -23,30 +22,19 @@ const emptyForm = (): CategoryForm => ({
 
 export function CategoriesPage() {
   const editPanelRef = useRef<HTMLElement>(null);
-  const [rows, setRows] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [editSaving, setEditSaving] = useState(false);
+  const categoriesQuery = useCategoriesQuery();
+  const { create, update, remove } = useCategoryMutations();
+  const rows = categoriesQuery.data ?? [];
+  const loading = categoriesQuery.isLoading;
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
-  const [form, setForm] = useState<CategoryForm>(emptyForm());
-  const [slugError, setSlugError] = useState('');
-  const [nameError, setNameError] = useState('');
+  const createForm = useForm<CategoryCreateValues>({
+    resolver: zodResolver(categoryCreateSchema),
+    defaultValues: emptyForm(),
+  });
   const [editingId, setEditingId] = useState('');
-  const [editForm, setEditForm] = useState<CategoryForm>(emptyForm());
+  const [editForm, setEditForm] = useState<CategoryEditValues | null>(null);
   const [editNameError, setEditNameError] = useState('');
-
-  async function reload() {
-    const { data } = await http.get<Category[]>(urls.categories);
-    setRows(data);
-  }
-
-  useEffect(() => {
-    setLoading(true);
-    void reload()
-      .catch((err) => setError(apiMessage(err)))
-      .finally(() => setLoading(false));
-  }, []);
 
   useEffect(() => {
     if (editingId && editPanelRef.current) {
@@ -54,42 +42,11 @@ export function CategoriesPage() {
     }
   }, [editingId]);
 
-  function validateCreate() {
-    const nextSlug = form.slug.trim().toLowerCase();
-    const nextName = form.name.trim();
-    let ok = true;
-    setSlugError('');
-    setNameError('');
-    if (!nextName) {
-      setNameError('Enter a display name, e.g. Shoes.');
-      ok = false;
-    }
-    if (!nextSlug) {
-      setSlugError('Enter a slug, e.g. shoes.');
-      ok = false;
-    } else if (!SLUG_RE.test(nextSlug)) {
-      setSlugError('Use lowercase letters, numbers, and hyphens only.');
-      ok = false;
-    }
-    return ok;
-  }
-
-  function validateEdit() {
-    const nextName = editForm.name.trim();
-    setEditNameError('');
-    if (!nextName) {
-      setEditNameError('Enter a display name.');
-      return false;
-    }
-    return true;
-  }
-
   function startEdit(row: Category) {
     setError('');
     setNotice('');
     setEditingId(docId(row));
     setEditForm({
-      slug: row.slug,
       name: row.name,
       blurb: row.blurb ?? '',
       showInNav: row.showInNav,
@@ -100,64 +57,59 @@ export function CategoriesPage() {
 
   function cancelEdit() {
     setEditingId('');
-    setEditForm(emptyForm());
+    setEditForm(null);
     setEditNameError('');
   }
 
-  async function create(event: FormEvent) {
-    event.preventDefault();
+  async function onCreate(values: CategoryCreateValues) {
     setError('');
     setNotice('');
-    if (!validateCreate()) {
-      setError('Fix the highlighted fields and try again.');
-      return;
-    }
-    setSaving(true);
     try {
-      await http.post(urls.categories, {
-        slug: form.slug.trim().toLowerCase(),
-        name: form.name.trim(),
-        blurb: form.blurb.trim(),
-        showInNav: form.showInNav,
-        showOnHome: form.showOnHome,
+      await create.mutateAsync({
+        slug: values.slug.trim().toLowerCase(),
+        name: values.name.trim(),
+        blurb: values.blurb.trim(),
+        showInNav: values.showInNav,
+        showOnHome: values.showOnHome,
       });
-      setForm(emptyForm());
+      createForm.reset(emptyForm());
       setNotice('Category added.');
-      await reload();
     } catch (err) {
-      setError(apiMessage(err));
-    } finally {
-      setSaving(false);
+      setError(productError(err, 'Could not add category'));
     }
   }
 
-  async function saveEdit(event: FormEvent) {
+  async function saveEdit(event: React.FormEvent) {
     event.preventDefault();
+    if (!editForm) {
+      return;
+    }
     setError('');
     setNotice('');
-    if (!validateEdit()) {
+    const parsed = categoryEditSchema.safeParse(editForm);
+    if (!parsed.success) {
+      setEditNameError(parsed.error.issues[0]?.message ?? 'Enter a display name.');
       setError('Fix the highlighted fields and try again.');
       return;
     }
-    setEditSaving(true);
     try {
-      await http.patch(urls.category(editingId), {
-        name: editForm.name.trim(),
-        blurb: editForm.blurb.trim(),
-        showInNav: editForm.showInNav,
-        showOnHome: editForm.showOnHome,
+      await update.mutateAsync({
+        id: editingId,
+        body: {
+          name: parsed.data.name.trim(),
+          blurb: parsed.data.blurb.trim(),
+          showInNav: parsed.data.showInNav,
+          showOnHome: parsed.data.showOnHome,
+        },
       });
       setNotice('Category updated.');
       cancelEdit();
-      await reload();
     } catch (err) {
-      setError(apiMessage(err));
-    } finally {
-      setEditSaving(false);
+      setError(productError(err, 'Could not update category'));
     }
   }
 
-  async function remove(row: Category) {
+  async function removeRow(row: Category) {
     if (
       !confirmAction(
         `Delete category "${row.name}"? Products using this category may need updating.`,
@@ -171,13 +123,21 @@ export function CategoriesPage() {
       if (editingId === docId(row)) {
         cancelEdit();
       }
-      await http.delete(urls.category(docId(row)));
+      await remove.mutateAsync(docId(row));
       setNotice('Category removed.');
-      await reload();
     } catch (err) {
-      setError(apiMessage(err));
+      setError(productError(err, 'Could not delete category'));
     }
   }
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors: createErrors, isSubmitting },
+    watch,
+    setValue,
+  } = createForm;
+  const form = watch();
 
   if (loading) {
     return <PageLoader label="Loading categories…" />;
@@ -189,7 +149,7 @@ export function CategoriesPage() {
       <Flash tone="success">{notice}</Flash>
       <Flash>{error}</Flash>
       <form
-        onSubmit={(event) => void create(event)}
+        onSubmit={(event) => void handleSubmit(onCreate)(event)}
         className="card mb-4"
         style={{ maxWidth: '36rem' }}
       >
@@ -197,23 +157,20 @@ export function CategoriesPage() {
           <h2 className="admin-section-title mb-3">Add category</h2>
           <Field
             label="Slug"
-            value={form.slug}
-            onChange={(e) => setForm({ ...form, slug: e.target.value })}
-            error={slugError}
+            {...register('slug')}
+            error={createErrors.slug?.message}
             hint="URL-friendly id, e.g. shoes or new-arrivals."
             required
           />
           <Field
             label="Name"
-            value={form.name}
-            onChange={(e) => setForm({ ...form, name: e.target.value })}
-            error={nameError}
+            {...register('name')}
+            error={createErrors.name?.message}
             required
           />
           <Field
             label="Blurb"
-            value={form.blurb}
-            onChange={(e) => setForm({ ...form, blurb: e.target.value })}
+            {...register('blurb')}
             hint="Short line shown on the shop home page."
           />
           <div className="form-check mb-3">
@@ -222,7 +179,7 @@ export function CategoriesPage() {
               type="checkbox"
               id="show-in-nav"
               checked={form.showInNav}
-              onChange={(e) => setForm({ ...form, showInNav: e.target.checked })}
+              onChange={(e) => setValue('showInNav', e.target.checked)}
             />
             <label className="form-check-label" htmlFor="show-in-nav">
               Show in shop navigation
@@ -234,17 +191,17 @@ export function CategoriesPage() {
               type="checkbox"
               id="show-on-home"
               checked={form.showOnHome}
-              onChange={(e) => setForm({ ...form, showOnHome: e.target.checked })}
+              onChange={(e) => setValue('showOnHome', e.target.checked)}
             />
             <label className="form-check-label" htmlFor="show-on-home">
               Show on home page
             </label>
           </div>
-          <Button type="submit" loading={saving}>Add category</Button>
+          <Button type="submit" loading={isSubmitting}>Add category</Button>
         </div>
       </form>
 
-      {editingId ? (
+      {editingId && editForm ? (
         <section
           ref={editPanelRef}
           className="card mb-4 admin-panel-edit"
@@ -255,7 +212,7 @@ export function CategoriesPage() {
             <form onSubmit={(event) => void saveEdit(event)}>
               <Field
                 label="Slug"
-                value={editForm.slug}
+                value={rows.find((row) => docId(row) === editingId)?.slug ?? ''}
                 readOnly
                 hint="Slug is fixed after creation. Products reference it."
               />
@@ -301,7 +258,7 @@ export function CategoriesPage() {
                 </label>
               </div>
               <div className="d-flex flex-wrap gap-2">
-                <Button type="submit" loading={editSaving}>Save changes</Button>
+                <Button type="submit" loading={update.isPending}>Save changes</Button>
                 <Button type="button" variant="secondary" onClick={cancelEdit}>
                   Cancel
                 </Button>
@@ -344,7 +301,7 @@ export function CategoriesPage() {
                     <Button
                       type="button"
                       variant="danger"
-                      onClick={() => void remove(row)}
+                      onClick={() => void removeRow(row)}
                     >
                       Delete
                     </Button>

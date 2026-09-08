@@ -24,6 +24,7 @@
     "@nestjs/mongoose": "^11.0.3",
     "helmet": "^8.1.0",
     "@golevelup/nestjs-rabbitmq": "^9.0.2",
+    "@nestjs/swagger": "^11.0.0",
     "@nestjs/terminus": "^11.0.0",
     "@nestjs/throttler": "^6.5.0",
     "class-transformer": "^0.5.1",

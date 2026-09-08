@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import { docId } from '@/api';
 import { CategoryRail, ProductCard } from '@/components';
 import {
@@ -13,11 +12,9 @@ import {
 import { useCatalog } from '@/hooks';
 
 export function HomePage() {
-  const { products, categories, storefront, error, loading, loadCatalog } = useCatalog();
-
-  useEffect(() => {
-    loadCatalog();
-  }, [loadCatalog]);
+  const { products, categories, storefront, error, loading } = useCatalog({
+    load: true,
+  });
 
   const featured = products.filter((product) => product.featured);
   const homeCategory = categories.find((category) => category.showOnHome);

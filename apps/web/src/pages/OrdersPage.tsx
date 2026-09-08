@@ -8,12 +8,8 @@ export function OrdersPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const { orders, error, loading, cancel } = useOrders({ load: true });
-  const { products, loadCatalog } = useCatalog();
+  const { products } = useCatalog({ load: true });
   const [success, setSuccess] = useState('');
-
-  useEffect(() => {
-    loadCatalog();
-  }, [loadCatalog]);
 
   useEffect(() => {
     const state = location.state as { orderPlaced?: boolean } | null;

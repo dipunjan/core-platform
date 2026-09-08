@@ -1,54 +1,73 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback } from 'react';
 import {
-  clearProduct,
-  fetchCategories,
-  fetchInventory,
-  fetchProduct,
-  fetchProducts,
-  fetchStorefront,
-} from '@/features/catalog';
-import { useAppDispatch, useAppSelector } from '@/store/hooks';
+  useCategoriesQuery,
+  useInventoryQuery,
+  useProductQuery,
+  useProductsQuery,
+  useStorefrontQuery,
+} from '@/query';
 
-export function useCatalog() {
-  const dispatch = useAppDispatch();
-  const catalog = useAppSelector((state) => state.catalog);
-
-  const loadCatalog = useCallback(() => {
-    void dispatch(fetchProducts());
-    void dispatch(fetchCategories());
-  }, [dispatch]);
+export function useStorefront() {
+  const storefrontQuery = useStorefrontQuery();
 
   const loadStorefront = useCallback(() => {
-    void dispatch(fetchStorefront());
-  }, [dispatch]);
+    void storefrontQuery.refetch();
+  }, [storefrontQuery]);
 
   return {
-    ...catalog,
+    storefront: storefrontQuery.data ?? null,
+    loadStorefront,
+  };
+}
+
+export function useCatalog(options?: { load?: boolean }) {
+  const shouldLoad = options?.load ?? false;
+  const storefrontQuery = useStorefrontQuery();
+  const productsQuery = useProductsQuery(shouldLoad);
+  const categoriesQuery = useCategoriesQuery(shouldLoad);
+
+  const loadCatalog = useCallback(() => {
+    void productsQuery.refetch();
+    void categoriesQuery.refetch();
+  }, [categoriesQuery, productsQuery]);
+
+  const loadStorefront = useCallback(() => {
+    void storefrontQuery.refetch();
+  }, [storefrontQuery]);
+
+  return {
+    products: productsQuery.data ?? [],
+    shopProducts: [],
+    categories: categoriesQuery.data ?? [],
+    storefront: storefrontQuery.data ?? null,
+    product: null,
+    inventory: null,
+    loading: productsQuery.isLoading || categoriesQuery.isLoading,
+    shopLoading: false,
+    error:
+      productsQuery.error?.message ?? categoriesQuery.error?.message ?? '',
     loadCatalog,
     loadStorefront,
   };
 }
 
 export function useProduct(id: string | undefined) {
-  const dispatch = useAppDispatch();
-  const { product, inventory, categories, error, loading } = useAppSelector(
-    (state) => state.catalog,
-  );
+  const categoriesQuery = useCategoriesQuery(Boolean(id));
+  const productQuery = useProductQuery(id);
+  const inventoryQuery = useInventoryQuery(id);
 
-  useEffect(() => {
-    void dispatch(fetchCategories());
-  }, [dispatch]);
+  const error =
+    productQuery.error instanceof Error
+      ? productQuery.error.message
+      : productQuery.isError
+        ? 'Product not found'
+        : '';
 
-  useEffect(() => {
-    if (!id) {
-      return;
-    }
-    void dispatch(fetchProduct(id));
-    void dispatch(fetchInventory(id));
-    return () => {
-      dispatch(clearProduct());
-    };
-  }, [dispatch, id]);
-
-  return { product, inventory, categories, error, loading };
+  return {
+    product: productQuery.data ?? null,
+    inventory: inventoryQuery.data ?? null,
+    categories: categoriesQuery.data ?? [],
+    error,
+    loading: productQuery.isLoading,
+  };
 }

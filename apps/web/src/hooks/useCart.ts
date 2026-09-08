@@ -1,60 +1,75 @@
-import { useCallback, useEffect, useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { docId, type Product } from '@/api';
-import { addToCart, checkout, fetchCart, setCartQty } from '@/features/cart';
-import { fetchProducts } from '@/features/catalog';
-import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import {
+  useAddToCartMutation,
+  useCartQuery,
+  useCheckoutMutation,
+  useProductsQuery,
+  useSetCartQtyMutation,
+} from '@/query';
 
 export function useCart(options?: { load?: boolean }) {
-  const dispatch = useAppDispatch();
-  const { cart, loading, error } = useAppSelector((state) => state.cart);
-  const products = useAppSelector((state) => state.catalog.products);
   const shouldLoad = options?.load ?? false;
+  const cartQuery = useCartQuery();
+  const productsQuery = useProductsQuery(shouldLoad);
+  const addMutation = useAddToCartMutation();
+  const qtyMutation = useSetCartQtyMutation();
+  const checkoutMutation = useCheckoutMutation();
 
   useEffect(() => {
-    if (!shouldLoad) {
-      return;
+    if (shouldLoad) {
+      void cartQuery.refetch();
+      void productsQuery.refetch();
     }
-    void dispatch(fetchCart());
-    void dispatch(fetchProducts());
-  }, [dispatch, shouldLoad]);
+  }, [cartQuery, productsQuery, shouldLoad]);
 
   const productsById = useMemo(() => {
     const map = new Map<string, Product>();
-    for (const product of products) {
+    for (const product of productsQuery.data ?? []) {
       map.set(docId(product), product);
     }
     return map;
-  }, [products]);
+  }, [productsQuery.data]);
 
-  const addItem = useCallback(
-    async (productId: string, quantity = 1) => {
-      const result = await dispatch(addToCart({ productId, quantity }));
-      return addToCart.fulfilled.match(result);
-    },
-    [dispatch],
-  );
+  const loading =
+    cartQuery.isLoading ||
+    cartQuery.isFetching ||
+    addMutation.isPending ||
+    qtyMutation.isPending ||
+    checkoutMutation.isPending;
 
-  const setQty = useCallback(
-    (productId: string, quantity: number) =>
-      dispatch(setCartQty({ productId, quantity })),
-    [dispatch],
-  );
-
-  const placeOrder = useCallback(
-    async (shippingAddress: Parameters<typeof checkout>[0]) => {
-      const result = await dispatch(checkout(shippingAddress));
-      return checkout.fulfilled.match(result);
-    },
-    [dispatch],
-  );
+  const error =
+    cartQuery.error?.message ??
+    addMutation.error?.message ??
+    qtyMutation.error?.message ??
+    checkoutMutation.error?.message ??
+    '';
 
   return {
-    cart,
+    cart: cartQuery.data ?? null,
     loading,
     error,
     productsById,
-    addItem,
-    setQty,
-    placeOrder,
+    addItem: async (productId: string, quantity = 1) => {
+      try {
+        await addMutation.mutateAsync({ productId, quantity });
+        return true;
+      } catch {
+        return false;
+      }
+    },
+    setQty: (productId: string, quantity: number) => {
+      void qtyMutation.mutate({ productId, quantity });
+    },
+    placeOrder: async (
+      shippingAddress: Parameters<typeof checkoutMutation.mutateAsync>[0],
+    ) => {
+      try {
+        await checkoutMutation.mutateAsync(shippingAddress);
+        return true;
+      } catch {
+        return false;
+      }
+    },
   };
 }

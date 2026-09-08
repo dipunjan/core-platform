@@ -1,9 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import {
-  apiMessage,
   docId,
-  http,
-  urls,
   type Address,
   type User,
 } from '@/api';
@@ -11,6 +8,7 @@ import { AddressFields, emptyAddress } from '@/components/account';
 import { Button, Field, Flash, PageHeader, PageLoader, SelectField } from '@/components/ui';
 import { confirmAction } from '@/lib/confirm';
 import { useAuth } from '@/hooks';
+import { userError, useUserMutations, useUsersQuery } from '@/query';
 
 function formatAddress(address?: Address) {
   if (!address?.line1) {
@@ -22,8 +20,10 @@ function formatAddress(address?: Address) {
 
 export function PeoplePage() {
   const { user: me } = useAuth();
-  const [people, setPeople] = useState<User[]>([]);
-  const [loading, setLoading] = useState(true);
+  const peopleQuery = useUsersQuery();
+  const { create, update, setRole: setUserRole, remove: removeUser } = useUserMutations();
+  const people = peopleQuery.data ?? [];
+  const loading = peopleQuery.isLoading;
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
@@ -40,19 +40,7 @@ export function PeoplePage() {
   const [editSaving, setEditSaving] = useState(false);
   const [editNameError, setEditNameError] = useState('');
 
-  async function reload() {
-    const { data } = await http.get<User[]>(urls.users);
-    setPeople(data);
-  }
-
-  useEffect(() => {
-    setLoading(true);
-    void reload()
-      .catch((err) => setError(apiMessage(err)))
-      .finally(() => setLoading(false));
-  }, []);
-
-  async function create(event: FormEvent) {
+  async function createAccount(event: FormEvent) {
     event.preventDefault();
     setError('');
     setNotice('');
@@ -70,7 +58,7 @@ export function PeoplePage() {
     }
     setSaving(true);
     try {
-      await http.post(urls.managedUsers, {
+      await create.mutateAsync({
         name: name.trim(),
         email: email.trim(),
         password,
@@ -83,9 +71,8 @@ export function PeoplePage() {
       setPhone('');
       setAddress(emptyAddress());
       setNotice('Account created.');
-      await reload();
     } catch (err) {
-      setError(apiMessage(err));
+      setError(userError(err, 'Could not create account'));
     } finally {
       setSaving(false);
     }
@@ -132,22 +119,24 @@ export function PeoplePage() {
     }
     setEditSaving(true);
     try {
-      await http.patch(urls.user(editingId), {
-        name,
-        phone: editPhone.trim(),
-        address: editAddress,
+      await update.mutateAsync({
+        id: editingId,
+        body: {
+          name,
+          phone: editPhone.trim(),
+          address: editAddress,
+        },
       });
       cancelEdit();
       setNotice('Account updated.');
-      await reload();
     } catch (err) {
-      setError(apiMessage(err));
+      setError(userError(err, 'Could not update account'));
     } finally {
       setEditSaving(false);
     }
   }
 
-  async function setUserRole(person: User, next: 'customer' | 'admin') {
+  async function changeUserRole(person: User, next: 'customer' | 'admin') {
     const label = next === 'admin' ? 'admin' : 'customer';
     if (
       !confirmAction(
@@ -159,11 +148,10 @@ export function PeoplePage() {
     setError('');
     setNotice('');
     try {
-      await http.patch(urls.userRole(docId(person)), { role: next });
+      await setUserRole.mutateAsync({ id: docId(person), role: next });
       setNotice(`${person.name} is now a ${label}.`);
-      await reload();
     } catch (err) {
-      setError(apiMessage(err));
+      setError(userError(err, 'Could not change role'));
     }
   }
 
@@ -178,11 +166,10 @@ export function PeoplePage() {
     setError('');
     setNotice('');
     try {
-      await http.delete(urls.user(docId(person)));
+      await removeUser.mutateAsync(docId(person));
       setNotice('Account removed.');
-      await reload();
     } catch (err) {
-      setError(apiMessage(err));
+      setError(userError(err, 'Could not delete account'));
     }
   }
 
@@ -200,7 +187,7 @@ export function PeoplePage() {
       <Flash tone="success">{notice}</Flash>
       <Flash>{error}</Flash>
       <form
-        onSubmit={(event) => void create(event)}
+        onSubmit={(event) => void createAccount(event)}
         className="card mb-4"
         style={{ maxWidth: '36rem' }}
       >
@@ -263,7 +250,7 @@ export function PeoplePage() {
         onStartEdit={startEdit}
         onCancelEdit={cancelEdit}
         onSaveEdit={saveEdit}
-        onRole={setUserRole}
+        onRole={changeUserRole}
         onRemove={remove}
       />
       <Group
@@ -282,7 +269,7 @@ export function PeoplePage() {
         onStartEdit={startEdit}
         onCancelEdit={cancelEdit}
         onSaveEdit={saveEdit}
-        onRole={setUserRole}
+        onRole={changeUserRole}
         onRemove={remove}
       />
     </>

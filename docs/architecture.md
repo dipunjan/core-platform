@@ -145,7 +145,7 @@ What we have **not** built: [roadmap.md](roadmap.md).
 ## Frontend layout (shop and admin)
 
 ```
-URL → routes → pages → hooks → Redux features → api/http.ts → ports 3000–3004
+URL → routes → pages → hooks → TanStack Query → api/http.ts → ports 3000–3004
 ```
 
 Chrome: `Layout`. Auth gates: `ProtectedRoute`, `GuestRoute`. Errors: `ErrorBoundary` + `RouteError`.

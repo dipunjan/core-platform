@@ -1,34 +1,23 @@
-import { useEffect, useState } from 'react';
-import { apiMessage, docId, http, urls, type Order } from '@/api';
+import { docId } from '@/api';
 import { Flash, PageHeader, PageLoader } from '@/components/ui';
 import { useMoney } from '@/hooks';
+import { useAdminOrdersQuery } from '@/query';
 
 export function SalesPage() {
   const money = useMoney();
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-
-  useEffect(() => {
-    setLoading(true);
-    void http
-      .get<Order[]>(urls.ordersAdmin)
-      .then(({ data }) => setOrders(data))
-      .catch((err) => setError(apiMessage(err)))
-      .finally(() => setLoading(false));
-  }, []);
+  const { data: orders = [], isLoading, error } = useAdminOrdersQuery();
 
   const paidish = orders.filter((order) => order.status !== 'cancelled');
   const revenue = paidish.reduce((sum, order) => sum + order.total, 0);
 
-  if (loading) {
+  if (isLoading) {
     return <PageLoader label="Loading sales…" />;
   }
 
   return (
     <>
       <PageHeader title="Sales" />
-      <Flash>{error}</Flash>
+      <Flash>{error?.message}</Flash>
       <div className="row g-3 mb-4">
         <div className="col-md-4">
           <Stat label="All orders" value={String(orders.length)} tone="orders" />

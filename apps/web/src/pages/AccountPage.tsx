@@ -1,12 +1,11 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useEffect, useMemo, useState } from 'react';
+import { useForm } from 'react-hook-form';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { docId, type Product } from '@/api';
 import {
   AddressFields,
-  emptyDelivery,
   OrderCard,
-} from '@/components';
-import {
   Button,
   Card,
   EmptyState,
@@ -15,10 +14,16 @@ import {
   PageHeader,
   PageLoader,
   TextLink,
-} from '@/components/ui';
-import { updateMe } from '@/features/auth';
+} from '@/components';
+import { useUpdateMeMutation } from '@/query';
 import { useAuth, useCatalog, useOrders } from '@/hooks';
-import { useAppDispatch } from '@/store/hooks';
+import {
+  deliverySchema,
+  emptyDeliveryValues,
+  profileSchema,
+  type DeliveryFormValues,
+  type ProfileFormValues,
+} from '@/lib/schemas';
 
 const TABS = [
   { id: 'orders', label: 'Orders' },
@@ -36,7 +41,7 @@ function parseTab(raw: string | null): TabId {
 }
 
 export function AccountPage() {
-  const dispatch = useAppDispatch();
+  const updateMe = useUpdateMeMutation();
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -44,19 +49,19 @@ export function AccountPage() {
   const { user } = useAuth();
   const { orders, error: ordersError, loading: ordersLoading, cancel } =
     useOrders({ load: tab === 'orders' });
-  const { products, loadCatalog } = useCatalog();
+  const { products } = useCatalog({ load: tab === 'orders' });
   const [orderSuccess, setOrderSuccess] = useState('');
-  const [profileName, setProfileName] = useState(user?.name ?? '');
-  const [delivery, setDelivery] = useState(emptyDelivery);
-  const [profileBusy, setProfileBusy] = useState(false);
-  const [addressBusy, setAddressBusy] = useState(false);
   const [saveMessage, setSaveMessage] = useState('');
 
-  useEffect(() => {
-    if (tab === 'orders') {
-      loadCatalog();
-    }
-  }, [loadCatalog, tab]);
+  const profileForm = useForm<ProfileFormValues>({
+    resolver: zodResolver(profileSchema),
+    defaultValues: { name: user?.name ?? '' },
+  });
+
+  const addressForm = useForm<DeliveryFormValues>({
+    resolver: zodResolver(deliverySchema),
+    defaultValues: emptyDeliveryValues,
+  });
 
   useEffect(() => {
     const state = location.state as { orderPlaced?: boolean } | null;
@@ -73,8 +78,8 @@ export function AccountPage() {
     if (!user) {
       return;
     }
-    setProfileName(user.name);
-    setDelivery({
+    profileForm.reset({ name: user.name });
+    addressForm.reset({
       phone: user.phone ?? '',
       address: {
         line1: user.address?.line1 ?? '',
@@ -85,7 +90,7 @@ export function AccountPage() {
         country: user.address?.country ?? 'US',
       },
     });
-  }, [user]);
+  }, [addressForm, profileForm, user]);
 
   const productsById = useMemo(() => {
     const map = new Map<string, Product>();
@@ -100,27 +105,26 @@ export function AccountPage() {
     setSaveMessage('');
   }
 
-  async function saveProfile(event: FormEvent) {
-    event.preventDefault();
-    setProfileBusy(true);
+  async function saveProfile(values: ProfileFormValues) {
     setSaveMessage('');
-    const result = await dispatch(updateMe({ name: profileName.trim() }));
-    setProfileBusy(false);
-    if (updateMe.fulfilled.match(result)) {
+    try {
+      await updateMe.mutateAsync({ name: values.name.trim() });
       setSaveMessage('Profile updated.');
+    } catch {
+      /* field errors shown by mutation if needed */
     }
   }
 
-  async function saveAddress(event: FormEvent) {
-    event.preventDefault();
-    setAddressBusy(true);
+  async function saveAddress(values: DeliveryFormValues) {
     setSaveMessage('');
-    const result = await dispatch(
-      updateMe({ phone: delivery.phone, address: delivery.address }),
-    );
-    setAddressBusy(false);
-    if (updateMe.fulfilled.match(result)) {
+    try {
+      await updateMe.mutateAsync({
+        phone: values.phone,
+        address: values.address,
+      });
       setSaveMessage('Address saved.');
+    } catch {
+      /* shown via mutation error if needed */
     }
   }
 
@@ -169,17 +173,20 @@ export function AccountPage() {
 
         {tab === 'profile' ? (
           <Card className="account-hub-panel">
-            <form onSubmit={(event) => void saveProfile(event)}>
+            <form onSubmit={(event) => void profileForm.handleSubmit(saveProfile)(event)}>
               <Field
                 label="Name"
-                value={profileName}
-                onChange={(event) => setProfileName(event.target.value)}
                 required
+                {...profileForm.register('name')}
+                error={profileForm.formState.errors.name?.message}
               />
               <Field label="Email" type="email" value={user?.email ?? ''} disabled />
               <Flash tone="success">{saveMessage}</Flash>
-              <Button type="submit" disabled={profileBusy}>
-                {profileBusy ? 'Saving…' : 'Save profile'}
+              <Button
+                type="submit"
+                disabled={profileForm.formState.isSubmitting}
+              >
+                {profileForm.formState.isSubmitting ? 'Saving…' : 'Save profile'}
               </Button>
             </form>
           </Card>
@@ -187,11 +194,17 @@ export function AccountPage() {
 
         {tab === 'address' ? (
           <Card className="account-hub-panel">
-            <form onSubmit={(event) => void saveAddress(event)}>
-              <AddressFields value={delivery} onChange={setDelivery} />
+            <form onSubmit={(event) => void addressForm.handleSubmit(saveAddress)(event)}>
+              <AddressFields
+                register={addressForm.register}
+                errors={addressForm.formState.errors}
+              />
               <Flash tone="success">{saveMessage}</Flash>
-              <Button type="submit" disabled={addressBusy}>
-                {addressBusy ? 'Saving…' : 'Save address'}
+              <Button
+                type="submit"
+                disabled={addressForm.formState.isSubmitting}
+              >
+                {addressForm.formState.isSubmitting ? 'Saving…' : 'Save address'}
               </Button>
             </form>
           </Card>

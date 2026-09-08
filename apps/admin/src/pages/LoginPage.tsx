@@ -1,8 +1,10 @@
-import { useState, type FormEvent } from 'react';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm } from 'react-hook-form';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { safeNext } from '@/api';
 import { Button, Field, Flash } from '@/components/ui';
 import { useAuth, useStorefront, siteName } from '@/hooks';
+import { loginSchema, type LoginFormValues } from '@/lib/schemas';
 
 export function LoginPage() {
   const { error, signIn } = useAuth();
@@ -10,22 +12,22 @@ export function LoginPage() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const next = safeNext(params.get('next'));
-  const [email, setEmail] = useState('ada@example.com');
-  const [password, setPassword] = useState('secret12');
-  const [busy, setBusy] = useState(false);
-  const [emailError, setEmailError] = useState('');
   const shopName = siteName(storefront);
 
-  async function onSubmit(event: FormEvent) {
-    event.preventDefault();
-    setEmailError('');
-    if (!email.trim()) {
-      setEmailError('Enter your email address.');
-      return;
-    }
-    setBusy(true);
-    const ok = await signIn(email.trim(), password);
-    setBusy(false);
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<LoginFormValues>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: 'ada@example.com',
+      password: 'secret12',
+    },
+  });
+
+  async function onSubmit(values: LoginFormValues) {
+    const ok = await signIn(values.email.trim(), values.password);
     if (ok) {
       navigate(next);
     }
@@ -39,7 +41,7 @@ export function LoginPage() {
       </div>
       <div className="d-flex flex-grow-1 align-items-center justify-content-center p-4 bg-light">
         <form
-          onSubmit={(event) => void onSubmit(event)}
+          onSubmit={(event) => void handleSubmit(onSubmit)(event)}
           className="admin-login-card card"
         >
           <div className="card-body">
@@ -50,25 +52,23 @@ export function LoginPage() {
               label="Email"
               type="email"
               autoComplete="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              error={emailError}
               required
+              {...register('email')}
+              error={errors.email?.message}
             />
             <Field
               label="Password"
               type="password"
               autoComplete="current-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
               hint="At least 8 characters."
-              minLength={8}
               required
+              {...register('password')}
+              error={errors.password?.message}
             />
             <Button
               type="submit"
               className="w-100 mt-1"
-              loading={busy}
+              loading={isSubmitting}
               loadingLabel="Signing in…"
             >
               Log in

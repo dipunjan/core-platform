@@ -78,6 +78,19 @@ Full UI notes: [docs/frontend.md](docs/frontend.md).
 curl http://localhost:3000/api/health/live
 ```
 
+Each API also serves **OpenAPI docs** at `/api/docs` (e.g. http://localhost:3000/api/docs for user-service). Use **Authorize → Bearer** in Swagger UI when testing with a JWT from Postman.
+
+## Shop & admin stack (frontends)
+
+Both `apps/web` and `apps/admin` use **TanStack Query** for server state and **react-hook-form + zod** for forms. **Redux is not used** — auth session lives in the React Query cache (`query/auth.ts`).
+
+| Layer | Library |
+|-------|---------|
+| Auth session | TanStack Query (`useMeQuery`, login/logout mutations) |
+| Catalog, cart, orders, admin CRUD | TanStack Query (`src/query/`) |
+| Forms | react-hook-form + zod (`src/lib/schemas.ts`) |
+| HTTP | axios (`api/http.ts`) |
+
 ## Environment variables
 
 | Name | Meaning |
@@ -103,8 +116,8 @@ apps/inventory-service   stock
 apps/cart-service        carts
 apps/order-service       orders + outbox relay
 packages/common          shared bootstrap, auth, redis, messaging
-apps/web                 shop UI
-apps/admin               staff UI
+apps/web                 shop UI (TanStack Query + RHF/zod)
+apps/admin               staff UI (TanStack Query + RHF/zod)
 docs/                    one topic per file
 postman/                 API collection
 ```

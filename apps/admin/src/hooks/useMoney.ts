@@ -1,9 +1,8 @@
 import { money } from '@/api';
-import { useAppSelector } from '@/store/hooks';
+import { useStorefrontQuery } from '@/query';
 
 export function useMoney() {
-  const currency = useAppSelector(
-    (state) => state.storefront.storefront?.currency ?? 'USD',
-  );
+  const { data: storefront } = useStorefrontQuery();
+  const currency = storefront?.currency ?? 'USD';
   return (cents: number) => money(cents, currency);
 }

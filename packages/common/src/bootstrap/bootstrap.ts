@@ -2,12 +2,19 @@ import { Logger, Type, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
 import { corsOrigins } from '../http/cors';
 
+export type BootstrapOptions = {
+  defaultPort: number;
+  /** Shown in OpenAPI title, e.g. "user-service". */
+  serviceName?: string;
+};
+
 export async function bootstrapNestApp(
   AppModule: Type<unknown>,
-  options: { defaultPort: number },
+  options: BootstrapOptions,
 ): Promise<void> {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   app.enableShutdownHooks();
@@ -37,7 +44,21 @@ export async function bootstrapNestApp(
     }),
   );
 
+  const title = options.serviceName ?? 'Core Platform API';
+  const swagger = new DocumentBuilder()
+    .setTitle(title)
+    .setDescription('REST API for the swoop e-commerce platform.')
+    .setVersion('1.0')
+    .addBearerAuth(
+      { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
+      'access-token',
+    )
+    .build();
+  const document = SwaggerModule.createDocument(app, swagger);
+  SwaggerModule.setup('api/docs', app, document);
+
   const port = config.get<string>('PORT') ?? options.defaultPort;
   await app.listen(port);
   Logger.log(`Application is running on: http://localhost:${port}/api`);
+  Logger.log(`OpenAPI docs: http://localhost:${port}/api/docs`);
 }

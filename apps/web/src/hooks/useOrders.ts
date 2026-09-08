@@ -1,28 +1,23 @@
-import { useCallback, useEffect } from 'react';
-import { cancelOrder, fetchOrders } from '@/features/orders';
-import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import { useEffect } from 'react';
+import { useCancelOrderMutation, useOrdersQuery } from '@/query';
 
 export function useOrders(options?: { load?: boolean }) {
-  const dispatch = useAppDispatch();
-  const { orders, loading, error } = useAppSelector((state) => state.orders);
   const shouldLoad = options?.load ?? false;
+  const ordersQuery = useOrdersQuery(shouldLoad);
+  const cancelMutation = useCancelOrderMutation();
 
   useEffect(() => {
-    if (!shouldLoad) {
-      return;
+    if (shouldLoad) {
+      void ordersQuery.refetch();
     }
-    void dispatch(fetchOrders());
-  }, [dispatch, shouldLoad]);
-
-  const cancel = useCallback(
-    (id: string) => dispatch(cancelOrder(id)),
-    [dispatch],
-  );
+  }, [ordersQuery, shouldLoad]);
 
   return {
-    orders,
-    loading,
-    error,
-    cancel,
+    orders: ordersQuery.data ?? [],
+    loading: ordersQuery.isLoading || cancelMutation.isPending,
+    error: ordersQuery.error?.message ?? cancelMutation.error?.message ?? '',
+    cancel: (id: string) => {
+      void cancelMutation.mutate(id);
+    },
   };
 }

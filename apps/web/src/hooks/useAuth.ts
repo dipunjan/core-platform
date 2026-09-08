@@ -1,36 +1,49 @@
 import { useCallback } from 'react';
-import { fetchMe, login, logout, register } from '@/features/auth';
-import { fetchCart, mergeGuestCart } from '@/features/cart';
+import { useQueryClient } from '@tanstack/react-query';
+import {
+  authErrorMessage,
+  useLoginMutation,
+  useLogoutMutation,
+  useMeQuery,
+  useRegisterMutation,
+} from '@/query';
+import { cartKeys } from '@/query/keys';
+import { useMergeGuestCartMutation } from '@/query/cart';
 import type { Address } from '@/api';
-import { useAppDispatch, useAppSelector } from '@/store/hooks';
 
 export function useAuth() {
-  const dispatch = useAppDispatch();
-  const { user, loading, error } = useAppSelector((state) => state.auth);
+  const queryClient = useQueryClient();
+  const meQuery = useMeQuery();
+  const loginMutation = useLoginMutation();
+  const registerMutation = useRegisterMutation();
+  const logoutMutation = useLogoutMutation();
+  const mergeGuestCart = useMergeGuestCartMutation();
 
   const loadMe = useCallback(async () => {
-    const result = await dispatch(fetchMe());
-    if (fetchMe.fulfilled.match(result) && result.payload) {
-      await dispatch(mergeGuestCart());
+    const result = await meQuery.refetch();
+    if (result.data) {
+      await mergeGuestCart.mutateAsync();
     } else {
-      await dispatch(fetchCart());
+      void queryClient.invalidateQueries({ queryKey: cartKeys.all });
     }
-  }, [dispatch]);
+  }, [meQuery, mergeGuestCart, queryClient]);
 
   const afterAuth = useCallback(async () => {
-    await dispatch(mergeGuestCart());
-  }, [dispatch]);
+    await mergeGuestCart.mutateAsync();
+  }, [mergeGuestCart]);
 
   const signIn = useCallback(
     async (email: string, password: string) => {
-      const result = await dispatch(login({ email, password }));
-      if (login.fulfilled.match(result)) {
+      loginMutation.reset();
+      try {
+        await loginMutation.mutateAsync({ email, password });
         await afterAuth();
         return true;
+      } catch {
+        return false;
       }
-      return false;
     },
-    [afterAuth, dispatch],
+    [afterAuth, loginMutation],
   );
 
   const signUp = useCallback(
@@ -41,17 +54,35 @@ export function useAuth() {
       phone: string;
       address: Address;
     }) => {
-      const result = await dispatch(register(input));
-      if (register.fulfilled.match(result)) {
+      registerMutation.reset();
+      try {
+        await registerMutation.mutateAsync(input);
         await afterAuth();
         return true;
+      } catch {
+        return false;
       }
-      return false;
     },
-    [afterAuth, dispatch],
+    [afterAuth, registerMutation],
   );
 
-  const signOut = useCallback(() => dispatch(logout()), [dispatch]);
+  const signOut = useCallback(async () => {
+    await logoutMutation.mutateAsync();
+  }, [logoutMutation]);
 
-  return { user, loading, error, loadMe, signIn, signUp, signOut };
+  const error = loginMutation.isError
+    ? authErrorMessage(loginMutation.error, 'Login failed')
+    : registerMutation.isError
+      ? authErrorMessage(registerMutation.error, 'Could not register')
+      : '';
+
+  return {
+    user: meQuery.data ?? null,
+    loading: meQuery.isLoading,
+    error,
+    loadMe,
+    signIn,
+    signUp,
+    signOut,
+  };
 }

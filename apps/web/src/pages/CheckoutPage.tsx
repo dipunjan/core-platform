@@ -84,12 +84,7 @@ export function CheckoutPage() {
   return (
     <div className="row g-4">
       <div className="col-lg">
-        <PageTitle
-          className="mb-4"
-          subtitle="Confirm where this order should ship. Payment is not in this demo."
-        >
-          Checkout
-        </PageTitle>
+        <PageTitle className="mb-4">Checkout</PageTitle>
         <Flash>{error || authError}</Flash>
         <Card as="form" onSubmit={(event) => void onSubmit(event)}>
           <h2 className="h5 fw-semibold mb-3">Shipping address</h2>

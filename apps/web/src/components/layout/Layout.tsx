@@ -108,9 +108,6 @@ export function Layout() {
                 />
                 <span className="fw-bold text-white">{name}</span>
               </div>
-              <p className="small mb-0 opacity-75">
-                Curated drops, simple checkout, no fuss.
-              </p>
             </div>
             <div className="col-md-3">
               <p className="small fw-semibold text-white mb-2">Shop</p>

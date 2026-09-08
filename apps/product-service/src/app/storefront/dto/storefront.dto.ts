@@ -54,9 +54,9 @@ export class CreateBannerDto {
   @MinLength(1)
   imageUrl!: string;
 
-  @IsOptional()
   @IsString()
-  href?: string;
+  @MinLength(1)
+  href!: string;
 
   @IsOptional()
   @Type(() => Number)

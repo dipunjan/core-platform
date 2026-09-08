@@ -185,10 +185,7 @@ export function CategoriesPage() {
 
   return (
     <>
-      <PageHeader
-        title="Categories"
-        description="Taxonomy only. Featured is a product flag, not a category."
-      />
+      <PageHeader title="Categories" />
       <Flash tone="success">{notice}</Flash>
       <Flash>{error}</Flash>
       <form

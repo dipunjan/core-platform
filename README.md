@@ -54,7 +54,7 @@ Start **inventory** before creating products. Admin: `ADMIN_EMAIL` (default `ada
 
 Upload images on **Branding** — they go live on the shop immediately. Empty slots show placeholders until you upload something.
 
-Sample SVGs and copy to paste: [branding-samples/README.md](branding-samples/README.md).
+Sample SVGs and copy to paste: [branding-samples/README.md](branding-samples/README.md). A **fresh** database also gets Swoop branding, hero image, and three promo tiles automatically from `apps/product-service/seed/`.
 
 **Promo tiles** (optional, under the hero): headline + image + link, then **Add tile**. Required fields show a red **\***. Format hints stay gray under each field; red errors appear under the field only after you click Add tile.
 

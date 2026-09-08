@@ -1,6 +1,7 @@
-# Branding samples — paste into admin
+# Branding samples
 
-Open **http://localhost:5174/branding** and use these files + text.
+Fresh installs get these automatically from `apps/product-service/seed/`.  
+If you already have a database, upload these on **http://localhost:5174/branding** or reset the storefront row in Mongo.
 
 ## Site identity
 
@@ -8,8 +9,7 @@ Open **http://localhost:5174/branding** and use these files + text.
 |-------|-------|
 | App / shop name | `Swoop` |
 | Home tagline | `New season` |
-| Favicon file | `favicon.svg` |
-| Save | Click **Save site identity** |
+| Favicon | `favicon.svg` |
 
 ## Logo
 
@@ -22,25 +22,19 @@ Open **http://localhost:5174/branding** and use these files + text.
 | Field | Value |
 |-------|-------|
 | Headline | `Gear up. Move fast.` |
-| Sub | `Fresh drops across apparel, shoes, and bags. Sign in at checkout.` |
+| Sub | `Curated apparel, shoes, and bags — simple checkout, no fuss.` |
 | Background image | `hero-banner.svg` |
 | Button label | `Shop all` |
 | Button link | `/shop` |
-| Save | Click **Save hero** |
 
-## Promo tile (optional — add under hero)
+## Promo tiles (under the hero)
 
-1. Scroll to **Promo tiles** on the Branding page.
-2. Enter headline and sub, choose **Tile image** (required), set link if needed.
-3. Click **Add tile** when the upload finishes (you’ll see “Uploading…” under the file picker).
+Add three tiles on the Branding page:
 
-| Field | Value |
-|-------|-------|
-| Headline * | `Weekend picks` |
-| Sub | `Staff favorites — updated often.` |
-| Tile image * | `promo-tile.svg` |
-| Link | `/shop` |
+| Headline | Sub | Image | Link |
+|----------|-----|-------|------|
+| Weekend picks | Staff favorites — updated often. | `promo-weekend.svg` | `/shop` |
+| Fresh footwear | Runners, boots, and everyday slip-ons. | `promo-shoes.svg` | `/shop/shoes` |
+| Carry it all | Backpacks and duffels for work and travel. | `promo-bags.svg` | `/shop/bags` |
 
-Required fields are marked with **\***. File format is a gray hint under the image field. If something is missing, red text appears under that field after you click **Add tile** — not before.
-
-Files live in this folder: `branding-samples/`
+Files are in this folder: `branding-samples/`

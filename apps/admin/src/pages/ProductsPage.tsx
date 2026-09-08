@@ -223,10 +223,7 @@ export function ProductsPage() {
 
   return (
     <>
-      <PageHeader
-        title="Products"
-        description="Add and edit catalog items. Prices are stored in cents."
-      />
+      <PageHeader title="Products" />
       <Flash tone="success">{notice}</Flash>
       <Flash>{error}</Flash>
 

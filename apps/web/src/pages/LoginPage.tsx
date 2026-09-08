@@ -29,11 +29,6 @@ export function LoginPage() {
   return (
     <AuthCard
       title={next === '/checkout' ? 'Sign in to check out' : 'Log in'}
-      description={
-        next === '/checkout'
-          ? 'Your cart stays with you. Sign in or create an account to place the order.'
-          : 'Welcome back. Use the email and password for your account.'
-      }
       footer={
         <>
           No account? <TextLink to={registerTo}>Register</TextLink>

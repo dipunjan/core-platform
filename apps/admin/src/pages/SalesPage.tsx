@@ -27,10 +27,7 @@ export function SalesPage() {
 
   return (
     <>
-      <PageHeader
-        title="Sales"
-        description="Order volume and revenue across the storefront. Payment is not wired — these are order records only."
-      />
+      <PageHeader title="Sales" />
       <Flash>{error}</Flash>
       <div className="row g-3 mb-4">
         <div className="col-md-4">

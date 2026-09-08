@@ -38,13 +38,15 @@ export function ShopPage() {
     : undefined;
   const title = category?.name ?? (filters.q ? 'Search results' : 'All products');
 
-  let blurb = category?.blurb ?? 'Refine with category, price, or sort.';
+  let blurb: string | undefined;
   if (qTooShort) {
     blurb = `Type at least ${SEARCH_MIN_CHARS} characters to search.`;
   } else if (filters.q) {
     blurb = loading
       ? `Searching for “${filters.q}”…`
       : `${products.length} result${products.length === 1 ? '' : 's'} for “${filters.q}”.`;
+  } else {
+    blurb = category?.blurb;
   }
 
   const initialLoad = !hydrated && products.length === 0;

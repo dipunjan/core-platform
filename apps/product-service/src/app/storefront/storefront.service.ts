@@ -12,7 +12,7 @@ import {
   SEED_SOURCES,
   SEED_UPLOADS,
 } from './storefront.defaults';
-import { Storefront } from './schemas/storefront.schema';
+import { Storefront, StorefrontDocument } from './schemas/storefront.schema';
 
 const MIME_EXT: Record<string, string> = {
   'image/jpeg': '.jpg',
@@ -28,7 +28,7 @@ const FILE_NAME = /^[a-zA-Z0-9._-]+$/;
 export class StorefrontService {
   constructor(
     @InjectModel(Storefront.name)
-    private readonly model: Model<Storefront>,
+    private readonly model: Model<StorefrontDocument>,
     private readonly catalogCache: CatalogCache,
   ) {}
 
@@ -88,7 +88,7 @@ export class StorefrontService {
               headline: input.headline,
               sub: input.sub ?? '',
               imageUrl: input.imageUrl,
-              href: input.href ?? '/shop',
+              href: input.href,
               sortOrder: input.sortOrder ?? current.banners.length,
             },
           },
@@ -182,27 +182,126 @@ export class StorefrontService {
     }
   }
 
-  private async load() {
+  private async load(): Promise<StorefrontDocument> {
     let row = await this.model.findOne({ key: 'default' }).exec();
     if (!row) {
-      row = await this.createDefaultStorefront();
+      return this.createDefaultStorefront();
+    }
+    return this.applyMissingDefaults(row);
+  }
+
+  private async applyMissingDefaults(row: StorefrontDocument) {
+    await this.ensureSeedFilesInUploads();
+    const fileUrl = (name: string) =>
+      `${this.publicBaseUrl()}/api/storefront/files/${name}`;
+    let dirty = false;
+
+    const blank = (value?: string | null) => !value?.trim();
+
+    if (blank(row.appName) || row.appName === 'My Shop') {
+      row.appName = DEFAULT_STOREFRONT.appName;
+      dirty = true;
+    }
+    if (blank(row.tagline) || row.tagline === 'Welcome') {
+      row.tagline = DEFAULT_STOREFRONT.tagline;
+      dirty = true;
+    }
+    if (blank(row.logoUrl)) {
+      row.logoUrl = fileUrl(SEED_UPLOADS.logo);
+      dirty = true;
+    }
+    if (blank(row.faviconUrl)) {
+      row.faviconUrl = fileUrl(SEED_UPLOADS.favicon);
+      dirty = true;
+    }
+    if (!row.currency) {
+      row.currency = DEFAULT_STOREFRONT.currency;
+      dirty = true;
+    }
+
+    const hero = row.hero ?? {
+      headline: '',
+      sub: '',
+      imageUrl: '',
+      href: '',
+      cta: '',
+    };
+    if (!row.hero) {
+      row.hero = hero;
+      dirty = true;
+    }
+
+    const legacyHeadlines = new Set([
+      '',
+      'The drop is live. Grab it before it isn’t.',
+    ]);
+    const legacySubs = new Set([
+      '',
+      'Browse the catalog. Sign in when you’re ready to check out.',
+      'Browse the catalog. Log in when you want to bag something.',
+    ]);
+
+    if (legacyHeadlines.has(hero.headline?.trim() ?? '')) {
+      hero.headline = DEFAULT_STOREFRONT.hero.headline;
+      dirty = true;
+    }
+    if (legacySubs.has(hero.sub?.trim() ?? '')) {
+      hero.sub = DEFAULT_STOREFRONT.hero.sub;
+      dirty = true;
+    }
+    if (blank(hero.imageUrl)) {
+      hero.imageUrl = fileUrl(SEED_UPLOADS.hero);
+      dirty = true;
+    }
+    if (blank(hero.href)) {
+      hero.href = DEFAULT_STOREFRONT.hero.href;
+      dirty = true;
+    }
+    if (blank(hero.cta)) {
+      hero.cta = DEFAULT_STOREFRONT.hero.cta;
+      dirty = true;
+    }
+
+    if (!row.banners?.length) {
+      row.banners = this.defaultBanners(fileUrl);
+      dirty = true;
+    }
+
+    if (dirty) {
+      row.set('hero', hero);
+      await row.save();
+      await this.catalogCache.bump();
     }
     return row;
   }
 
+  private defaultBanners(fileUrl: (name: string) => string) {
+    return DEFAULT_STOREFRONT.banners.map((banner) => ({
+      headline: banner.headline,
+      sub: banner.sub,
+      href: banner.href,
+      sortOrder: banner.sortOrder,
+      imageUrl: fileUrl(SEED_UPLOADS[banner.imageSeed]),
+    }));
+  }
+
   private async createDefaultStorefront() {
     await this.ensureSeedFilesInUploads();
-    const base = this.publicBaseUrl();
-    const fileUrl = (name: string) => `${base}/api/storefront/files/${name}`;
+    const fileUrl = (name: string) =>
+      `${this.publicBaseUrl()}/api/storefront/files/${name}`;
 
     return this.model.create({
-      ...DEFAULT_STOREFRONT,
+      key: DEFAULT_STOREFRONT.key,
+      appName: DEFAULT_STOREFRONT.appName,
+      tagline: DEFAULT_STOREFRONT.tagline,
       logoUrl: fileUrl(SEED_UPLOADS.logo),
       faviconUrl: fileUrl(SEED_UPLOADS.favicon),
+      currency: DEFAULT_STOREFRONT.currency,
       hero: {
         ...DEFAULT_STOREFRONT.hero,
         imageUrl: fileUrl(SEED_UPLOADS.hero),
       },
+      banners: this.defaultBanners(fileUrl),
     });
   }
 

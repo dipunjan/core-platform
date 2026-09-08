@@ -36,9 +36,6 @@ export function LoginPage() {
       <div className="admin-login-brand d-none d-lg-flex flex-column justify-content-end">
         <p className="small fw-bold text-uppercase mb-2 opacity-75">Staff only</p>
         <h1 className="mb-3">{shopName} admin</h1>
-        <p className="lead mb-0 opacity-90" style={{ maxWidth: '22rem' }}>
-          Manage products, inventory, branding, and people — everything shoppers see on the storefront.
-        </p>
       </div>
       <div className="d-flex flex-grow-1 align-items-center justify-content-center p-4 bg-light">
         <form
@@ -47,10 +44,7 @@ export function LoginPage() {
         >
           <div className="card-body">
             <p className="admin-page-eyebrow mb-1">Welcome back</p>
-            <h1 className="h3 fw-bold mb-2">Sign in</h1>
-            <p className="text-muted mb-4">
-              Use your staff account. Same email and password as the shop.
-            </p>
+            <h1 className="h3 fw-bold mb-4">Sign in</h1>
             <Flash>{error}</Flash>
             <Field
               label="Email"

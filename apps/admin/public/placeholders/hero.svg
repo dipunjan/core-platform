@@ -1,5 +1,19 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1400" height="560" viewBox="0 0 1400 560">
-  <rect width="1400" height="560" fill="#27272a"/>
-  <rect x="80" y="80" width="1240" height="400" rx="16" fill="#3f3f46" stroke="#52525b" stroke-width="2"/>
-  <text x="700" y="290" text-anchor="middle" font-family="system-ui,sans-serif" font-size="36" font-weight="600" fill="#a1a1aa">Hero image</text>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="50%" stop-color="#134e4a"/>
+      <stop offset="100%" stop-color="#064e3b"/>
+    </linearGradient>
+  </defs>
+  <rect width="1400" height="560" fill="url(#bg)"/>
+  <rect x="0" y="360" width="1400" height="200" fill="#022c22" opacity="0.55"/>
+  <ellipse cx="1100" cy="140" rx="320" ry="200" fill="#34d399" opacity="0.12"/>
+  <rect x="120" y="120" width="280" height="320" fill="#1e293b" opacity="0.7"/>
+  <rect x="160" y="160" width="200" height="240" fill="#334155"/>
+  <circle cx="260" cy="280" r="72" fill="#10b981" opacity="0.85"/>
+  <path d="M220 300 L260 230 L300 300 Z" fill="#ecfdf5" opacity="0.9"/>
+  <rect x="480" y="180" width="520" height="28" fill="#f8fafc" opacity="0.9"/>
+  <rect x="480" y="230" width="380" height="18" fill="#a7f3d0" opacity="0.75"/>
+  <rect x="480" y="264" width="420" height="18" fill="#6ee7b7" opacity="0.5"/>
 </svg>

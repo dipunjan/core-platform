@@ -10,7 +10,7 @@ import {
   PromoGrid,
   Section,
 } from '@/components/ui';
-import { useCatalog, siteName } from '@/hooks';
+import { useCatalog } from '@/hooks';
 
 export function HomePage() {
   const { products, categories, storefront, error, loading, loadCatalog } = useCatalog();
@@ -22,7 +22,7 @@ export function HomePage() {
   const featured = products.filter((product) => product.featured);
   const homeCategory = categories.find((category) => category.showOnHome);
   const hero = storefront?.hero;
-  const eyebrow = storefront?.tagline?.trim() || siteName(storefront);
+  const eyebrow = storefront?.tagline?.trim() || storefront?.appName?.trim() || '';
   const extras = [...(storefront?.banners ?? [])].sort(
     (a, b) => a.sortOrder - b.sortOrder,
   );
@@ -33,21 +33,19 @@ export function HomePage() {
 
   return (
     <>
-      <HeroBanner
-        hero={hero}
-        eyebrow={eyebrow}
-        homeCategory={homeCategory}
-      />
+      {hero ? (
+        <HeroBanner
+          hero={hero}
+          eyebrow={eyebrow}
+          homeCategory={homeCategory}
+        />
+      ) : null}
       <PromoGrid banners={extras} />
-      <Section
-        title="Shop by category"
-        description="Find your lane — apparel, tech, and more."
-      >
+      <Section title="Shop by category">
         <CategoryGrid categories={categories} loading={loading} />
       </Section>
       <Section
         title="Featured"
-        description="Hand-picked favorites from this week’s drop."
         action={{ to: '/shop', label: 'View all' }}
       >
         <Flash>{error}</Flash>

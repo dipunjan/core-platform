@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="480" viewBox="0 0 800 480">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#78350f"/>
+      <stop offset="100%" stop-color="#b45309"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="480" fill="url(#g)"/>
+  <rect x="420" y="140" width="280" height="200" rx="8" fill="#fef3c7" opacity="0.9"/>
+  <rect x="460" y="180" width="200" height="24" fill="#92400e" opacity="0.35"/>
+  <path d="M440 300 L520 300 L540 340 L400 340 Z" fill="#451a03" opacity="0.65"/>
+  <text x="48" y="120" font-family="system-ui,sans-serif" font-size="38" font-weight="700" fill="#fffbeb">Carry it all</text>
+</svg>

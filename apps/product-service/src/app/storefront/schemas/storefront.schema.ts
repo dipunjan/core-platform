@@ -25,11 +25,11 @@ export const BannerSchema = SchemaFactory.createForClass(Banner);
 
 @Schema({ _id: false })
 export class HeroBanner {
-  @Prop({ default: 'The drop is live. Grab it before it isn’t.', trim: true })
+  @Prop({ default: 'Gear up. Move fast.', trim: true })
   headline!: string;
 
   @Prop({
-    default: 'Browse the catalog. Log in when you want to bag something.',
+    default: 'Curated apparel, shoes, and bags — simple checkout, no fuss.',
     trim: true,
   })
   sub!: string;
@@ -51,10 +51,10 @@ export class Storefront {
   @Prop({ required: true, unique: true, default: 'default' })
   key!: string;
 
-  @Prop({ default: 'My Shop', trim: true })
+  @Prop({ default: 'Swoop', trim: true })
   appName!: string;
 
-  @Prop({ default: 'Welcome', trim: true })
+  @Prop({ default: 'New season', trim: true })
   tagline!: string;
 
   @Prop({ default: '', trim: true })

@@ -9,7 +9,7 @@ type PromoTileProps = {
 export function PromoTile({ banner }: PromoTileProps) {
   return (
     <Link
-      to={banner.href || '/shop'}
+      to={banner.href}
       className="d-flex flex-column justify-content-end text-white text-decoration-none p-4 promo-tile h-100"
       style={{
         backgroundImage: `url(${brandImage(banner.imageUrl, 'promo')})`,

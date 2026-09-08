@@ -196,10 +196,7 @@ export function PeoplePage() {
 
   return (
     <>
-      <PageHeader
-        title="People"
-        description="Create shoppers or staff with a shipping address. You cannot delete or demote yourself, or remove the last admin."
-      />
+      <PageHeader title="People" />
       <Flash tone="success">{notice}</Flash>
       <Flash>{error}</Flash>
       <form

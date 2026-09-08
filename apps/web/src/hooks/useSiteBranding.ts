@@ -7,7 +7,10 @@ export function useSiteBranding(
   pageTitle?: string,
 ) {
   useEffect(() => {
-    const appName = storefront?.appName?.trim() || 'Shop';
+    const appName = storefront?.appName?.trim() ?? '';
+    if (!appName && !pageTitle) {
+      return;
+    }
     document.title = pageTitle ? `${pageTitle} · ${appName}` : appName;
 
     const icon = brandImage(storefront?.faviconUrl || storefront?.logoUrl, 'favicon');
@@ -29,5 +32,5 @@ export function useSiteBranding(
 }
 
 export function siteName(storefront: Storefront | null | undefined) {
-  return storefront?.appName?.trim() || 'Shop';
+  return storefront?.appName?.trim() ?? '';
 }

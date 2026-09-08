@@ -77,10 +77,7 @@ export function InventoryPage() {
 
   return (
     <>
-      <PageHeader
-        title="Inventory"
-        description="Set on-hand stock per product. Reserved counts update when orders are placed."
-      />
+      <PageHeader title="Inventory" />
       <Flash tone="success">{notice}</Flash>
       <Flash>{error}</Flash>
       <div className="card admin-table-card">

@@ -28,28 +28,30 @@ export function BrandingPage() {
   const [headline, setHeadline] = useState('');
   const [sub, setSub] = useState('');
   const [imageUrl, setImageUrl] = useState('');
-  const [href, setHref] = useState('/shop');
-  const [cta, setCta] = useState('Shop all');
+  const [href, setHref] = useState('');
+  const [cta, setCta] = useState('');
   const [promoHeadline, setPromoHeadline] = useState('');
   const [promoSub, setPromoSub] = useState('');
   const [promoImage, setPromoImage] = useState('');
-  const [promoHref, setPromoHref] = useState('/shop');
+  const [promoHref, setPromoHref] = useState('');
   const [promoUploading, setPromoUploading] = useState(false);
   const [promoAttempted, setPromoAttempted] = useState(false);
   const [promoErrors, setPromoErrors] = useState<{
     headline?: string;
     image?: string;
+    href?: string;
   }>({});
   const [editingBannerId, setEditingBannerId] = useState('');
   const [editPromoHeadline, setEditPromoHeadline] = useState('');
   const [editPromoSub, setEditPromoSub] = useState('');
   const [editPromoImage, setEditPromoImage] = useState('');
-  const [editPromoHref, setEditPromoHref] = useState('/shop');
+  const [editPromoHref, setEditPromoHref] = useState('');
   const [editPromoUploading, setEditPromoUploading] = useState(false);
   const [editPromoAttempted, setEditPromoAttempted] = useState(false);
   const [editPromoErrors, setEditPromoErrors] = useState<{
     headline?: string;
     image?: string;
+    href?: string;
   }>({});
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
@@ -64,8 +66,8 @@ export function BrandingPage() {
     setHeadline(data.hero?.headline ?? '');
     setSub(data.hero?.sub ?? '');
     setImageUrl(data.hero?.imageUrl ?? '');
-    setHref(data.hero?.href ?? '/shop');
-    setCta(data.hero?.cta ?? 'Shop all');
+    setHref(data.hero?.href ?? '');
+    setCta(data.hero?.cta ?? '');
   }
 
   function apply(data: Storefront) {
@@ -199,6 +201,14 @@ export function BrandingPage() {
       setError('Enter a hero headline.');
       return;
     }
+    if (!href.trim()) {
+      setError('Enter a button link for the hero.');
+      return;
+    }
+    if (!cta.trim()) {
+      setError('Enter a button label for the hero.');
+      return;
+    }
     if (imageUrl.startsWith('blob:')) {
       setError('Wait for the hero image upload to finish.');
       return;
@@ -210,8 +220,8 @@ export function BrandingPage() {
           headline: headline.trim(),
           sub: sub.trim(),
           imageUrl,
-          href: href.trim() || '/shop',
-          cta: cta.trim() || 'Shop all',
+          href: href.trim(),
+          cta: cta.trim(),
         },
       });
       apply(data);
@@ -224,7 +234,7 @@ export function BrandingPage() {
   }
 
   function validatePromo() {
-    const next: { headline?: string; image?: string } = {};
+    const next: { headline?: string; image?: string; href?: string } = {};
     if (!promoHeadline.trim()) {
       next.headline = 'Enter a headline for this tile.';
     }
@@ -233,11 +243,14 @@ export function BrandingPage() {
     } else if (!promoImage) {
       next.image = 'Choose an image for this tile.';
     }
+    if (!promoHref.trim()) {
+      next.href = 'Enter a link for this tile.';
+    }
     return next;
   }
 
   function validateEditPromo() {
-    const next: { headline?: string; image?: string } = {};
+    const next: { headline?: string; image?: string; href?: string } = {};
     if (!editPromoHeadline.trim()) {
       next.headline = 'Enter a headline for this tile.';
     }
@@ -245,6 +258,9 @@ export function BrandingPage() {
       next.image = 'Wait for the image upload to finish.';
     } else if (!editPromoImage) {
       next.image = 'Choose an image for this tile.';
+    }
+    if (!editPromoHref.trim()) {
+      next.href = 'Enter a link for this tile.';
     }
     return next;
   }
@@ -255,7 +271,7 @@ export function BrandingPage() {
     setEditPromoHeadline(banner.headline);
     setEditPromoSub(banner.sub ?? '');
     setEditPromoImage(banner.imageUrl);
-    setEditPromoHref(banner.href || '/shop');
+    setEditPromoHref(banner.href ?? '');
     setEditPromoAttempted(false);
     setEditPromoErrors({});
   }
@@ -265,7 +281,7 @@ export function BrandingPage() {
     setEditPromoHeadline('');
     setEditPromoSub('');
     setEditPromoImage('');
-    setEditPromoHref('/shop');
+    setEditPromoHref('');
     setEditPromoAttempted(false);
     setEditPromoErrors({});
   }
@@ -286,7 +302,7 @@ export function BrandingPage() {
         headline,
         sub: editPromoSub.trim(),
         imageUrl: editPromoImage,
-        href: editPromoHref.trim() || '/shop',
+        href: editPromoHref.trim(),
       });
       apply(data);
       cancelEditBanner();
@@ -314,12 +330,13 @@ export function BrandingPage() {
         headline,
         sub: promoSub.trim(),
         imageUrl: promoImage,
-        href: promoHref.trim() || '/shop',
+        href: promoHref.trim(),
       });
       apply(data);
       setPromoHeadline('');
       setPromoSub('');
       setPromoImage('');
+      setPromoHref('');
       setPromoAttempted(false);
       setPromoErrors({});
       setNotice('Promo tile added.');
@@ -360,10 +377,7 @@ export function BrandingPage() {
 
   return (
     <>
-      <PageHeader
-        title="Branding"
-        description="Uploaded images are live on the shop. Empty slots show a placeholder on the website until you upload something."
-      />
+      <PageHeader title="Branding" />
       <Flash tone="success">{notice}</Flash>
       <Flash>{loadError || error}</Flash>
       <form
@@ -380,7 +394,7 @@ export function BrandingPage() {
           required
         />
         <Field
-          label="Home tagline (small line above hero headline)"
+          label="Tagline"
           value={tagline}
           onChange={(e) => setTagline(e.target.value)}
         />
@@ -466,12 +480,7 @@ export function BrandingPage() {
       </form>
       <section className="card" style={{ maxWidth: '36rem' }}>
         <div className="card-body">
-        <h2 className="admin-section-title mb-2">Promo tiles (under the hero)</h2>
-        <p className="text-muted mb-4">
-          Optional cards on the shop home page, below the hero. Enter a headline,
-          upload an image, then click <strong>Add tile</strong>. Sample files
-          are in <code className="small">branding-samples/</code>.
-        </p>
+        <h2 className="admin-section-title mb-3">Promo tiles</h2>
         <ul className="list-unstyled d-grid gap-3 mb-4">
           {(store?.banners ?? []).map((banner) => {
             const bannerId = docId(banner);
@@ -531,13 +540,14 @@ export function BrandingPage() {
                         }
                       }}
                       onError={setError}
-                      hint="JPEG, PNG, GIF, WebP, or SVG."
                       error={editPromoAttempted ? editPromoErrors.image : undefined}
                     />
                     <Field
                       label="Link"
                       value={editPromoHref}
                       onChange={(e) => setEditPromoHref(e.target.value)}
+                      required
+                      error={editPromoAttempted ? editPromoErrors.href : undefined}
                     />
                     <div className="d-flex flex-wrap gap-2">
                       <Button
@@ -650,14 +660,14 @@ export function BrandingPage() {
               }
             }}
             onError={setError}
-            hint="JPEG, PNG, GIF, WebP, or SVG."
             error={promoAttempted ? promoErrors.image : undefined}
           />
           <Field
             label="Link"
             value={promoHref}
             onChange={(e) => setPromoHref(e.target.value)}
-            hint="Where the tile goes when clicked. Default is the shop."
+            required
+            error={promoAttempted ? promoErrors.href : undefined}
           />
           <Button type="submit" loading={busy === 'promo'}>
             Add tile

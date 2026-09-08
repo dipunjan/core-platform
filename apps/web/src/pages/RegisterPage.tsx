@@ -45,7 +45,6 @@ export function RegisterPage() {
     <AuthCard
       wide
       title="Create account"
-      description="Name, email, password, mobile, and a shipping address. You will confirm the address again at checkout."
       footer={
         <>
           Already have an account? <TextLink to={loginTo}>Log in</TextLink>
